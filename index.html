@@ -317,51 +317,13 @@ const exportPDF = (data, analysis = {}) => {
   const safe = (v, fallback = "N/A") =>
     v === undefined || v === null || v === "" ? fallback : v;
 
-  const parseCost = (costStr) => {
-    if (!costStr) return { min: 0, max: 0 };
-    // Ex: "6 000 à 25 000 €" ou "1500-8000 €"
-    const nums = String(costStr)
-      .replace(/[€]/g, "")
-      .replace(/[–-]/g, " ")
-      .replace(/à/g, " ")
-      .replace(/\s+/g, " ")
-      .trim()
-      .match(/\d+/g);
+  const formatRangeEuro = (min, max) => `${fmt(min)} à ${fmt(max)} €`;
 
-    if (!nums || nums.length === 0) return { min: 0, max: 0 };
-
-    const values = nums.map((x) => Number(x));
-    if (values.length === 1) return { min: values[0], max: values[0] };
-
-    // Regroupe les milliers si split bizarres
-    // Exemple "6 000 25 000" -> [6,000,25,000]
-    // On reconstruit par paires si plausible
-    if (values.length === 4 && values[1] < 1000 && values[3] < 1000) {
-      return {
-        min: values[0] * 1000 + values[1],
-        max: values[2] * 1000 + values[3],
-      };
-    }
-
-    return {
-      min: Math.min(...values),
-      max: Math.max(...values),
-    };
-  };
-
-  const normalizeCostLabel = (costStr) => {
-    const { min, max } = parseCost(costStr);
-    if (!min && !max) return "À estimer";
-    if (min === max) return `${fmt(min)} €`;
-    return `${fmt(min)} à ${fmt(max)} €`;
-  };
-
-  const computeROI = (costStr, gainEuro) => {
+  const computeROI = (costMin, costMax, gainEuro) => {
     const gain = Number(gainEuro || 0);
-    const { min, max } = parseCost(costStr);
-    if (!gain || gain <= 0 || (!min && !max)) return "À estimer";
-    const roiMin = Math.round((min / gain) * 10) / 10;
-    const roiMax = Math.round((max / gain) * 10) / 10;
+    if (!gain || gain <= 0 || (!costMin && !costMax)) return "À estimer";
+    const roiMin = Math.round((costMin / gain) * 10) / 10;
+    const roiMax = Math.round((costMax / gain) * 10) / 10;
     return `${fmtDec(roiMin)} à ${fmtDec(roiMax)} ans`;
   };
 
@@ -387,47 +349,56 @@ const exportPDF = (data, analysis = {}) => {
 
   const drawDPEGauge = (x, y, dpeLabel, kwhPerM2) => {
     const dpeData = [
-      { label: "A", color: [26, 158, 92], width: 25 },
-      { label: "B", color: [76, 184, 76], width: 35 },
-      { label: "C", color: [178, 210, 79], width: 45 },
-      { label: "D", color: [245, 229, 74], width: 55 },
-      { label: "E", color: [245, 165, 35], width: 65 },
-      { label: "F", color: [232, 98, 42], width: 75 },
-      { label: "G", color: [212, 37, 42], width: 85 },
+      { label: "A", color: [26, 158, 92], width: 30 },
+      { label: "B", color: [76, 184, 76], width: 40 },
+      { label: "C", color: [178, 210, 79], width: 50 },
+      { label: "D", color: [245, 229, 74], width: 60 },
+      { label: "E", color: [245, 165, 35], width: 70 },
+      { label: "F", color: [232, 98, 42], width: 80 },
+      { label: "G", color: [212, 37, 42], width: 90 },
     ];
 
     dpeData.forEach((dpe, i) => {
-      const yPos = y + i * 9;
+      const yPos = y + i * 10;
 
+      // Barre colorée avec ombre
       doc.setFillColor(...dpe.color);
-      doc.roundedRect(x, yPos, dpe.width, 7, 1, 1, "F");
+      doc.roundedRect(x, yPos, dpe.width, 8, 2, 2, "F");
 
+      // Lettre blanche en gras
       doc.setTextColor(255, 255, 255);
       doc.setFont("helvetica", "bold");
-      doc.setFontSize(10);
-      doc.text(dpe.label, x + 3, yPos + 5);
+      doc.setFontSize(11);
+      doc.text(dpe.label, x + 4, yPos + 5.5);
 
+      // Si classe active : flèche + valeur
       if (dpe.label === dpeLabel) {
+        // Fond blanc pour la valeur
+        doc.setFillColor(255, 255, 255);
+        doc.roundedRect(x + dpe.width + 5, yPos - 1, 55, 10, 2, 2, "F");
         doc.setDrawColor(30, 58, 95);
-        doc.setLineWidth(0.8);
-        const arrowX = x + dpe.width + 5;
-        doc.line(arrowX, yPos + 3.5, arrowX + 8, yPos + 3.5);
+        doc.roundedRect(x + dpe.width + 5, yPos - 1, 55, 10, 2, 2, "S");
 
+        // Flèche
+        doc.setDrawColor(30, 58, 95);
+        doc.setLineWidth(1.2);
+        const arrowX = x + dpe.width + 8;
+        doc.line(arrowX, yPos + 4, arrowX + 5, yPos + 4);
+        
+        // Triangle
         doc.setFillColor(30, 58, 95);
         doc.triangle(
-          arrowX + 8,
-          yPos + 1.5,
-          arrowX + 8,
-          yPos + 5.5,
-          arrowX + 12,
-          yPos + 3.5,
+          arrowX + 5, yPos + 2,
+          arrowX + 5, yPos + 6,
+          arrowX + 9, yPos + 4,
           "F"
         );
 
+        // Valeur kWh/m²
         doc.setTextColor(30, 58, 95);
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(12);
-        doc.text(`${fmt(kwhPerM2)} kWh/m²/an`, arrowX + 15, yPos + 5);
+        doc.setFontSize(10);
+        doc.text(`${fmt(kwhPerM2)} kWh/m²/an`, arrowX + 12, yPos + 5.5);
       }
     });
   };
@@ -435,7 +406,7 @@ const exportPDF = (data, analysis = {}) => {
   const drawComparisonBars = (x, y, kwhPerM2, refBase, activityLabel) => {
     const targetVal = Math.round(refBase * 0.8);
     const maxVal = Math.max(kwhPerM2 || 1, refBase || 1, targetVal || 1);
-    const barMaxWidth = 105;
+    const barMaxWidth = 115;
 
     const bars = [
       { label: "Votre bâtiment", val: kwhPerM2, color: [231, 76, 60] },
@@ -444,62 +415,76 @@ const exportPDF = (data, analysis = {}) => {
     ];
 
     bars.forEach((bar, i) => {
-      const yBar = y + i * 11;
-      const barWidth = Math.max(2, (bar.val / maxVal) * barMaxWidth);
+      const yBar = y + i * 13;
+      const barWidth = Math.max(5, (bar.val / maxVal) * barMaxWidth);
 
-      doc.setFont("helvetica", "normal");
-      doc.setFontSize(8);
-      doc.setTextColor(100, 116, 139);
-      doc.text(bar.label, x, yBar + 4);
-
-      doc.setFillColor(...bar.color);
-      doc.roundedRect(x + 55, yBar, barWidth, 6, 1, 1, "F");
-
+      // Label PLUS VISIBLE
       doc.setFont("helvetica", "bold");
       doc.setFontSize(8);
+      doc.setTextColor(60, 60, 60);
+      doc.text(bar.label, x, yBar + 5);
+
+      // Barre avec ombre
+      doc.setFillColor(220, 220, 220);
+      doc.roundedRect(x + 58, yBar + 0.5, barWidth, 7, 2, 2, "F");
+      
+      doc.setFillColor(...bar.color);
+      doc.roundedRect(x + 57, yBar, barWidth, 7, 2, 2, "F");
+
+      // Valeur EN GRAS à droite de la barre
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
       doc.setTextColor(...bar.color);
-      doc.text(`${fmt(bar.val)} kWh/m²`, x + 58 + barWidth, yBar + 4);
+      doc.text(`${fmt(bar.val)} kWh/m²`, x + 60 + barWidth, yBar + 5);
     });
 
-    return y + 33;
+    return y + 40;
   };
 
   const drawActionCard = (x, y, priority, index) => {
-    const cardH = 46;
+    const cardH = 50;
     const cardW = 180;
 
-    doc.setFillColor(248, 249, 250);
-    doc.roundedRect(x, y, cardW, cardH, 2, 2, "F");
+    // Fond carte avec ombre simulée
+    doc.setFillColor(250, 250, 250);
+    doc.roundedRect(x + 0.5, y + 0.5, cardW, cardH, 3, 3, "F");
+    
+    doc.setFillColor(255, 255, 255);
+    doc.roundedRect(x, y, cardW, cardH, 3, 3, "F");
     doc.setDrawColor(226, 232, 240);
-    doc.roundedRect(x, y, cardW, cardH, 2, 2, "S");
+    doc.setLineWidth(0.5);
+    doc.roundedRect(x, y, cardW, cardH, 3, 3, "S");
 
+    // Barre colorée gauche PLUS LARGE
     const catColors = {
       Enveloppe: [231, 76, 60],
       Pilotage: [52, 152, 219],
       "ROI rapide": [46, 204, 113],
       Confort: [243, 156, 18],
+      Performance: [155, 89, 182]
     };
     const color = catColors[priority.tag] || [100, 116, 139];
 
     doc.setFillColor(...color);
-    doc.rect(x, y, 3, cardH, "F");
+    doc.rect(x, y, 4, cardH, "F");
 
+    // Titre action PLUS GROS
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(10);
+    doc.setFontSize(11);
     doc.setTextColor(30, 58, 95);
-    doc.text(`${index}. ${priority.title}`, x + 6, y + 7);
+    doc.text(`${index}. ${priority.title}`, x + 7, y + 8);
 
-    // Badge catégorie
-    doc.setFillColor(240, 240, 240);
-    doc.roundedRect(x + 6, y + 10, 30, 5, 1, 1, "F");
-    doc.setFont("helvetica", "normal");
+    // Badge catégorie avec fond coloré
+    doc.setFillColor(...color, 30);
+    doc.roundedRect(x + 7, y + 11, 32, 5.5, 1.5, 1.5, "F");
+    doc.setFont("helvetica", "bold");
     doc.setFontSize(7);
     doc.setTextColor(...color);
-    doc.text(priority.tag || "Action", x + 8, y + 13.5);
+    doc.text(priority.tag || "Action", x + 9, y + 14.5);
 
-    const col1X = x + 6;
-    const col2X = x + 96;
-    let lineY = y + 19;
+    const col1X = x + 7;
+    const col2X = x + 98;
+    let lineY = y + 21;
 
     // Économies énergie
     doc.setFont("helvetica", "normal");
@@ -507,23 +492,23 @@ const exportPDF = (data, analysis = {}) => {
     doc.setTextColor(100, 116, 139);
     doc.text("Économies énergie", col1X, lineY);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
+    doc.setFontSize(9);
     doc.setTextColor(30, 58, 95);
-    doc.text(`${fmt(priority.gainKwhVal)} kWh/an`, col1X, lineY + 4);
+    doc.text(`${fmt(priority.gainKwhVal)} kWh/an`, col1X, lineY + 4.5);
 
-    // Gain financier
+    // Gain financier EN VERT
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7);
     doc.setTextColor(100, 116, 139);
     doc.text("Gain financier", col2X, lineY);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(8);
+    doc.setFontSize(9);
     doc.setTextColor(46, 204, 113);
-    doc.text(`${fmt(priority.gainEuro)} €/an`, col2X, lineY + 4);
+    doc.text(`${fmt(priority.gainEuro)} €/an`, col2X, lineY + 4.5);
 
-    lineY += 10;
+    lineY += 12;
 
-    // Coût
+    // Coût (ON FORMATE ICI depuis costMin/costMax)
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7);
     doc.setTextColor(100, 116, 139);
@@ -531,34 +516,38 @@ const exportPDF = (data, analysis = {}) => {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(30, 58, 95);
-    doc.text(priority.costLabel || "À estimer", col1X, lineY + 4);
+    const costLabel = formatRangeEuro(priority.costMin, priority.costMax);
+    doc.text(costLabel, col1X, lineY + 4);
 
-    // ROI
+    // ROI (ON CALCULE ICI depuis costMin/costMax/gainEuro)
     doc.setFont("helvetica", "normal");
     doc.setFontSize(7);
     doc.setTextColor(100, 116, 139);
-    doc.text("ROI indicatif (hors aides)", col2X, lineY);
+    doc.text("ROI (hors aides)", col2X, lineY);
     doc.setFont("helvetica", "bold");
     doc.setFontSize(8);
     doc.setTextColor(30, 58, 95);
-    doc.text(priority.roiLabel || "À estimer", col2X, lineY + 4);
+    const roiLabel = computeROI(priority.costMin, priority.costMax, priority.gainEuro);
+    doc.text(roiLabel, col2X, lineY + 4);
 
-    // Aides
-    lineY += 10;
-    doc.setFillColor(254, 243, 199);
-    doc.roundedRect(x + 6, lineY - 2, cardW - 12, 10, 1, 1, "F");
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(6.7);
+    // Aides avec fond jaune PLUS VISIBLE
+    lineY += 11;
+    doc.setFillColor(255, 249, 219);
+    doc.roundedRect(x + 7, lineY - 2, cardW - 14, 11, 2, 2, "F");
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(7);
     doc.setTextColor(146, 64, 14);
-    doc.text("Aides indicatives", x + 8, lineY + 1);
-    doc.text(`CEE : ${priority.ceeRange || "À estimer"}`, x + 8, lineY + 4.6);
-    doc.text(
-      `MaPrimeRénov' : ${priority.mprNote || "À vérifier (tertiaire souvent non prioritaire)"}`,
-      x + 8,
-      lineY + 8
-    );
+    doc.text("💸 Aides indicatives", x + 9, lineY + 1);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.5);
+    const ceeLabel = priority.aids?.cee?.label?.replace(/^CEE\s*:\s*/i, "") || "À estimer";
+    const mprLabel = priority.aids?.mpr?.label?.replace(/^MaPrimeRénov'\s*:\s*/i, "") || "À vérifier";
+    doc.text(`• CEE : ${ceeLabel}`, x + 9, lineY + 5);
+    doc.text(`• MaPrimeRénov' : ${mprLabel}`, x + 9, lineY + 8.5);
 
-    return y + cardH + 4;
+    return y + cardH + 5;
   };
 
   const ensurePageSpace = (y, needed, marginBottom = 15) => {
@@ -570,40 +559,26 @@ const exportPDF = (data, analysis = {}) => {
   };
 
   // =========================
-  // Données source / fallback
+  // Données source
   // =========================
   const margin = 12;
   const contentW = 210 - margin * 2;
 
   const buildingName = safe(data.buildingName, "Bâtiment tertiaire");
-const activityLabel = safe(analysis?.activityRef?.label || data.activityLabel || data.activity, "Tertiaire");
-const heating = safe(analysis?.heatingLabel || data.heating, "Non renseigné");
+  const activityLabel = safe(analysis?.activityRef?.label || data.activityLabel || data.activity, "Tertiaire");
+  const heating = safe(analysis?.heatingLabel || data.heating, "Non renseigné");
   const surface = Number(data.surface || data.surfaceM2 || 0);
   const year = safe(data.year, "Non renseignée");
- 
 
-  const kwhPerM2 = Number(
-    analysis.kwhPerM2 ??
-      data.kwhPerM2 ??
-      0
-  );
-  const refBase = Number(
-    analysis.refBase ??
-      data.refBase ??
-      250
-  );
+  const kwhPerM2 = Number(analysis.kwhPerM2 ?? data.kwhPerM2 ?? 0);
+  const refBase = Number(analysis.refBase ?? data.refBase ?? 250);
   const targetVal = Math.round(refBase * 0.8);
- const dpeLabel = safe(analysis?.dpe?.l || data.dpeLabel, "D");
+  const dpeLabel = safe(analysis?.dpe?.l || data.dpeLabel, "D");
 
-  const avgPrice =
-    Number(analysis.avgPrice) ||
-    Number(data.avgPrice) ||
-    (String(heating).toLowerCase().includes("gaz") ? 0.12 : 0.25);
+  const avgPrice = Number(analysis.avgPrice) || Number(data.avgPrice) || (String(heating).toLowerCase().includes("gaz") ? 0.12 : 0.25);
 
-  // Priorités (attendu : analysis.priorities = [{title, tag, gainKwhVal, gainEuro, cost, ceeRange, mprNote}, ...])
   let priorities = Array.isArray(analysis.priorities) ? [...analysis.priorities] : [];
 
-  // Fallback si aucune priorité transmise
   if (!priorities.length) {
     priorities = [
       {
@@ -611,34 +586,14 @@ const heating = safe(analysis?.heatingLabel || data.heating, "Non renseigné");
         tag: "Pilotage",
         gainKwhVal: 8000,
         gainEuro: 2013,
-        cost: "1 500 à 8 000 €",
-        ceeRange: "1 000 à 4 000 €",
-        mprNote: "À vérifier",
-      },
-      {
-        title: "Passage en LED",
-        tag: "ROI rapide",
-        gainKwhVal: 4500,
-        gainEuro: 1125,
-        cost: "2 000 à 10 000 €",
-        ceeRange: "500 à 3 000 €",
-        mprNote: "Peu fréquent en tertiaire pur",
-      },
-      {
-        title: "Isolation toiture",
-        tag: "Enveloppe",
-        gainKwhVal: 12000,
-        gainEuro: 2491,
-        cost: "6 000 à 25 000 €",
-        ceeRange: "3 000 à 12 000 €",
-        mprNote: "À vérifier selon statut",
-      },
+        costMin: 1500,
+        costMax: 8000,
+        aids: { cee: { label: "1 000 à 4 000 €" }, mpr: { label: "À vérifier" } }
+      }
     ];
   }
 
-  // =========================
   // Logique conditionnelle de cohérence
-  // =========================
   const diffRatio = refBase > 0 ? (kwhPerM2 - refBase) / refBase : 0;
 
   let performanceMessage = "";
@@ -647,11 +602,7 @@ const heating = safe(analysis?.heatingLabel || data.heating, "Non renseigné");
   if (kwhPerM2 > 0 && diffRatio < 0) {
     performanceMessage = `Votre bâtiment est plus performant que la référence (${fmt(Math.abs(Math.round(diffRatio * 100)))}% de moins).`;
     performanceColor = [46, 204, 113];
-
-    // Si performant, on garde plutôt des actions d'optimisation
-    priorities = priorities
-      .filter((p) => ["Pilotage", "ROI rapide", "Confort"].includes(p.tag))
-      .slice(0, 3);
+    priorities = priorities.filter((p) => ["Pilotage", "ROI rapide", "Confort"].includes(p.tag)).slice(0, 3);
   } else if (Math.abs(diffRatio) <= 0.15) {
     performanceMessage = "Votre bâtiment est proche de la référence sectorielle. Des optimisations ciblées peuvent améliorer le rendement.";
     performanceColor = [243, 156, 18];
@@ -659,20 +610,6 @@ const heating = safe(analysis?.heatingLabel || data.heating, "Non renseigné");
     performanceMessage = `Votre bâtiment semble au-dessus de la référence (+${fmt(Math.round(diffRatio * 100))}%). Prioriser les actions à fort impact.`;
     performanceColor = [231, 76, 60];
   }
-
-  // Normalisation coûts + ROI (CORRECTION CRITIQUE)
-  priorities = priorities.map((p) => {
-     const costLabel = normalizeCostLabel(p.cost);
-  const roiLabel = p.roiYears || computeROI(costLabel, p.gainEuro);
-
-  return {
-    ...p,
-    costLabel,
-    roiLabel,
-    ceeRange: p?.aids?.cee?.label?.replace(/^CEE\s*:\s*/i, "") || "À estimer",
-    mprNote: p?.aids?.mpr?.label?.replace(/^MaPrimeRénov'\s*:\s*/i, "") || "À vérifier"
-    };
-  });
 
   // =========================
   // PAGE 1
@@ -720,7 +657,7 @@ const heating = safe(analysis?.heatingLabel || data.heating, "Non renseigné");
   y += 4;
 
   doc.setFillColor(255, 255, 255);
-  doc.roundedRect(margin, y, contentW, 52, 2, 2, "S");
+  doc.roundedRect(margin, y, contentW, 58, 2, 2, "S");
 
   // DPE gauge
   drawDPEGauge(margin + 4, y + 4, dpeLabel, kwhPerM2);
@@ -751,13 +688,13 @@ const heating = safe(analysis?.heatingLabel || data.heating, "Non renseigné");
   const perfLines = doc.splitTextToSize(performanceMessage, 82);
   doc.text(perfLines, kpiX, y + 39);
 
-  y += 58;
+  y += 64;
 
   // Comparaison barres
   drawSectionTitle("Comparaison visuelle", margin, y);
   y += 4;
-  doc.roundedRect(margin, y, contentW, 38, 2, 2, "S");
-  y = drawComparisonBars(margin + 4, y + 4, kwhPerM2, refBase, activityLabel) + 8;
+  doc.roundedRect(margin, y, contentW, 44, 2, 2, "S");
+  y = drawComparisonBars(margin + 4, y + 4, kwhPerM2, refBase, activityLabel) + 4;
 
   // Niveau de confiance
   y = ensurePageSpace(y, 18);
@@ -824,7 +761,7 @@ const heating = safe(analysis?.heatingLabel || data.heating, "Non renseigné");
   y += 6;
 
   priorities.slice(0, 3).forEach((p, idx) => {
-    y = ensurePageSpace(y, 52);
+    y = ensurePageSpace(y, 56);
     y = drawActionCard(margin, y, p, idx + 1);
   });
 
@@ -871,7 +808,7 @@ const heating = safe(analysis?.heatingLabel || data.heating, "Non renseigné");
     .replace(/^_+|_+$/g, "")}_${new Date().toISOString().slice(0, 10)}.pdf`;
 
   doc.save(fileName);
-}
+};
 
    
 
@@ -1314,12 +1251,12 @@ const dpe = getDPE(kwhPerM2);
       /* --- REPORT ENGINE (source unique de calculs rapport écran + PDF) --- */
 
 const ENERGY_PRICES = {
-  elec: 0.2516,      // ordre de grandeur réglementaire / indicatif
-  gas: 0.1119,
-  oil: 0.1280,
-  pac: 0.1000,       // simplifié (PAC plus performante)
-  ac: 0.1800,        // clim rév. (approx)
-  unknown: 0.1800
+  elec: 0.25,        // Prix TTC réaliste 2026
+  gas: 0.12,         // Prix TTC réaliste 2026 (corrigé)
+  oil: 0.13,
+  pac: 0.10,
+  ac: 0.18,
+  unknown: 0.18
 };
 
 const formatInt = (v) => Math.round(Number(v || 0)).toLocaleString('fr-FR');
@@ -1483,41 +1420,36 @@ const buildReportData = (data) => {
   const heatingLabel = getHeatingLabel(data.heating);
   const occupationLabel = getOccupationLabel(data.occupation);
 
-  // Prix énergie
+  // Prix énergie (corrigé)
   const avgPrice = getEnergyPrice(data.heating);
 
-  // Conso totale existante : on reprend ta logique actuelle (si data.noData -> estimation)
-  // IMPORTANT : on garde le comportement actuel, on ne casse pas ton moteur.
-  let sysCoef = data.heatingAge === '> 15 ans' ? 1.15 : data.heatingAge === '5 à 15 ans' ? 1.05 : 1.1;
+  // Calcul consommation totale
+  let sysCoef = data.heatingAge === '> 15 ans' ? 1.15 : data.heatingAge === '5 à 15 ans' ? 1.05 : 1.0;
 
   let consumptionTotalKwh = 0;
-if (data.noData) {
-  consumptionTotalKwh = Math.round((refBase * yearRef.coef * sysCoef) * Number(data.surface || 0));
-} else {
-  if (data.consumptionMode === 'euro') {
-    const elecEuro = Number(data.elecEuro || 0);
-    const gasEuro = Number(data.gasEuro || 0);
-
-    // Conversion simple cohérente avec StepLead
-    const elecKwhFromEuro = elecEuro / 0.25;
-    const gasKwhFromEuro = gasEuro / 0.12;
-
-    consumptionTotalKwh = elecKwhFromEuro + gasKwhFromEuro;
-  } else {
-    const elec = Number(data.elecKwh || 0);
-    const gas = Number(data.gasKwh || 0);
-    consumptionTotalKwh = elec + gas;
-  }
-
-  if (!consumptionTotalKwh || consumptionTotalKwh <= 0) {
+  if (data.noData) {
     consumptionTotalKwh = Math.round((refBase * yearRef.coef * sysCoef) * Number(data.surface || 0));
+  } else {
+    if (data.consumptionMode === 'euro') {
+      const elecEuro = Number(data.elecEuro || 0);
+      const gasEuro = Number(data.gasEuro || 0);
+      const elecKwhFromEuro = elecEuro / 0.25;
+      const gasKwhFromEuro = gasEuro / 0.12;
+      consumptionTotalKwh = elecKwhFromEuro + gasKwhFromEuro;
+    } else {
+      const elec = Number(data.elecKwh || 0);
+      const gas = Number(data.gasKwh || 0);
+      consumptionTotalKwh = elec + gas;
+    }
+
+    if (!consumptionTotalKwh || consumptionTotalKwh <= 0) {
+      consumptionTotalKwh = Math.round((refBase * yearRef.coef * sysCoef) * Number(data.surface || 0));
+    }
   }
-}
 
   const surface = Math.max(1, Number(data.surface || 1));
   const kwhPerM2 = Math.round(consumptionTotalKwh / surface);
 
-  // DPE (on réutilise ta fonction existante si elle est déjà définie)
   const dpe = typeof getDPE === 'function' ? getDPE(kwhPerM2) : { l: 'D', c: '#F59E0B', w: '70%' };
 
   const refTotal = refBase * surface;
@@ -1530,20 +1462,21 @@ if (data.noData) {
 
   const isDecretEligible = surface >= 1000;
 
-  // Priorités (conserver ta logique + exclusion travaux déjà réalisés)
-  const cost = (min, max) => `${min.toLocaleString('fr-FR')} - ${max.toLocaleString('fr-FR')} €`;
-
+  // Priorités - NE PAS FORMATER LES COÛTS ICI (on le fera dans le PDF)
   const potentialPriorities = [
-    { id: 'roof', tag: 'Enveloppe', title: "Isolation toiture / combles", gainPct: 0.18, cost: cost(6000, 25000), roiLabel: "5 à 9 ans" },
-    { id: 'regulation', tag: 'Pilotage', title: "Régulation / programmation", gainPct: 0.10, cost: cost(1500, 8000), roiLabel: "2 à 5 ans" },
-    { id: 'windows', tag: 'Confort', title: "Menuiseries / étanchéité", gainPct: 0.08, cost: cost(5000, 30000), roiLabel: "6 à 12 ans" },
-    { id: 'heating', tag: 'Performance', title: "Remplacement chauffage", gainPct: 0.20, cost: cost(12000, 30000), roiLabel: "6 à 10 ans" },
-    { id: 'led', tag: 'ROI rapide', title: "Relamping LED complet", gainPct: 0.12, cost: cost(3000, 12000), roiLabel: "2 à 4 ans" }
+    { id: 'roof', tag: 'Enveloppe', title: "Isolation toiture / combles", gainPct: 0.18, costMin: 6000, costMax: 25000 },
+    { id: 'regulation', tag: 'Pilotage', title: "Régulation / programmation", gainPct: 0.10, costMin: 1500, costMax: 8000 },
+    { id: 'windows', tag: 'Confort', title: "Menuiseries / étanchéité", gainPct: 0.08, costMin: 5000, costMax: 30000 },
+    { id: 'heating', tag: 'Performance', title: "Remplacement chauffage", gainPct: 0.20, costMin: 12000, costMax: 30000 },
+    { id: 'led', tag: 'ROI rapide', title: "Relamping LED complet", gainPct: 0.12, costMin: 3000, costMax: 12000 }
   ];
 
   let selectedIds = [];
-  if (data.year === 'pre1975' || data.year === '1975-1990') selectedIds = ['roof', 'regulation', 'windows'];
-  else selectedIds = ['regulation', 'led', 'roof'];
+  if (data.year === 'pre1975' || data.year === '1975-1990') {
+    selectedIds = ['roof', 'regulation', 'windows'];
+  } else {
+    selectedIds = ['regulation', 'led', 'roof'];
+  }
 
   if (data.heatingAge === '> 15 ans') {
     selectedIds[2] = 'heating';
@@ -1560,31 +1493,22 @@ if (data.noData) {
       const gainKwhVal = Math.round(consumptionTotalKwh * p.gainPct);
       const gainEuro = Math.round(gainKwhVal * avgPrice);
 
-      const { min, max } = parseCostRange(p.cost);
-const roiYears = gainEuro > 0
-  ? formatRoiYears((min + max) / 2, gainEuro)
-  : p.roiLabel;
       const aids = estimateAidRanges(p.id, surface, isDecretEligible);
 
       return {
         ...p,
-        gainKwhVal,
-  gainKwhPct: `${Math.round(p.gainPct * 100)}%`,
-  gainEuro,
-  roiYears,
-  aids,
-  costMin: min,
-  costMax: max
+        gainKwhVal,        // NOMBRE PUR (pas de formatage)
+        gainKwhPct: `${Math.round(p.gainPct * 100)}%`,
+        gainEuro,          // NOMBRE PUR (pas de formatage)
+        aids
       };
     })
     .filter(Boolean);
 
-  // Projection 5/10 ans (indicative, hors inflation énergie)
   const annualSavingsIfTop3 = priorities.reduce((sum, p) => sum + p.gainEuro, 0);
   const projection5Y = annualSavingsIfTop3 * 5;
   const projection10Y = annualSavingsIfTop3 * 10;
 
-  // Timeline (générique + condition décret)
   const timeline = [
     { step: 1, title: "Audit / visite technique", desc: "Valider les postes prioritaires et les hypothèses de consommation." },
     { step: 2, title: "Chiffrage et aides", desc: "Confirmer les devis et l'éligibilité réelle aux aides." },
@@ -1772,10 +1696,10 @@ const roiYears = gainEuro > 0
                     <span className="font-semibold">Gain est. : {p.gainEuro.toLocaleString('fr-FR')} €/an</span>
                   </div>
 
-                  <div className="flex items-start gap-2 text-slate-600">
-                    <Icon icon="solar:hammer-linear" className="text-base" />
-                    <span>Coût : {p.cost}</span>
-                  </div>
+                <div className="flex items-start gap-2 text-slate-600">
+  <Icon icon="solar:hammer-linear" className="text-base" />
+  <span>Coût : {p.costMin.toLocaleString('fr-FR')} à {p.costMax.toLocaleString('fr-FR')} €</span>
+</div>
 
                   <div className="mt-3 pt-3 border-t border-slate-100 space-y-1">
                     <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Aides indicatives</p>
@@ -1787,9 +1711,17 @@ const roiYears = gainEuro > 0
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-slate-100 flex justify-between items-center">
-                  <span className="text-xs text-slate-500">ROI indicatif</span>
-                  <span className="font-semibold text-[#1E3A5F] text-xs">{p.roiYears}</span>
-                </div>
+  <span className="text-xs text-slate-500">ROI indicatif</span>
+  <span className="font-semibold text-[#1E3A5F] text-xs">
+    {(() => {
+      const gain = p.gainEuro || 0;
+      if (!gain || gain <= 0) return "À estimer";
+      const roiMin = Math.round((p.costMin / gain) * 10) / 10;
+      const roiMax = Math.round((p.costMax / gain) * 10) / 10;
+      return `${roiMin.toLocaleString('fr-FR')} à ${roiMax.toLocaleString('fr-FR')} ans`;
+    })()}
+  </span>
+</div>
               </div>
             </div>
           ))}
@@ -1860,7 +1792,7 @@ const roiYears = gainEuro > 0
                               Gratuit • 3 minutes • Résultat immédiat
                           </div>
                           <h1 className="text-4xl lg:text-5xl tracking-tight font-semibold text-slate-900 leading-[1.1] mb-6">
-                              Votre bâtiment tertiaire vous coûte-t-il trop cher en énergie ? test
+                              Votre bâtiment tertiaire vous coûte-t-il trop cher en énergie ? test1
                           </h1>
                           <p className="text-lg text-[#6B7280] leading-relaxed mb-8">
                               Le premier diagnostic gratuit conçu pour les bâtiments tertiaires. Comparez-vous aux bonnes références sectorielles, pas au logement.
