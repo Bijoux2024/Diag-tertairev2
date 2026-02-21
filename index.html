@@ -300,11 +300,10 @@ const exportPDF = async (data, analysis = {}) => {
   
   // Appeler PDFShift
   try {
-    const response = await fetch('https://api.pdfshift.io/v3/convert/pdf', {
+    const response = await fetch("/api/pdf", {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': 'Basic ' + btoa('api:sk_2a074594703a92e5f895bc60d3bf2596bdf5dd69')
       },
       body: JSON.stringify({
         source: htmlContent,
@@ -314,17 +313,24 @@ const exportPDF = async (data, analysis = {}) => {
       })
     });
     
-    if (!response.ok) {
-      throw new Error('Erreur PDFShift: ' + response.status);
-    }
-    
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `DiagTertiaire_rapport_${new Date().toISOString().slice(0, 10)}.pdf`;
-    a.click();
-    URL.revokeObjectURL(url);
+if (!response.ok) {
+  const err = await response.json().catch(() => ({}));
+  console.error("Erreur PDF:", err);
+  alert("Erreur export PDF: " + (err.details || err.error || "inconnue"));
+  return;
+}
+
+const blob = await response.blob();
+const url = window.URL.createObjectURL(blob);
+
+const a = document.createElement("a");
+a.href = url;
+a.download = "rapport-diagnostic.pdf";
+document.body.appendChild(a);
+a.click();
+a.remove();
+
+window.URL.revokeObjectURL(url);
     
   } catch (error) {
     console.error('Erreur génération PDF:', error);
@@ -1669,7 +1675,7 @@ const buildReportData = (data) => {
                               Gratuit • 3 minutes • Résultat immédiat
                           </div>
                           <h1 className="text-4xl lg:text-5xl tracking-tight font-semibold text-slate-900 leading-[1.1] mb-6">
-                              Votre bâtiment tertiaire vous coûte-t-il trop cher en énergie ? test20
+                              Votre bâtiment tertiaire vous coûte-t-il trop cher en énergie ? test30
                           </h1>
                           <p className="text-lg text-[#6B7280] leading-relaxed mb-8">
                               Le premier diagnostic gratuit conçu pour les bâtiments tertiaires. Comparez-vous aux bonnes références sectorielles, pas au logement.
