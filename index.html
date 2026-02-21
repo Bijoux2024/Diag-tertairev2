@@ -293,385 +293,365 @@ const CTA_EMAIL = 'contact@diagtertiaire.fr';
       /* --- PDF EXPORT --- */
 
       
+const exportPDF = (data, report) => {
+  const priorities = report?.priorities || [];
+  const kwhPerM2 = report?.kwhPerM2 || 0;
+  const dpeLabel = report?.dpe?.l || '-';
+  const activityLabel = report?.activityRef?.label || 'Non précisé';
+  const yearLabel = report?.yearRef?.label || 'Non précisé';
+  const heatingLabel = report?.heatingLabel || 'Non précisé';
+  const occupationLabel = report?.occupationLabel || 'Non précisé';
 
-      const exportPDF = (data, report) => {
-        const priorities = report?.priorities || [];
-const kwhPerM2 = report?.kwhPerM2 || 0;
-const dpeLabel = report?.dpe?.l || '-';
-const activityLabel = report?.activityRef?.label || 'Non précisé';
-const yearLabel = report?.yearRef?.label || 'Non précisé';
-const heatingLabel = report?.heatingLabel || 'Non précisé';
-const occupationLabel = report?.occupationLabel || 'Non précisé';
-          try {
-              const { jsPDF } = window.jspdf;
-              if (!jsPDF) { alert("Export PDF indisponible. Veuillez réessayer."); return; }
-              const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  try {
+    const { jsPDF } = window.jspdf;
+    if (!jsPDF) {
+      alert("Export PDF indisponible. Veuillez réessayer.");
+      return;
+    }
 
-              const blue = [30, 58, 95];
-              const gray = [100, 116, 139];
-              const green = [46, 204, 113];
-              const pageW = 210;
-              const margin = 18;
-              const contentW = pageW - margin * 2;
-              let y = 0;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
 
-              doc.setFillColor(...blue);
-              doc.rect(0, 0, 210, 28, 'F');
-              doc.setTextColor(255, 255, 255);
-              doc.setFontSize(16);
-              doc.setFont('helvetica', 'bold');
-              doc.text('DiagTertiaire', margin, 13);
-              doc.setFontSize(8);
-              doc.setFont('helvetica', 'normal');
-              doc.text(`Rapport généré le ${new Date().toLocaleDateString('fr-FR')}`, margin, 20);
-              doc.text('Estimation directionnelle : ordre de grandeur', pageW - margin, 20, { align: 'right' });
-              y = 36;
+    const blue = [30, 58, 95];
+    const gray = [100, 116, 139];
+    const green = [46, 204, 113];
+    const amber = [245, 166, 35];
+    const lightBlueBg = [238, 242, 255];
+    const pageW = 210;
+    const pageH = 297;
+    const margin = 14;
+    const contentW = pageW - margin * 2;
+    let y = 0;
 
-              doc.setTextColor(...blue);
-              doc.setFontSize(13);
-              doc.setFont('helvetica', 'bold');
-              doc.text('Récapitulatif du bâtiment', margin, y);
-              y += 7;
-              doc.setFontSize(9);
-              doc.setFont('helvetica', 'normal');
-              doc.setTextColor(...gray);
-              const recapLines = [
-    `Activité : ${activityLabel}`,
-    `Surface : ${formatInt(data.surface)} m²`,
-    `Année de construction : ${yearLabel}`,
-    `Système de chauffage : ${heatingLabel}`,
-    `Occupation : ${occupationLabel}`,
-];
-              recapLines.forEach(line => { doc.text(line, margin, y); y += 5.5; });
-              y += 4;
+    const ensureSpace = (needed = 20) => {
+      if (y + needed > 280) {
+        doc.addPage();
+        y = 18;
+      }
+    };
 
-              doc.setFillColor(238, 242, 255);
-              doc.roundedRect(margin, y, contentW, 22, 3, 3, 'F');
-              doc.setTextColor(...blue);
-              doc.setFontSize(11);
-              doc.setFont('helvetica', 'bold');
-              doc.text('Performance énergétique estimée', margin + 5, y + 8);
-              doc.setFontSize(18);
-              doc.text(`Classe ${dpeLabel}  •  ${kwhPerM2} kWh/m²/an`, margin + 5, y + 17);
-              y += 30;
+    const sectionTitle = (title) => {
+      ensureSpace(12);
+      doc.setTextColor(...blue);
+      doc.setFontSize(12);
+      doc.setFont('helvetica', 'bold');
+      doc.text(title, margin, y);
+      y += 6;
+    };
 
-              doc.setTextColor(...blue);
-              doc.setFontSize(13);
-              doc.setFont('helvetica', 'bold');
-              doc.text("Vos 3 priorités d'action", margin, y);
-              y += 7;
+    const card = (x, yy, w, h, fill = [255, 255, 255], stroke = [226, 232, 240]) => {
+      doc.setFillColor(...fill);
+      doc.roundedRect(x, yy, w, h, 3, 3, 'F');
+      doc.setDrawColor(...stroke);
+      doc.roundedRect(x, yy, w, h, 3, 3, 'S');
+    };
 
-              priorities.forEach((p, i) => {
-                  if (y > 240) { doc.addPage(); y = 18; }
-                  doc.setFillColor(248, 249, 250);
-                  doc.roundedRect(margin, y, contentW, 36, 3, 3, 'F');
-                  doc.setDrawColor(226, 232, 240);
-                  doc.roundedRect(margin, y, contentW, 36, 3, 3, 'S');
-                  doc.setTextColor(...blue);
-                  doc.setFontSize(10);
-                  doc.setFont('helvetica', 'bold');
-                  doc.text(`${i + 1}. ${p.title}`, margin + 5, y + 8);
-                  doc.setFont('helvetica', 'normal');
-                  doc.setFontSize(8.5);
-                  doc.setTextColor(...gray);
-                  doc.text(`Économies estimées : ${formatInt(p.gainKwhVal)} kWh/an  (${p.gainKwhPct || '-'})`, margin + 5, y + 15);
-doc.setTextColor(...green);
-doc.text(`Gain financier indicatif : ${formatEuro(p.gainEuro)}/an`, margin + 5, y + 21);
-                  doc.setTextColor(...gray);
-                  doc.text(`Coût estimatif : ${p.cost}`, margin + 5, y + 27);
-                  doc.text(`Retour sur investissement indicatif : ${p.roiYears || p.roiLabel || 'À estimer'} (hors aides)`, margin + 5, y + 33);
-                  y += 42;
-              });
+    // Header
+    doc.setFillColor(...blue);
+    doc.rect(0, 0, pageW, 26, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(15);
+    doc.setFont('helvetica', 'bold');
+    doc.text('DiagTertiaire', margin, 11);
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`Rapport généré le ${new Date().toLocaleDateString('fr-FR')}`, margin, 18);
+    doc.text('Estimation directionnelle • ordre de grandeur', pageW - margin, 18, { align: 'right' });
 
-              if (y > 250) { doc.addPage(); y = 18; }
-              doc.setFillColor(254, 243, 199);
-              doc.roundedRect(margin, y, contentW, 28, 3, 3, 'F');
-              doc.setTextColor(146, 64, 14);
-              doc.setFontSize(7.5);
-              doc.setFont('helvetica', 'bold');
-              doc.text('Avertissement important', margin + 4, y + 7);
-              doc.setFont('helvetica', 'normal');
-              const disclaimer = "Ce rapport constitue une estimation directionnelle basée sur des valeurs de référence sectorielles. Il ne remplace pas un audit énergétique professionnel réglementaire. Les économies et coûts présentés sont des ordres de grandeur à ±30%. Pour toute décision d'investissement, consultez un expert certifié.";
-              const lines = doc.splitTextToSize(disclaimer, contentW - 8);
-              doc.text(lines, margin + 4, y + 13);
-              y += 34;
+    y = 32;
 
-              doc.setFontSize(7);
-              doc.setTextColor(...gray);
-              doc.text('DiagTertiaire • Outil de cadrage énergétique • www.diagtertiaire.fr', pageW / 2, 290, { align: 'center' });
-              doc.save(`DiagTertiaire_rapport_${new Date().toISOString().slice(0,10)}.pdf`);
-          } catch (err) {
-              console.error('PDF export error:', err);
-              alert("Une erreur est survenue lors de la génération du PDF. Veuillez réessayer.");
-          }
-      };
+    // Récap bâtiment
+    sectionTitle('Récapitulatif du bâtiment');
+    card(margin, y, contentW, 30, [255, 255, 255], [226, 232, 240]);
 
-      /* --- STEPS --- */
-      const StepBuilding = ({ data, update, onNext }) => {
-          const isValid = data.address && data.activity && data.year && data.surface && data.levels;
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...gray);
 
-          return (
-              <div className="fade-in space-y-6">
-                  <SectionCard>
-                      <FormHeader title="Parlez-nous de votre bâtiment" subtitle="3 minutes suffisent pour obtenir votre estimation énergétique" />
+    const leftX = margin + 4;
+    const rightX = margin + contentW / 2 + 2;
 
-                      <div className="space-y-8">
-                          <Input
-                              label="Adresse du bâtiment"
-                              placeholder="Ex : 12 rue des Entrepreneurs, 69003 Lyon"
-                              value={data.address}
-                              onChange={(e) => update('address', e.target.value)}
-                              note="Utilisée uniquement pour identifier votre zone climatique"
-                          />
+    doc.text(`Activité : ${activityLabel}`, leftX, y + 7);
+    doc.text(`Surface : ${formatInt(data.surface)} m²`, leftX, y + 13);
+    doc.text(`Année : ${yearLabel}`, leftX, y + 19);
 
-                          <div>
-                              <label className="text-sm font-medium text-[#374151] mb-3 block">Type d'activité</label>
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                  {ACTIVITIES.map(act => (
-                                      <CardSelect
-                                          key={act.id}
-                                          selected={data.activity === act.id}
-                                          onClick={() => update('activity', act.id)}
-                                          icon={act.icon}
-                                          label={act.label}
-                                      />
-                                  ))}
-                              </div>
-                              {data.activity === 'mixed' && (
-                                  <div className="mt-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
-                                      <label className="text-sm font-medium text-slate-700 flex justify-between mb-2">
-                                          <span>Quelle part de bureaux ?</span>
-                                          <span className="text-[#1E3A5F] font-semibold">{data.activityMixPct}%</span>
-                                      </label>
-                                      <input
-                                          type="range" min="0" max="100"
-                                          value={data.activityMixPct}
-                                          onChange={(e) => update('activityMixPct', parseInt(e.target.value))}
-                                          className="w-full"
-                                      />
-                                  </div>
-                              )}
-                          </div>
+    doc.text(`Chauffage : ${heatingLabel}`, rightX, y + 7);
+    doc.text(`Occupation : ${occupationLabel}`, rightX, y + 13);
+    doc.text(`Niveaux : ${data.levels || 'Non précisé'}`, rightX, y + 19);
 
-                          <div>
-                              <label className="text-sm font-medium text-[#374151] mb-3 block">Année de construction</label>
-                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                  {YEARS.map(yr => (
-                                      <RadioFull
-                                          key={yr.id}
-                                          selected={data.year === yr.id}
-                                          onClick={() => update('year', yr.id)}
-                                          label={yr.label}
-                                          sub={yr.sub}
-                                      />
-                                  ))}
-                              </div>
-                          </div>
+    y += 36;
 
-                          <div>
-                              <div className="flex justify-between items-end mb-2">
-                                  <label className="text-sm font-medium text-[#374151]">Surface approximative</label>
-                                  <div className="bg-[#1E3A5F]/10 text-[#1E3A5F] px-3 py-1 rounded text-sm font-semibold">{data.surface} m²</div>
-                              </div>
-                              <input
-                                  type="range" min="50" max="2000" step="10"
-                                  value={data.surface}
-                                  onChange={(e) => update('surface', parseInt(e.target.value))}
-                                  className="w-full mb-2"
-                              />
-                          </div>
+    // Bloc synthèse performance
+    sectionTitle('Performance énergétique estimée');
+    card(margin, y, contentW, 28, lightBlueBg, [220, 230, 255]);
 
-                          <div>
-                              <label className="text-sm font-medium text-[#374151] mb-3 block">Nombre de niveaux</label>
-                              <div className="flex gap-2">
-                                  {[1, 2, 3, 4].map(lvl => (
-                                      <button
-                                          type="button"
-                                          key={lvl}
-                                          onClick={() => update('levels', lvl)}
-                                          className={`flex-1 py-3 rounded-lg border font-medium text-sm transition-all
-                                          ${data.levels === lvl ? 'bg-[#1E3A5F] text-white border-[#1E3A5F] shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
-                                      >
-                                          {lvl === 4 ? '4+' : lvl}
-                                      </button>
-                                  ))}
-                              </div>
-                          </div>
-                      </div>
+    doc.setTextColor(...blue);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(10);
+    doc.text('Synthèse', margin + 5, y + 8);
 
-                      <div className="pt-8 flex justify-end">
-                          <Button onClick={onNext} disabled={!isValid}>Suivant</Button>
-                      </div>
-                  </SectionCard>
-              </div>
-          );
-      };
+    doc.setFontSize(16);
+    doc.text(`Classe ${dpeLabel}`, margin + 5, y + 18);
 
-      const StepEnergy = ({ data, update, onNext, onBack }) => {
-          const isValid = data.heating && data.heatingAge && data.occupation;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(`${kwhPerM2} kWh/m²/an`, margin + 38, y + 18);
 
-          const toggleWork = (id) => {
-              const current = data.works || [];
-              if (current.includes(id)) update('works', current.filter(w => w !== id));
-              else update('works', [...current, id]);
-          };
+    // DPE mini jauge
+    const dpeX = margin + 92;
+    const dpeY = y + 5;
+    const dpeBarW = 42;
+    const dpeBarH = 3;
+    const dpeItems = [
+      { l: 'A', c: [26, 158, 92] },
+      { l: 'B', c: [76, 184, 76] },
+      { l: 'C', c: [178, 210, 79] },
+      { l: 'D', c: [245, 229, 74] },
+      { l: 'E', c: [245, 166, 35] },
+      { l: 'F', c: [232, 98, 42] },
+      { l: 'G', c: [212, 37, 42] }
+    ];
 
-          const showUnknownHeatingMsg = data.heating === 'unknown';
+    dpeItems.forEach((it, i) => {
+      const yy = dpeY + i * (dpeBarH + 0.8);
+      const isActive = it.l === dpeLabel;
+      doc.setFillColor(...it.c);
+      doc.roundedRect(dpeX, yy, dpeBarW, dpeBarH, 1, 1, 'F');
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(6.5);
+      doc.setFont('helvetica', 'bold');
+      doc.text(it.l, dpeX + 1.5, yy + 2.2);
 
-          return (
-              <div className="fade-in space-y-6">
-                  <SectionCard>
-                      <FormHeader title="Consommation et usage" subtitle="Dites-nous en plus sur vos équipements" />
+      if (isActive) {
+        doc.setDrawColor(...blue);
+        doc.setLineWidth(0.5);
+        doc.roundedRect(dpeX - 1, yy - 0.5, dpeBarW + 2, dpeBarH + 1, 1, 1, 'S');
+      }
+    });
 
-                      <div className="space-y-8">
-                          <div>
-                              <label className="text-sm font-medium text-[#374151] mb-3 block">Système de chauffage principal</label>
-                              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                  {HEATING.map(h => (
-                                      <CardSelect key={h.id} selected={data.heating === h.id} onClick={() => update('heating', h.id)} icon={h.icon} label={h.label} />
-                                  ))}
-                              </div>
-                              {showUnknownHeatingMsg && (
-                                  <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex gap-2 items-start text-yellow-800 text-sm">
-                                      <Icon icon="solar:info-circle-linear" className="shrink-0 mt-0.5 text-yellow-600" />
-                                      <span>Pas de problème — nous utiliserons des valeurs de référence sectorielles pour compléter l'estimation. Vous pourrez affiner plus tard.</span>
-                                  </div>
-                              )}
-                          </div>
+    y += 34;
 
-                          <div>
-                              <label className="text-sm font-medium text-[#374151] mb-3 block">Âge approx. du système</label>
-                              <div className="grid grid-cols-2 gap-3">
-                                  {['< 5 ans', '5 à 15 ans', '> 15 ans', 'Je ne sais pas'].map(age => (
-                                      <button
-                                          type="button"
-                                          key={age} onClick={() => update('heatingAge', age)}
-                                          className={`py-3 px-2 rounded-lg border text-sm font-medium transition-all
-                                          ${data.heatingAge === age ? 'bg-[#EEF2FF] border-[#1E3A5F] border-[2px] text-[#1E3A5F] font-semibold' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
-                                      >
-                                          {age}
-                                      </button>
-                                  ))}
-                              </div>
-                          </div>
+    // Mini graphique consommation vs référence
+    sectionTitle('Consommation vs Référence');
+    const chartH = 42;
+    card(margin, y, contentW, chartH, [255, 255, 255], [226, 232, 240]);
 
-                          {(data.activity === 'hotel' || data.activity === 'health') && (
-                              <div>
-                                  <label className="text-sm font-medium text-[#374151] mb-3 block">Production d'eau chaude sanitaire</label>
-                                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                      {ECS_SYSTEMS.map(s => (
-                                          <CardSelect key={s.id} selected={data.ecsSystem === s.id} onClick={() => update('ecsSystem', s.id)} icon={s.icon} label={s.label} />
-                                      ))}
-                                  </div>
-                              </div>
-                          )}
+    const refBase = report?.refBase || 0;
+    const isDecretEligible = !!report?.isDecretEligible;
+    const targetVal = isDecretEligible ? Math.round(refBase * 0.6) : Math.round(refBase * 0.8);
 
-                          <div>
-                              <label className="text-sm font-medium text-[#374151] mb-3 block">Occupation du bâtiment</label>
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                                  {OCCUPATION_OPTS.map(opt => (
-                                      <CardSelect key={opt.id} selected={data.occupation === opt.id} onClick={() => update('occupation', opt.id)} icon={opt.icon} label={opt.label} sub={opt.sub} />
-                                  ))}
-                              </div>
-                          </div>
+    const bars = [
+      { label: 'Votre bâtiment', value: kwhPerM2, color: [30, 58, 95] },
+      { label: `Réf. ${activityLabel}`, value: refBase, color: [149, 165, 166] },
+      { label: isDecretEligible ? 'Objectif 2030' : 'Objectif perf.', value: targetVal, color: [46, 204, 113] }
+    ];
 
-                          <div className="bg-[#F8F9FA] p-6 rounded-xl border border-slate-200">
-                              <label className="text-sm font-semibold text-[#1E3A5F] mb-4 block flex items-center gap-2">
-                                  <Icon icon="solar:bill-list-linear" /> Consommation annuelle
-                              </label>
+    const maxVal = Math.max(...bars.map(b => b.value), 1);
+    const chartX = margin + 6;
+    const labelW = 34;
+    const valueW = 22;
+    const barZoneW = contentW - 12 - labelW - valueW;
+    const rowH = 11;
 
-                              <div className="flex bg-slate-200 p-1 rounded-lg mb-4 w-fit">
-                                  <button type="button"
-                                      className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${data.consumptionMode === 'kwh' ? 'bg-white text-[#1E3A5F] shadow-sm' : 'text-slate-500'}`}
-                                      onClick={() => update('consumptionMode', 'kwh')}
-                                  >
-                                      Je connais mes kWh
-                                  </button>
-                                  <button type="button"
-                                      className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${data.consumptionMode === 'euro' ? 'bg-white text-[#1E3A5F] shadow-sm' : 'text-slate-500'}`}
-                                      onClick={() => update('consumptionMode', 'euro')}
-                                  >
-                                      J'ai mes montants en €
-                                  </button>
-                              </div>
+    bars.forEach((b, i) => {
+      const rowY = y + 7 + i * rowH;
 
-                              {!data.noData ? (
-                                  <div className="space-y-4">
-                                      <Input
-                                          label={data.consumptionMode === 'kwh' ? "Électricité (kWh/an)" : "Facture Élec. (€/an)"}
-                                          type="number"
-                                          value={data.consumptionMode === 'kwh' ? data.elecKwh : data.elecEuro}
-                                          onChange={(e) => update(data.consumptionMode === 'kwh' ? 'elecKwh' : 'elecEuro', e.target.value)}
-                                          placeholder="0"
-                                      />
-                                      {(data.heating === 'gas' || data.heating === 'oil' || data.heating === 'unknown') && (
-                                          <Input
-                                              label={data.consumptionMode === 'kwh' ? "Gaz/Fioul (kWh/an)" : "Facture Gaz/Fioul (€/an)"}
-                                              type="number"
-                                              value={data.consumptionMode === 'kwh' ? data.gasKwh : data.gasEuro}
-                                              onChange={(e) => update(data.consumptionMode === 'kwh' ? 'gasKwh' : 'gasEuro', e.target.value)}
-                                              placeholder="0"
-                                          />
-                                      )}
-                                  </div>
-                              ) : (
-                                  <div className="p-3 bg-yellow-50 text-yellow-800 text-sm rounded border border-yellow-200 flex gap-2">
-                                      <Icon icon="solar:info-circle-linear" className="shrink-0 mt-0.5 text-yellow-600" />
-                                      <span>Aucun problème — nous utiliserons les valeurs de référence sectorielles pour votre type de bâtiment.</span>
-                                  </div>
-                              )}
+      doc.setTextColor(...gray);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.text(b.label, chartX, rowY + 3.8);
 
-                              <div className="mt-4 flex items-center gap-2">
-                                  <input
-                                      type="checkbox" id="noData"
-                                      checked={data.noData} onChange={(e) => update('noData', e.target.checked)}
-                                      className="w-4 h-4 text-[#1E3A5F] rounded focus:ring-[#1E3A5F] cursor-pointer"
-                                  />
-                                  <label htmlFor="noData" className="text-sm text-slate-600 cursor-pointer">Je n'ai pas ces informations sous la main</label>
-                              </div>
-                          </div>
+      // fond de barre
+      doc.setFillColor(241, 245, 249);
+      doc.roundedRect(chartX + labelW, rowY + 1, barZoneW, 4, 1, 1, 'F');
 
-                          <div>
-                              <label className="text-sm font-medium text-[#374151] mb-3 block">Avez-vous déjà réalisé des travaux d'économie d'énergie ?</label>
-                              <div className="flex gap-2 mb-4">
-                                  {['oui', 'non', 'partiel'].map(opt => (
-                                      <button type="button"
-                                          key={opt} onClick={() => update('hasWorks', opt === 'non' ? 'no' : 'yes')}
-                                          className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-all
-                                          ${(opt === 'non' && data.hasWorks === 'no') || (opt !== 'non' && data.hasWorks === 'yes') ? 'bg-[#EEF2FF] border-[#1E3A5F] text-[#1E3A5F]' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
-                                      >
-                                          {opt === 'oui' ? 'Oui' : opt === 'non' ? 'Non' : 'Partiellement'}
-                                      </button>
-                                  ))}
-                              </div>
+      // barre valeur
+      const w = Math.max(2, (b.value / maxVal) * barZoneW);
+      doc.setFillColor(...b.color);
+      doc.roundedRect(chartX + labelW, rowY + 1, w, 4, 1, 1, 'F');
 
-                              {data.hasWorks === 'yes' && (
-                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200 fade-in">
-                                      {WORKS_LIST.map(w => (
-                                          <div
-                                              key={w.id} onClick={() => toggleWork(w.id)}
-                                              className={`cursor-pointer border rounded-lg p-3 flex items-center gap-3 transition-all
-                                              ${data.works.includes(w.id) ? 'bg-[#EEF2FF] border-[#1E3A5F] text-[#1E3A5F]' : 'bg-white border-slate-200 text-slate-600 hover:bg-white'}`}
-                                          >
-                                              <div className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 ${data.works.includes(w.id) ? 'border-[#1E3A5F] bg-[#1E3A5F]' : 'border-slate-300'}`}>
-                                                  {data.works.includes(w.id) && <Icon icon="solar:check-linear" className="text-white text-xs" />}
-                                              </div>
-                                              <span className="text-sm font-medium">{w.label}</span>
-                                          </div>
-                                      ))}
-                                  </div>
-                              )}
-                          </div>
-                      </div>
+      // valeur
+      doc.setTextColor(...blue);
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${formatInt(b.value)}`, chartX + labelW + barZoneW + 2, rowY + 3.8);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...gray);
+      doc.text(`kWh/m²`, chartX + labelW + barZoneW + 10, rowY + 3.8);
+    });
 
-                      <div className="pt-8 flex justify-between">
-                          <Button variant="secondary" onClick={onBack}>Retour</Button>
-                          <Button onClick={onNext} disabled={!isValid}>Suivant</Button>
-                      </div>
-                  </SectionCard>
-              </div>
-          );
-      };
+    y += chartH + 4;
+
+    // Priorités
+    sectionTitle("Vos 3 priorités d'action");
+
+    if (priorities.length === 0) {
+      card(margin, y, contentW, 18, [255, 255, 255], [226, 232, 240]);
+      doc.setFontSize(8);
+      doc.setTextColor(...gray);
+      doc.text(
+        "Vous avez déjà réalisé plusieurs actions pertinentes. Un audit peut affiner les optimisations restantes.",
+        margin + 4,
+        y + 10
+      );
+      y += 22;
+    } else {
+      priorities.forEach((p, i) => {
+        ensureSpace(42);
+        card(margin, y, contentW, 38, [248, 249, 250], [226, 232, 240]);
+
+        // Header priorité
+        doc.setTextColor(...blue);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(9.5);
+        doc.text(`${i + 1}. ${p.title}`, margin + 4, y + 7);
+
+        doc.setFontSize(7);
+        doc.setTextColor(...gray);
+        doc.text(`Catégorie : ${p.tag || 'Priorité'}`, pageW - margin - 4, y + 7, { align: 'right' });
+
+        // Gains / coût / ROI
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8);
+        doc.setTextColor(...gray);
+        doc.text(`Économies énergie : ${formatInt(p.gainKwhVal)} kWh/an (${p.gainKwhPct || '-'})`, margin + 4, y + 14);
+
+        doc.setTextColor(...green);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Gain financier indicatif : ${formatEuro(p.gainEuro)}/an`, margin + 4, y + 20);
+
+        doc.setTextColor(...gray);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Coût estimatif : ${p.cost}`, margin + 4, y + 26);
+        doc.text(`ROI indicatif : ${p.roiYears || p.roiLabel || 'À estimer'} (hors aides)`, margin + 4, y + 32);
+
+        // Aides (compact)
+        const aidsText = [];
+        if (p.aids?.cee?.label) aidsText.push(p.aids.cee.label);
+        if (p.aids?.mpr?.label) aidsText.push(p.aids.mpr.label);
+
+        if (aidsText.length > 0) {
+          const aidX = margin + 108;
+          const aidY = y + 11;
+          doc.setFillColor(255, 255, 255);
+          doc.roundedRect(aidX, aidY - 4, contentW - (aidX - margin) - 4, 24, 2, 2, 'F');
+          doc.setDrawColor(230, 236, 243);
+          doc.roundedRect(aidX, aidY - 4, contentW - (aidX - margin) - 4, 24, 2, 2, 'S');
+
+          doc.setFontSize(7);
+          doc.setFont('helvetica', 'bold');
+          doc.setTextColor(...blue);
+          doc.text('Aides indicatives', aidX + 2, aidY);
+
+          doc.setFont('helvetica', 'normal');
+          doc.setTextColor(...gray);
+
+          const aidLines = aidsText.slice(0, 2).flatMap(t => doc.splitTextToSize(`• ${t}`, 52));
+          let ay = aidY + 5;
+          aidLines.slice(0, 3).forEach(line => {
+            doc.text(line, aidX + 2, ay);
+            ay += 4;
+          });
+        }
+
+        y += 42;
+      });
+    }
+
+    // Projection financière (5/10 ans)
+    ensureSpace(34);
+    sectionTitle('Projection financière (indicative)');
+    card(margin, y, contentW, 26, [255, 255, 255], [226, 232, 240]);
+
+    const annualSavings = report?.annualSavingsIfTop3 || 0;
+    const p5 = report?.projection5Y || 0;
+    const p10 = report?.projection10Y || 0;
+
+    const colW = contentW / 3;
+
+    [
+      { title: 'Gain annuel', val: formatEuro(annualSavings), color: blue },
+      { title: 'Sur 5 ans', val: formatEuro(p5), color: green },
+      { title: 'Sur 10 ans', val: formatEuro(p10), color: amber }
+    ].forEach((b, i) => {
+      const x = margin + i * colW;
+      if (i > 0) {
+        doc.setDrawColor(236, 240, 244);
+        doc.line(x, y + 3, x, y + 23);
+      }
+
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      doc.setTextColor(...gray);
+      doc.text(b.title, x + 4, y + 8);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(10);
+      doc.setTextColor(...b.color);
+      doc.text(b.val, x + 4, y + 16);
+    });
+
+    y += 32;
+
+    // Timeline / plan d'action
+    ensureSpace(46);
+    sectionTitle("Plan d'action recommandé");
+    card(margin, y, contentW, 38, [255, 255, 255], [226, 232, 240]);
+
+    const timeline = report?.timeline || [];
+    let ty = y + 8;
+
+    timeline.slice(0, 4).forEach((t, idx) => {
+      const lineY = ty + idx * 8;
+
+      // pastille
+      doc.setFillColor(...blue);
+      doc.circle(margin + 6, lineY - 1, 1.8, 'F');
+
+      // numéro
+      doc.setTextColor(255, 255, 255);
+      doc.setFontSize(6);
+      doc.setFont('helvetica', 'bold');
+      doc.text(String(t.step || idx + 1), margin + 5.3, lineY, { baseline: 'middle' });
+
+      // texte
+      doc.setTextColor(...blue);
+      doc.setFontSize(7.5);
+      doc.setFont('helvetica', 'bold');
+      doc.text(t.title || `Étape ${idx + 1}`, margin + 11, lineY);
+
+      doc.setTextColor(...gray);
+      doc.setFont('helvetica', 'normal');
+      const line = doc.splitTextToSize(t.desc || '', contentW - 20);
+      doc.text(line[0] || '', margin + 50, lineY);
+    });
+
+    y += 44;
+
+    // Avertissement
+    ensureSpace(28);
+    doc.setFillColor(254, 243, 199);
+    doc.roundedRect(margin, y, contentW, 24, 3, 3, 'F');
+    doc.setTextColor(146, 64, 14);
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Avertissement important', margin + 4, y + 6);
+
+    doc.setFont('helvetica', 'normal');
+    const disclaimer = "Ce rapport constitue une estimation directionnelle basée sur des valeurs de référence sectorielles. Il ne remplace pas un audit énergétique réglementaire. Les économies et coûts présentés sont des ordres de grandeur (±30%). Vérifiez l’éligibilité aux aides avec un professionnel.";
+    const lines = doc.splitTextToSize(disclaimer, contentW - 8);
+    doc.text(lines, margin + 4, y + 11);
+
+    // Footer
+    doc.setFontSize(7);
+    doc.setTextColor(...gray);
+    doc.text('DiagTertiaire • Outil de cadrage énergétique tertiaire • www.diagtertiaire.fr', pageW / 2, pageH - 7, { align: 'center' });
+
+    doc.save(`DiagTertiaire_rapport_${new Date().toISOString().slice(0,10)}.pdf`);
+  } catch (err) {
+    console.error('PDF export error:', err);
+    alert("Une erreur est survenue lors de la génération du PDF. Veuillez réessayer.");
+  }
+};
+   
 
       const MiniDPEGauge = ({ kwhPerM2, dpeLabel, dpeColor }) => (
           <div className="bg-white rounded-xl border border-slate-100 p-5 shadow-sm">
