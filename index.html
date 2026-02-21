@@ -293,364 +293,586 @@ const CTA_EMAIL = 'contact@diagtertiaire.fr';
       /* --- PDF EXPORT --- */
 
       
-const exportPDF = (data, report) => {
-  const priorities = report?.priorities || [];
-  const kwhPerM2 = report?.kwhPerM2 || 0;
-  const dpeLabel = report?.dpe?.l || '-';
-  const activityLabel = report?.activityRef?.label || 'Non précisé';
-  const yearLabel = report?.yearRef?.label || 'Non précisé';
-  const heatingLabel = report?.heatingLabel || 'Non précisé';
-  const occupationLabel = report?.occupationLabel || 'Non précisé';
 
-  try {
-    const { jsPDF } = window.jspdf;
-    if (!jsPDF) {
-      alert("Export PDF indisponible. Veuillez réessayer.");
-      return;
+const exportPDF = (data, analysis = {}) => {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: "mm", format: "a4" });
+
+  // =========================
+  // Helpers
+  // =========================
+  const fmt = (v) => {
+    const n = Number(v || 0);
+    return n.toLocaleString("fr-FR");
+  };
+
+  const fmtDec = (v, digits = 1) => {
+    const n = Number(v || 0);
+    return n.toLocaleString("fr-FR", {
+      minimumFractionDigits: digits,
+      maximumFractionDigits: digits,
+    });
+  };
+
+  const safe = (v, fallback = "N/A") =>
+    v === undefined || v === null || v === "" ? fallback : v;
+
+  const parseCost = (costStr) => {
+    if (!costStr) return { min: 0, max: 0 };
+    // Ex: "6 000 à 25 000 €" ou "1500-8000 €"
+    const nums = String(costStr)
+      .replace(/[€]/g, "")
+      .replace(/[–-]/g, " ")
+      .replace(/à/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .match(/\d+/g);
+
+    if (!nums || nums.length === 0) return { min: 0, max: 0 };
+
+    const values = nums.map((x) => Number(x));
+    if (values.length === 1) return { min: values[0], max: values[0] };
+
+    // Regroupe les milliers si split bizarres
+    // Exemple "6 000 25 000" -> [6,000,25,000]
+    // On reconstruit par paires si plausible
+    if (values.length === 4 && values[1] < 1000 && values[3] < 1000) {
+      return {
+        min: values[0] * 1000 + values[1],
+        max: values[2] * 1000 + values[3],
+      };
     }
 
-    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
-
-    const blue = [30, 58, 95];
-    const gray = [100, 116, 139];
-    const green = [46, 204, 113];
-    const amber = [245, 166, 35];
-    const lightBlueBg = [238, 242, 255];
-    const pageW = 210;
-    const pageH = 297;
-    const margin = 14;
-    const contentW = pageW - margin * 2;
-    let y = 0;
-
-    const ensureSpace = (needed = 20) => {
-      if (y + needed > 280) {
-        doc.addPage();
-        y = 18;
-      }
+    return {
+      min: Math.min(...values),
+      max: Math.max(...values),
     };
+  };
 
-    const sectionTitle = (title) => {
-      ensureSpace(12);
-      doc.setTextColor(...blue);
-      doc.setFontSize(12);
-      doc.setFont('helvetica', 'bold');
-      doc.text(title, margin, y);
-      y += 6;
-    };
+  const normalizeCostLabel = (costStr) => {
+    const { min, max } = parseCost(costStr);
+    if (!min && !max) return "À estimer";
+    if (min === max) return `${fmt(min)} €`;
+    return `${fmt(min)} à ${fmt(max)} €`;
+  };
 
-    const card = (x, yy, w, h, fill = [255, 255, 255], stroke = [226, 232, 240]) => {
-      doc.setFillColor(...fill);
-      doc.roundedRect(x, yy, w, h, 3, 3, 'F');
-      doc.setDrawColor(...stroke);
-      doc.roundedRect(x, yy, w, h, 3, 3, 'S');
-    };
+  const computeROI = (costStr, gainEuro) => {
+    const gain = Number(gainEuro || 0);
+    const { min, max } = parseCost(costStr);
+    if (!gain || gain <= 0 || (!min && !max)) return "À estimer";
+    const roiMin = Math.round((min / gain) * 10) / 10;
+    const roiMax = Math.round((max / gain) * 10) / 10;
+    return `${fmtDec(roiMin)} à ${fmtDec(roiMax)} ans`;
+  };
 
-    // Header
-    doc.setFillColor(...blue);
-    doc.rect(0, 0, pageW, 26, 'F');
-    doc.setTextColor(255, 255, 255);
-    doc.setFontSize(15);
-    doc.setFont('helvetica', 'bold');
-    doc.text('DiagTertiaire', margin, 11);
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`Rapport généré le ${new Date().toLocaleDateString('fr-FR')}`, margin, 18);
-    doc.text('Estimation directionnelle • ordre de grandeur', pageW - margin, 18, { align: 'right' });
+  const getConfidenceLevel = (d) => {
+    let score = 0;
+    if (d.elecKwh || d.gasKwh || d.elecEuro || d.gasEuro) score += 40;
+    if (d.heatingAge && d.heatingAge !== "Je ne sais pas") score += 20;
+    if (d.occupation) score += 15;
+    if (d.year) score += 15;
+    if (d.works && Array.isArray(d.works) && d.works.length > 0) score += 10;
 
-    y = 32;
+    if (score >= 70) return { label: "Élevée", color: [46, 204, 113] };
+    if (score >= 40) return { label: "Moyenne", color: [243, 156, 18] };
+    return { label: "Faible", color: [231, 76, 60] };
+  };
 
-    // Récap bâtiment
-    sectionTitle('Récapitulatif du bâtiment');
-    card(margin, y, contentW, 30, [255, 255, 255], [226, 232, 240]);
+  const drawSectionTitle = (title, x, y) => {
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.setTextColor(30, 58, 95);
+    doc.text(title, x, y);
+  };
 
-    doc.setFontSize(8.5);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(...gray);
-
-    const leftX = margin + 4;
-    const rightX = margin + contentW / 2 + 2;
-
-    doc.text(`Activité : ${activityLabel}`, leftX, y + 7);
-    doc.text(`Surface : ${formatInt(data.surface)} m²`, leftX, y + 13);
-    doc.text(`Année : ${yearLabel}`, leftX, y + 19);
-
-    doc.text(`Chauffage : ${heatingLabel}`, rightX, y + 7);
-    doc.text(`Occupation : ${occupationLabel}`, rightX, y + 13);
-    doc.text(`Niveaux : ${data.levels || 'Non précisé'}`, rightX, y + 19);
-
-    y += 36;
-
-    // Bloc synthèse performance
-    sectionTitle('Performance énergétique estimée');
-    card(margin, y, contentW, 28, lightBlueBg, [220, 230, 255]);
-
-    doc.setTextColor(...blue);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(10);
-    doc.text('Synthèse', margin + 5, y + 8);
-
-    doc.setFontSize(16);
-    doc.text(`Classe ${dpeLabel}`, margin + 5, y + 18);
-
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(`${kwhPerM2} kWh/m²/an`, margin + 38, y + 18);
-
-    // DPE mini jauge
-    const dpeX = margin + 92;
-    const dpeY = y + 5;
-    const dpeBarW = 42;
-    const dpeBarH = 3;
-    const dpeItems = [
-      { l: 'A', c: [26, 158, 92] },
-      { l: 'B', c: [76, 184, 76] },
-      { l: 'C', c: [178, 210, 79] },
-      { l: 'D', c: [245, 229, 74] },
-      { l: 'E', c: [245, 166, 35] },
-      { l: 'F', c: [232, 98, 42] },
-      { l: 'G', c: [212, 37, 42] }
+  const drawDPEGauge = (x, y, dpeLabel, kwhPerM2) => {
+    const dpeData = [
+      { label: "A", color: [26, 158, 92], width: 25 },
+      { label: "B", color: [76, 184, 76], width: 35 },
+      { label: "C", color: [178, 210, 79], width: 45 },
+      { label: "D", color: [245, 229, 74], width: 55 },
+      { label: "E", color: [245, 165, 35], width: 65 },
+      { label: "F", color: [232, 98, 42], width: 75 },
+      { label: "G", color: [212, 37, 42], width: 85 },
     ];
 
-    dpeItems.forEach((it, i) => {
-      const yy = dpeY + i * (dpeBarH + 0.8);
-      const isActive = it.l === dpeLabel;
-      doc.setFillColor(...it.c);
-      doc.roundedRect(dpeX, yy, dpeBarW, dpeBarH, 1, 1, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(6.5);
-      doc.setFont('helvetica', 'bold');
-      doc.text(it.l, dpeX + 1.5, yy + 2.2);
+    dpeData.forEach((dpe, i) => {
+      const yPos = y + i * 9;
 
-      if (isActive) {
-        doc.setDrawColor(...blue);
-        doc.setLineWidth(0.5);
-        doc.roundedRect(dpeX - 1, yy - 0.5, dpeBarW + 2, dpeBarH + 1, 1, 1, 'S');
+      doc.setFillColor(...dpe.color);
+      doc.roundedRect(x, yPos, dpe.width, 7, 1, 1, "F");
+
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(10);
+      doc.text(dpe.label, x + 3, yPos + 5);
+
+      if (dpe.label === dpeLabel) {
+        doc.setDrawColor(30, 58, 95);
+        doc.setLineWidth(0.8);
+        const arrowX = x + dpe.width + 5;
+        doc.line(arrowX, yPos + 3.5, arrowX + 8, yPos + 3.5);
+
+        doc.setFillColor(30, 58, 95);
+        doc.triangle(
+          arrowX + 8,
+          yPos + 1.5,
+          arrowX + 8,
+          yPos + 5.5,
+          arrowX + 12,
+          yPos + 3.5,
+          "F"
+        );
+
+        doc.setTextColor(30, 58, 95);
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(12);
+        doc.text(`${fmt(kwhPerM2)} kWh/m²/an`, arrowX + 15, yPos + 5);
       }
     });
+  };
 
-    y += 34;
-
-    // Mini graphique consommation vs référence
-    sectionTitle('Consommation vs Référence');
-    const chartH = 42;
-    card(margin, y, contentW, chartH, [255, 255, 255], [226, 232, 240]);
-
-    const refBase = report?.refBase || 0;
-    const isDecretEligible = !!report?.isDecretEligible;
-    const targetVal = isDecretEligible ? Math.round(refBase * 0.6) : Math.round(refBase * 0.8);
+  const drawComparisonBars = (x, y, kwhPerM2, refBase, activityLabel) => {
+    const targetVal = Math.round(refBase * 0.8);
+    const maxVal = Math.max(kwhPerM2 || 1, refBase || 1, targetVal || 1);
+    const barMaxWidth = 105;
 
     const bars = [
-      { label: 'Votre bâtiment', value: kwhPerM2, color: [30, 58, 95] },
-      { label: `Réf. ${activityLabel}`, value: refBase, color: [149, 165, 166] },
-      { label: isDecretEligible ? 'Objectif 2030' : 'Objectif perf.', value: targetVal, color: [46, 204, 113] }
+      { label: "Votre bâtiment", val: kwhPerM2, color: [231, 76, 60] },
+      { label: `Réf. ${activityLabel}`, val: refBase, color: [149, 165, 166] },
+      { label: "Objectif perf.", val: targetVal, color: [46, 204, 113] },
     ];
 
-    const maxVal = Math.max(...bars.map(b => b.value), 1);
-    const chartX = margin + 6;
-    const labelW = 34;
-    const valueW = 22;
-    const barZoneW = contentW - 12 - labelW - valueW;
-    const rowH = 11;
+    bars.forEach((bar, i) => {
+      const yBar = y + i * 11;
+      const barWidth = Math.max(2, (bar.val / maxVal) * barMaxWidth);
 
-    bars.forEach((b, i) => {
-      const rowY = y + 7 + i * rowH;
-
-      doc.setTextColor(...gray);
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.5);
-      doc.text(b.label, chartX, rowY + 3.8);
-
-      // fond de barre
-      doc.setFillColor(241, 245, 249);
-      doc.roundedRect(chartX + labelW, rowY + 1, barZoneW, 4, 1, 1, 'F');
-
-      // barre valeur
-      const w = Math.max(2, (b.value / maxVal) * barZoneW);
-      doc.setFillColor(...b.color);
-      doc.roundedRect(chartX + labelW, rowY + 1, w, 4, 1, 1, 'F');
-
-      // valeur
-      doc.setTextColor(...blue);
-      doc.setFont('helvetica', 'bold');
-      doc.text(`${formatInt(b.value)}`, chartX + labelW + barZoneW + 2, rowY + 3.8);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(...gray);
-      doc.text(`kWh/m²`, chartX + labelW + barZoneW + 10, rowY + 3.8);
-    });
-
-    y += chartH + 4;
-
-    // Priorités
-    sectionTitle("Vos 3 priorités d'action");
-
-    if (priorities.length === 0) {
-      card(margin, y, contentW, 18, [255, 255, 255], [226, 232, 240]);
+      doc.setFont("helvetica", "normal");
       doc.setFontSize(8);
-      doc.setTextColor(...gray);
-      doc.text(
-        "Vous avez déjà réalisé plusieurs actions pertinentes. Un audit peut affiner les optimisations restantes.",
-        margin + 4,
-        y + 10
-      );
-      y += 22;
-    } else {
-      priorities.forEach((p, i) => {
-        ensureSpace(42);
-        card(margin, y, contentW, 38, [248, 249, 250], [226, 232, 240]);
+      doc.setTextColor(100, 116, 139);
+      doc.text(bar.label, x, yBar + 4);
 
-        // Header priorité
-        doc.setTextColor(...blue);
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(9.5);
-        doc.text(`${i + 1}. ${p.title}`, margin + 4, y + 7);
+      doc.setFillColor(...bar.color);
+      doc.roundedRect(x + 55, yBar, barWidth, 6, 1, 1, "F");
 
-        doc.setFontSize(7);
-        doc.setTextColor(...gray);
-        doc.text(`Catégorie : ${p.tag || 'Priorité'}`, pageW - margin - 4, y + 7, { align: 'right' });
-
-        // Gains / coût / ROI
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(8);
-        doc.setTextColor(...gray);
-        doc.text(`Économies énergie : ${formatInt(p.gainKwhVal)} kWh/an (${p.gainKwhPct || '-'})`, margin + 4, y + 14);
-
-        doc.setTextColor(...green);
-        doc.setFont('helvetica', 'bold');
-        doc.text(`Gain financier indicatif : ${formatEuro(p.gainEuro)}/an`, margin + 4, y + 20);
-
-        doc.setTextColor(...gray);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`Coût estimatif : ${p.cost}`, margin + 4, y + 26);
-        doc.text(`ROI indicatif : ${p.roiYears || p.roiLabel || 'À estimer'} (hors aides)`, margin + 4, y + 32);
-
-        // Aides (compact)
-        const aidsText = [];
-        if (p.aids?.cee?.label) aidsText.push(p.aids.cee.label);
-        if (p.aids?.mpr?.label) aidsText.push(p.aids.mpr.label);
-
-        if (aidsText.length > 0) {
-          const aidX = margin + 108;
-          const aidY = y + 11;
-          doc.setFillColor(255, 255, 255);
-          doc.roundedRect(aidX, aidY - 4, contentW - (aidX - margin) - 4, 24, 2, 2, 'F');
-          doc.setDrawColor(230, 236, 243);
-          doc.roundedRect(aidX, aidY - 4, contentW - (aidX - margin) - 4, 24, 2, 2, 'S');
-
-          doc.setFontSize(7);
-          doc.setFont('helvetica', 'bold');
-          doc.setTextColor(...blue);
-          doc.text('Aides indicatives', aidX + 2, aidY);
-
-          doc.setFont('helvetica', 'normal');
-          doc.setTextColor(...gray);
-
-          const aidLines = aidsText.slice(0, 2).flatMap(t => doc.splitTextToSize(`• ${t}`, 52));
-          let ay = aidY + 5;
-          aidLines.slice(0, 3).forEach(line => {
-            doc.text(line, aidX + 2, ay);
-            ay += 4;
-          });
-        }
-
-        y += 42;
-      });
-    }
-
-    // Projection financière (5/10 ans)
-    ensureSpace(34);
-    sectionTitle('Projection financière (indicative)');
-    card(margin, y, contentW, 26, [255, 255, 255], [226, 232, 240]);
-
-    const annualSavings = report?.annualSavingsIfTop3 || 0;
-    const p5 = report?.projection5Y || 0;
-    const p10 = report?.projection10Y || 0;
-
-    const colW = contentW / 3;
-
-    [
-      { title: 'Gain annuel', val: formatEuro(annualSavings), color: blue },
-      { title: 'Sur 5 ans', val: formatEuro(p5), color: green },
-      { title: 'Sur 10 ans', val: formatEuro(p10), color: amber }
-    ].forEach((b, i) => {
-      const x = margin + i * colW;
-      if (i > 0) {
-        doc.setDrawColor(236, 240, 244);
-        doc.line(x, y + 3, x, y + 23);
-      }
-
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7);
-      doc.setTextColor(...gray);
-      doc.text(b.title, x + 4, y + 8);
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(10);
-      doc.setTextColor(...b.color);
-      doc.text(b.val, x + 4, y + 16);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(8);
+      doc.setTextColor(...bar.color);
+      doc.text(`${fmt(bar.val)} kWh/m²`, x + 58 + barWidth, yBar + 4);
     });
 
-    y += 32;
+    return y + 33;
+  };
 
-    // Timeline / plan d'action
-    ensureSpace(46);
-    sectionTitle("Plan d'action recommandé");
-    card(margin, y, contentW, 38, [255, 255, 255], [226, 232, 240]);
+  const drawActionCard = (x, y, priority, index) => {
+    const cardH = 46;
+    const cardW = 180;
 
-    const timeline = report?.timeline || [];
-    let ty = y + 8;
+    doc.setFillColor(248, 249, 250);
+    doc.roundedRect(x, y, cardW, cardH, 2, 2, "F");
+    doc.setDrawColor(226, 232, 240);
+    doc.roundedRect(x, y, cardW, cardH, 2, 2, "S");
 
-    timeline.slice(0, 4).forEach((t, idx) => {
-      const lineY = ty + idx * 8;
+    const catColors = {
+      Enveloppe: [231, 76, 60],
+      Pilotage: [52, 152, 219],
+      "ROI rapide": [46, 204, 113],
+      Confort: [243, 156, 18],
+    };
+    const color = catColors[priority.tag] || [100, 116, 139];
 
-      // pastille
-      doc.setFillColor(...blue);
-      doc.circle(margin + 6, lineY - 1, 1.8, 'F');
+    doc.setFillColor(...color);
+    doc.rect(x, y, 3, cardH, "F");
 
-      // numéro
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(6);
-      doc.setFont('helvetica', 'bold');
-      doc.text(String(t.step || idx + 1), margin + 5.3, lineY, { baseline: 'middle' });
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(10);
+    doc.setTextColor(30, 58, 95);
+    doc.text(`${index}. ${priority.title}`, x + 6, y + 7);
 
-      // texte
-      doc.setTextColor(...blue);
-      doc.setFontSize(7.5);
-      doc.setFont('helvetica', 'bold');
-      doc.text(t.title || `Étape ${idx + 1}`, margin + 11, lineY);
-
-      doc.setTextColor(...gray);
-      doc.setFont('helvetica', 'normal');
-      const line = doc.splitTextToSize(t.desc || '', contentW - 20);
-      doc.text(line[0] || '', margin + 50, lineY);
-    });
-
-    y += 44;
-
-    // Avertissement
-    ensureSpace(28);
-    doc.setFillColor(254, 243, 199);
-    doc.roundedRect(margin, y, contentW, 24, 3, 3, 'F');
-    doc.setTextColor(146, 64, 14);
-    doc.setFontSize(7.5);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Avertissement important', margin + 4, y + 6);
-
-    doc.setFont('helvetica', 'normal');
-    const disclaimer = "Ce rapport constitue une estimation directionnelle basée sur des valeurs de référence sectorielles. Il ne remplace pas un audit énergétique réglementaire. Les économies et coûts présentés sont des ordres de grandeur (±30%). Vérifiez l’éligibilité aux aides avec un professionnel.";
-    const lines = doc.splitTextToSize(disclaimer, contentW - 8);
-    doc.text(lines, margin + 4, y + 11);
-
-    // Footer
+    // Badge catégorie
+    doc.setFillColor(240, 240, 240);
+    doc.roundedRect(x + 6, y + 10, 30, 5, 1, 1, "F");
+    doc.setFont("helvetica", "normal");
     doc.setFontSize(7);
-    doc.setTextColor(...gray);
-    doc.text('DiagTertiaire • Outil de cadrage énergétique tertiaire • www.diagtertiaire.fr', pageW / 2, pageH - 7, { align: 'center' });
+    doc.setTextColor(...color);
+    doc.text(priority.tag || "Action", x + 8, y + 13.5);
 
-    doc.save(`DiagTertiaire_rapport_${new Date().toISOString().slice(0,10)}.pdf`);
-  } catch (err) {
-    console.error('PDF export error:', err);
-    alert("Une erreur est survenue lors de la génération du PDF. Veuillez réessayer.");
+    const col1X = x + 6;
+    const col2X = x + 96;
+    let lineY = y + 19;
+
+    // Économies énergie
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(100, 116, 139);
+    doc.text("Économies énergie", col1X, lineY);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(30, 58, 95);
+    doc.text(`${fmt(priority.gainKwhVal)} kWh/an`, col1X, lineY + 4);
+
+    // Gain financier
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(100, 116, 139);
+    doc.text("Gain financier", col2X, lineY);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(46, 204, 113);
+    doc.text(`${fmt(priority.gainEuro)} €/an`, col2X, lineY + 4);
+
+    lineY += 10;
+
+    // Coût
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(100, 116, 139);
+    doc.text("Coût estimatif", col1X, lineY);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(30, 58, 95);
+    doc.text(priority.costLabel || "À estimer", col1X, lineY + 4);
+
+    // ROI
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(100, 116, 139);
+    doc.text("ROI indicatif (hors aides)", col2X, lineY);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.setTextColor(30, 58, 95);
+    doc.text(priority.roiLabel || "À estimer", col2X, lineY + 4);
+
+    // Aides
+    lineY += 10;
+    doc.setFillColor(254, 243, 199);
+    doc.roundedRect(x + 6, lineY - 2, cardW - 12, 10, 1, 1, "F");
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(6.7);
+    doc.setTextColor(146, 64, 14);
+    doc.text("Aides indicatives", x + 8, lineY + 1);
+    doc.text(`CEE : ${priority.ceeRange || "À estimer"}`, x + 8, lineY + 4.6);
+    doc.text(
+      `MaPrimeRénov' : ${priority.mprNote || "À vérifier (tertiaire souvent non prioritaire)"}`,
+      x + 8,
+      lineY + 8
+    );
+
+    return y + cardH + 4;
+  };
+
+  const ensurePageSpace = (y, needed, marginBottom = 15) => {
+    if (y + needed > 297 - marginBottom) {
+      doc.addPage();
+      return 15;
+    }
+    return y;
+  };
+
+  // =========================
+  // Données source / fallback
+  // =========================
+  const margin = 12;
+  const contentW = 210 - margin * 2;
+
+  const buildingName = safe(data.buildingName, "Bâtiment tertiaire");
+const activityLabel = safe(analysis?.activityRef?.label || data.activityLabel || data.activity, "Tertiaire");
+const heating = safe(analysis?.heatingLabel || data.heating, "Non renseigné");
+  const surface = Number(data.surface || data.surfaceM2 || 0);
+  const year = safe(data.year, "Non renseignée");
+ 
+
+  const kwhPerM2 = Number(
+    analysis.kwhPerM2 ??
+      data.kwhPerM2 ??
+      0
+  );
+  const refBase = Number(
+    analysis.refBase ??
+      data.refBase ??
+      250
+  );
+  const targetVal = Math.round(refBase * 0.8);
+ const dpeLabel = safe(analysis?.dpe?.l || data.dpeLabel, "D");
+
+  const avgPrice =
+    Number(analysis.avgPrice) ||
+    Number(data.avgPrice) ||
+    (String(heating).toLowerCase().includes("gaz") ? 0.12 : 0.25);
+
+  // Priorités (attendu : analysis.priorities = [{title, tag, gainKwhVal, gainEuro, cost, ceeRange, mprNote}, ...])
+  let priorities = Array.isArray(analysis.priorities) ? [...analysis.priorities] : [];
+
+  // Fallback si aucune priorité transmise
+  if (!priorities.length) {
+    priorities = [
+      {
+        title: "Optimisation régulation / programmation",
+        tag: "Pilotage",
+        gainKwhVal: 8000,
+        gainEuro: 2013,
+        cost: "1 500 à 8 000 €",
+        ceeRange: "1 000 à 4 000 €",
+        mprNote: "À vérifier",
+      },
+      {
+        title: "Passage en LED",
+        tag: "ROI rapide",
+        gainKwhVal: 4500,
+        gainEuro: 1125,
+        cost: "2 000 à 10 000 €",
+        ceeRange: "500 à 3 000 €",
+        mprNote: "Peu fréquent en tertiaire pur",
+      },
+      {
+        title: "Isolation toiture",
+        tag: "Enveloppe",
+        gainKwhVal: 12000,
+        gainEuro: 2491,
+        cost: "6 000 à 25 000 €",
+        ceeRange: "3 000 à 12 000 €",
+        mprNote: "À vérifier selon statut",
+      },
+    ];
   }
-};
+
+  // =========================
+  // Logique conditionnelle de cohérence
+  // =========================
+  const diffRatio = refBase > 0 ? (kwhPerM2 - refBase) / refBase : 0;
+
+  let performanceMessage = "";
+  let performanceColor = [30, 58, 95];
+
+  if (kwhPerM2 > 0 && diffRatio < 0) {
+    performanceMessage = `Votre bâtiment est plus performant que la référence (${fmt(Math.abs(Math.round(diffRatio * 100)))}% de moins).`;
+    performanceColor = [46, 204, 113];
+
+    // Si performant, on garde plutôt des actions d'optimisation
+    priorities = priorities
+      .filter((p) => ["Pilotage", "ROI rapide", "Confort"].includes(p.tag))
+      .slice(0, 3);
+  } else if (Math.abs(diffRatio) <= 0.15) {
+    performanceMessage = "Votre bâtiment est proche de la référence sectorielle. Des optimisations ciblées peuvent améliorer le rendement.";
+    performanceColor = [243, 156, 18];
+  } else {
+    performanceMessage = `Votre bâtiment semble au-dessus de la référence (+${fmt(Math.round(diffRatio * 100))}%). Prioriser les actions à fort impact.`;
+    performanceColor = [231, 76, 60];
+  }
+
+  // Normalisation coûts + ROI (CORRECTION CRITIQUE)
+  priorities = priorities.map((p) => {
+     const costLabel = normalizeCostLabel(p.cost);
+  const roiLabel = p.roiYears || computeROI(costLabel, p.gainEuro);
+
+  return {
+    ...p,
+    costLabel,
+    roiLabel,
+    ceeRange: p?.aids?.cee?.label?.replace(/^CEE\s*:\s*/i, "") || "À estimer",
+    mprNote: p?.aids?.mpr?.label?.replace(/^MaPrimeRénov'\s*:\s*/i, "") || "À vérifier"
+    };
+  });
+
+  // =========================
+  // PAGE 1
+  // =========================
+  let y = 14;
+
+  // Header
+  doc.setFillColor(30, 58, 95);
+  doc.roundedRect(margin, y, contentW, 18, 3, 3, "F");
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(15);
+  doc.text("Rapport DiagTertiaire", margin + 5, y + 7);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.text("Diagnostic énergétique simplifié - Rapport d'aide à la décision", margin + 5, y + 12.5);
+
+  y += 24;
+
+  // Infos bâtiment
+  doc.setFillColor(247, 250, 252);
+  doc.roundedRect(margin, y, contentW, 24, 2, 2, "F");
+  doc.setDrawColor(226, 232, 240);
+  doc.roundedRect(margin, y, contentW, 24, 2, 2, "S");
+
+  doc.setFont("helvetica", "bold");
+  doc.setTextColor(30, 58, 95);
+  doc.setFontSize(10);
+  doc.text(buildingName, margin + 4, y + 6);
+
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(80, 80, 80);
+  doc.setFontSize(8);
+  doc.text(`Activité : ${activityLabel}`, margin + 4, y + 11);
+  doc.text(`Surface : ${surface ? `${fmt(surface)} m²` : "Non renseignée"}`, margin + 4, y + 16);
+  doc.text(`Année : ${year}`, margin + 70, y + 11);
+  doc.text(`Chauffage : ${heating}`, margin + 70, y + 16);
+
+  y += 30;
+
+  // Bloc synthèse + DPE
+  drawSectionTitle("Synthèse de performance", margin, y);
+  y += 4;
+
+  doc.setFillColor(255, 255, 255);
+  doc.roundedRect(margin, y, contentW, 52, 2, 2, "S");
+
+  // DPE gauge
+  drawDPEGauge(margin + 4, y + 4, dpeLabel, kwhPerM2);
+
+  // KPIs à droite
+  const kpiX = margin + 108;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(100, 116, 139);
+  doc.text("Référence sectorielle", kpiX, y + 10);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(30, 58, 95);
+  doc.text(`${fmt(refBase)} kWh/m²/an`, kpiX, y + 16);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(100, 116, 139);
+  doc.text("Objectif de performance", kpiX, y + 25);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(12);
+  doc.setTextColor(46, 204, 113);
+  doc.text(`${fmt(targetVal)} kWh/m²/an`, kpiX, y + 31);
+
+  doc.setTextColor(...performanceColor);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(8);
+  const perfLines = doc.splitTextToSize(performanceMessage, 82);
+  doc.text(perfLines, kpiX, y + 39);
+
+  y += 58;
+
+  // Comparaison barres
+  drawSectionTitle("Comparaison visuelle", margin, y);
+  y += 4;
+  doc.roundedRect(margin, y, contentW, 38, 2, 2, "S");
+  y = drawComparisonBars(margin + 4, y + 4, kwhPerM2, refBase, activityLabel) + 8;
+
+  // Niveau de confiance
+  y = ensurePageSpace(y, 18);
+  drawSectionTitle("Niveau de confiance", margin, y);
+  y += 5;
+
+  const confidence = getConfidenceLevel(data);
+  doc.setTextColor(...confidence.color);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.text(`Confiance estimation : ${confidence.label}`, margin, y);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  doc.setTextColor(120, 120, 120);
+  doc.text(
+    `(basée sur ${data.noData ? "références sectorielles" : "vos données déclarées"})`,
+    margin,
+    y + 4
+  );
+  y += 10;
+
+  // Hypothèses de calcul
+  y = ensurePageSpace(y, 35);
+  drawSectionTitle("Hypothèses de calcul", margin, y);
+  y += 5;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.setTextColor(80, 80, 80);
+
+  const hypotheses = [
+    `Prix énergie (TTC) utilisé : ${String(heating).toLowerCase().includes("gaz") ? "Gaz" : "Électricité"} = ${avgPrice.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €/kWh`,
+    `Référence sectorielle : ${activityLabel} = ${fmt(refBase)} kWh/m²/an (source ADEME / benchmarks tertiaires)`,
+    `Objectif performance : 80% de la référence sectorielle`,
+    `Fourchettes de coûts : base standard marché 2026 (ordre de grandeur)`,
+    `Marge d'incertitude indicative : ±30%`,
+  ];
+
+  hypotheses.forEach((h) => {
+    doc.text(`• ${h}`, margin + 2, y);
+    y += 4.5;
+  });
+
+  // =========================
+  // PAGE 2 - Actions
+  // =========================
+  doc.addPage();
+  y = 14;
+
+  // Header page 2
+  doc.setFillColor(30, 58, 95);
+  doc.roundedRect(margin, y, contentW, 14, 3, 3, "F");
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  doc.text("Plan d'actions priorisé", margin + 5, y + 9);
+  y += 20;
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(8);
+  doc.setTextColor(100, 116, 139);
+  doc.text("Recommandations indicatives à confirmer par visite technique / audit.", margin, y);
+  y += 6;
+
+  priorities.slice(0, 3).forEach((p, idx) => {
+    y = ensurePageSpace(y, 52);
+    y = drawActionCard(margin, y, p, idx + 1);
+  });
+
+  // CTA
+  y += 3;
+  y = ensurePageSpace(y, 38);
+
+  doc.setFillColor(30, 58, 95);
+  doc.roundedRect(margin, y, contentW, 35, 3, 3, "F");
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.text("PROCHAINE ÉTAPE : VALIDATION AVEC UN EXPERT", margin + 5, y + 8);
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7.5);
+  doc.text("15 minutes offertes pour analyser votre rapport ensemble :", margin + 5, y + 14);
+  doc.text("• Valider les priorités adaptées à votre situation", margin + 8, y + 19);
+  doc.text("• Estimer les aides précises selon votre profil", margin + 8, y + 23);
+  doc.text("• Vous orienter vers les bons interlocuteurs (si souhaité)", margin + 8, y + 27);
+
+  doc.setFont("helvetica", "bold");
+  doc.text("Réserver : diagtertiaire.fr/rdv  |  contact@diagtertiaire.fr", margin + 5, y + 32);
+
+  // Footer
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setDrawColor(230, 230, 230);
+    doc.line(margin, 287, 210 - margin, 287);
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(120, 120, 120);
+    doc.text(`DiagTertiaire - Rapport généré le ${new Date().toLocaleDateString("fr-FR")}`, margin, 291);
+    doc.text(`Page ${i}/${pageCount}`, 210 - margin - 15, 291);
+  }
+
+  // Nom de fichier
+  const fileName = `DiagTertiaire_rapport_${(buildingName || "batiment")
+    .toString()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gi, "_")
+    .replace(/^_+|_+$/g, "")}_${new Date().toISOString().slice(0, 10)}.pdf`;
+
+  doc.save(fileName);
+}
+
    
 
       const MiniDPEGauge = ({ kwhPerM2, dpeLabel, dpeColor }) => (
@@ -1137,10 +1359,39 @@ const getMixedRef = (pct = 50) => {
 
 const parseCostRange = (costStr) => {
   if (!costStr || typeof costStr !== 'string') return { min: 0, max: 0 };
-  const nums = costStr.replace(/[^0-9]/g, ' ').trim().split(/\s+/).map(Number).filter(Boolean);
-  if (nums.length >= 2) return { min: nums[0], max: nums[1] };
-  if (nums.length === 1) return { min: nums[0], max: nums[0] };
-  return { min: 0, max: 0 };
+
+  // Exemples gérés :
+  // "6 000 - 25 000 €"
+  // "6 000 à 25 000 €"
+  // "1500-8000 €"
+  const nums = String(costStr)
+    .replace(/[€]/g, '')
+    .replace(/à/gi, ' ')
+    .replace(/[–-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .match(/\d+/g);
+
+  if (!nums || nums.length === 0) return { min: 0, max: 0 };
+
+  const values = nums.map(Number);
+
+  // Cas "6 000 25 000" -> [6,000,25,000]
+  if (values.length === 4 && values[1] < 1000 && values[3] < 1000) {
+    return {
+      min: values[0] * 1000 + values[1],
+      max: values[2] * 1000 + values[3]
+    };
+  }
+
+  if (values.length >= 2) {
+    return {
+      min: Math.min(...values),
+      max: Math.max(...values)
+    };
+  }
+
+  return { min: values[0], max: values[0] };
 };
 
 const estimateAidRanges = (priorityId, surface, isDecretEligible) => {
@@ -1374,7 +1625,8 @@ const roiYears = gainEuro > 0
     const StepReport = ({ data }) => {
   const [rechartsReady, setRechartsReady] = useState(false);
 
-  const report = buildReportData(data);
+ const report = buildReportData(data);
+
   const {
     activityRef,
     yearRef,
@@ -2217,3 +2469,4 @@ const roiYears = gainEuro > 0
     </script>
   
 </body></html>
+  
