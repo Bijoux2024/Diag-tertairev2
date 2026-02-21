@@ -680,7 +680,325 @@ const exportPDF = (data, report) => {
               </div>
           </div>
       );
+const StepBuilding = ({ data, update, onNext }) => {
+  const isValid = data.activity && data.year && Number(data.surface) > 0;
 
+  return (
+    <div className="fade-in max-w-3xl mx-auto">
+      <SectionCard>
+        <FormHeader
+          title="Décrivez votre bâtiment"
+          subtitle="Quelques informations suffisent pour une première estimation"
+        />
+
+        <div className="space-y-8">
+          <div>
+            <h3 className="text-sm font-semibold text-[#1E3A5F] mb-3">Type d'activité</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {ACTIVITIES.map((a) => (
+                <CardSelect
+                  key={a.id}
+                  selected={data.activity === a.id}
+                  onClick={() => update('activity', a.id)}
+                  icon={a.icon}
+                  label={a.label}
+                />
+              ))}
+            </div>
+
+            {data.activity === 'mixed' && (
+              <div className="mt-4 bg-slate-50 border border-slate-200 rounded-xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-slate-700">
+                    Répartition Bureaux / Commerce
+                  </label>
+                  <span className="text-xs text-slate-500">
+                    Bureaux {data.activityMixPct}% • Commerce {100 - (data.activityMixPct || 0)}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={data.activityMixPct ?? 50}
+                  onChange={(e) => update('activityMixPct', Number(e.target.value))}
+                  className="w-full"
+                />
+              </div>
+            )}
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold text-[#1E3A5F] mb-3">Période de construction</h3>
+            <div className="grid md:grid-cols-2 gap-3">
+              {YEARS.map((y) => (
+                <RadioFull
+                  key={y.id}
+                  selected={data.year === y.id}
+                  onClick={() => update('year', y.id)}
+                  label={y.label}
+                  sub={y.sub}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <Input
+              type="number"
+              label="Surface totale"
+              suffix="m²"
+              min={1}
+              value={data.surface}
+              onChange={(e) => update('surface', Number(e.target.value || 0))}
+              placeholder="Ex: 300"
+            />
+            <Input
+              type="number"
+              label="Nombre de niveaux"
+              min={1}
+              value={data.levels}
+              onChange={(e) => update('levels', Number(e.target.value || 1))}
+              placeholder="Ex: 1"
+            />
+          </div>
+
+          <div className="flex justify-end">
+            <Button onClick={onNext} disabled={!isValid}>
+              Continuer →
+            </Button>
+          </div>
+        </div>
+      </SectionCard>
+    </div>
+  );
+};
+
+const StepEnergy = ({ data, update, onNext, onBack }) => {
+  const hasEnergyData =
+    data.noData ||
+    (data.consumptionMode === 'kwh'
+      ? (Number(data.elecKwh || 0) + Number(data.gasKwh || 0) > 0)
+      : (Number(data.elecEuro || 0) + Number(data.gasEuro || 0) > 0));
+
+  const isValid =
+    data.heating &&
+    data.heatingAge &&
+    data.occupation &&
+    data.hasWorks &&
+    (data.noData || hasEnergyData);
+
+  const toggleWork = (workId) => {
+    const current = Array.isArray(data.works) ? data.works : [];
+    if (current.includes(workId)) {
+      update('works', current.filter((id) => id !== workId));
+    } else {
+      update('works', [...current, workId]);
+    }
+  };
+
+  return (
+    <div className="fade-in max-w-3xl mx-auto">
+      <SectionCard>
+        <FormHeader
+          title="Vos équipements et consommations"
+          subtitle="On affine l’estimation énergétique et les priorités d’action"
+        />
+
+        <div className="space-y-8">
+          <div>
+            <h3 className="text-sm font-semibold text-[#1E3A5F] mb-3">Système de chauffage principal</h3>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {HEATING.map((h) => (
+                <CardSelect
+                  key={h.id}
+                  selected={data.heating === h.id}
+                  onClick={() => update('heating', h.id)}
+                  icon={h.icon}
+                  label={h.label}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold text-[#1E3A5F] mb-3">Âge du système de chauffage</h3>
+            <div className="grid md:grid-cols-3 gap-3">
+              {['< 5 ans', '5 à 15 ans', '> 15 ans'].map((age) => (
+                <RadioFull
+                  key={age}
+                  selected={data.heatingAge === age}
+                  onClick={() => update('heatingAge', age)}
+                  label={age}
+                  sub={age === '> 15 ans' ? 'Souvent moins performant' : ' '}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold text-[#1E3A5F] mb-3">Occupation du bâtiment</h3>
+            <div className="grid md:grid-cols-2 gap-3">
+              {OCCUPATION_OPTS.map((o) => (
+                <CardSelect
+                  key={o.id}
+                  selected={data.occupation === o.id}
+                  onClick={() => update('occupation', o.id)}
+                  icon={o.icon}
+                  label={o.label}
+                  sub={o.sub}
+                />
+              ))}
+            </div>
+          </div>
+
+          <div className="border border-slate-200 rounded-xl p-4 bg-slate-50">
+            <div className="flex items-center justify-between gap-3 mb-3">
+              <h3 className="text-sm font-semibold text-[#1E3A5F]">Consommation annuelle</h3>
+              <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={!!data.noData}
+                  onChange={(e) => update('noData', e.target.checked)}
+                />
+                Je n’ai pas mes données (estimation automatique)
+              </label>
+            </div>
+
+            {!data.noData && (
+              <>
+                <div className="flex gap-2 mb-4">
+                  <button
+                    type="button"
+                    onClick={() => update('consumptionMode', 'kwh')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border ${
+                      data.consumptionMode === 'kwh'
+                        ? 'bg-[#1E3A5F] text-white border-[#1E3A5F]'
+                        : 'bg-white text-slate-600 border-slate-300'
+                    }`}
+                  >
+                    En kWh
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => update('consumptionMode', 'euro')}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border ${
+                      data.consumptionMode === 'euro'
+                        ? 'bg-[#1E3A5F] text-white border-[#1E3A5F]'
+                        : 'bg-white text-slate-600 border-slate-300'
+                    }`}
+                  >
+                    En €
+                  </button>
+                </div>
+
+                {data.consumptionMode === 'kwh' ? (
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <Input
+                      type="number"
+                      label="Électricité"
+                      suffix="kWh/an"
+                      value={data.elecKwh}
+                      onChange={(e) => update('elecKwh', e.target.value)}
+                      placeholder="Ex: 45000"
+                    />
+                    <Input
+                      type="number"
+                      label="Gaz"
+                      suffix="kWh/an"
+                      value={data.gasKwh}
+                      onChange={(e) => update('gasKwh', e.target.value)}
+                      placeholder="Ex: 120000"
+                    />
+                  </div>
+                ) : (
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <Input
+                      type="number"
+                      label="Facture électricité"
+                      suffix="€/an"
+                      value={data.elecEuro}
+                      onChange={(e) => update('elecEuro', e.target.value)}
+                      placeholder="Ex: 12000"
+                    />
+                    <Input
+                      type="number"
+                      label="Facture gaz"
+                      suffix="€/an"
+                      value={data.gasEuro}
+                      onChange={(e) => update('gasEuro', e.target.value)}
+                      placeholder="Ex: 8000"
+                    />
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold text-[#1E3A5F] mb-3">Des travaux ont-ils déjà été réalisés ?</h3>
+            <div className="grid md:grid-cols-2 gap-3 mb-3">
+              <RadioFull
+                selected={data.hasWorks === 'no'}
+                onClick={() => {
+                  update('hasWorks', 'no');
+                  update('works', []);
+                }}
+                label="Non"
+                sub="Aucun poste significatif récemment"
+              />
+              <RadioFull
+                selected={data.hasWorks === 'yes'}
+                onClick={() => update('hasWorks', 'yes')}
+                label="Oui"
+                sub="Je sélectionne les postes déjà traités"
+              />
+            </div>
+
+            {data.hasWorks === 'yes' && (
+              <div className="grid md:grid-cols-2 gap-2">
+                {WORKS_LIST.map((w) => {
+                  const checked = (data.works || []).includes(w.id);
+                  return (
+                    <label
+                      key={w.id}
+                      className={`flex items-center gap-2 p-3 rounded-lg border cursor-pointer transition-colors ${
+                        checked
+                          ? 'bg-[#EEF2FF] border-[#1E3A5F]'
+                          : 'bg-white border-slate-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleWork(w.id)}
+                      />
+                      <span className="text-sm text-slate-700">{w.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between pt-2">
+            <button
+              type="button"
+              onClick={onBack}
+              className="text-slate-500 hover:text-slate-700 text-sm font-medium"
+            >
+              ← Retour
+            </button>
+
+            <Button onClick={onNext} disabled={!isValid}>
+              Continuer →
+            </Button>
+          </div>
+        </div>
+      </SectionCard>
+    </div>
+  );
+};
       const StepLead = ({ data, update, onNext, onBack }) => {
           const isValid = data.firstName && data.email && data.consent;
 
