@@ -305,12 +305,10 @@ const exportPDF = async (data, analysis = {}) => {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        source: htmlContent,
-        filename: `DiagTertiaire_rapport_${new Date().toISOString().slice(0, 10)}.pdf`,
-        format: 'A4',
-        margin: '0'
-      })
+     body: JSON.stringify({
+  html: htmlContent,
+  filename: `DiagTertiaire_rapport_${new Date().toISOString().slice(0, 10)}.pdf`
+})
     });
     
 if (!response.ok) {
@@ -1675,7 +1673,7 @@ const buildReportData = (data) => {
                               Gratuit • 3 minutes • Résultat immédiat
                           </div>
                           <h1 className="text-4xl lg:text-5xl tracking-tight font-semibold text-slate-900 leading-[1.1] mb-6">
-                              Votre bâtiment tertiaire vous coûte-t-il trop cher en énergie ? test30
+                              Votre bâtiment tertiaire vous coûte-t-il trop cher en énergie ? test10
                           </h1>
                           <p className="text-lg text-[#6B7280] leading-relaxed mb-8">
                               Le premier diagnostic gratuit conçu pour les bâtiments tertiaires. Comparez-vous aux bonnes références sectorielles, pas au logement.
