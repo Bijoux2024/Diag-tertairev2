@@ -1,0 +1,1633 @@
+<html lang="fr"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DiagTertiaire - Performance Énergétique Tertiaire</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+
+    <!-- Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script crossorigin="" src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin="" src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/prop-types/prop-types.min.js"></script>
+    <script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
+    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+      /* Global & Reset */
+      body { font-family: 'Inter', sans-serif; background-color: #F8F9FA; color: #374151; -webkit-font-smoothing: antialiased; }
+
+      /* Custom Range Slider */
+      input[type=range] { -webkit-appearance: none; appearance: none; background: transparent; }
+      input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 20px; width: 20px; border-radius: 50%; background: #1E3A5F; cursor: pointer; margin-top: -8px; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+      input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #E5E7EB; border-radius: 2px; }
+      input[type=range]:focus { outline: none; }
+
+      /* Print Styles */
+      @media print {
+          .no-print { display: none !important; }
+          .print-only { display: block !important; }
+          body { background: white; }
+          .shadow-lg, .shadow-md, .shadow-sm, .shadow-xl { box-shadow: none !important; }
+          .break-inside-avoid { break-inside: avoid; }
+          .bg-slate-50 { background-color: white !important; }
+          nav { display: none; }
+      }
+
+      /* Animations */
+      .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+      .blur-overlay { filter: blur(5px); pointer-events: none; user-select: none; }
+    </style>
+  </head>
+  <body class="antialiased text-[#374151] bg-[#F8F9FA]">
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const { useState, useEffect, useCallback, useRef } = React;
+      const RechartsObj = window.Recharts || {};
+      const { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList } = RechartsObj;
+
+      /* --- CONSTANTS & DATA --- */
+      const ACTIVITIES = [
+          { id: 'office', label: 'Bureaux', icon: 'solar:buildings-2-linear', refKwh: 180 },
+          { id: 'retail', label: 'Commerce / Retail', icon: 'solar:shop-linear', refKwh: 350 },
+          { id: 'hotel', label: 'Hôtel', icon: 'solar:bed-linear', refKwh: 280 },
+          { id: 'health', label: 'Santé', icon: 'solar:heart-pulse-linear', refKwh: 320 },
+          { id: 'education', label: 'Enseignement', icon: 'solar:book-linear', refKwh: 150 },
+          { id: 'warehouse', label: 'Entrepôt', icon: 'solar:box-linear', refKwh: 90 },
+          { id: 'mixed', label: 'Usage mixte', icon: 'solar:transfer-horizontal-linear', refKwh: 220 },
+      ];
+
+      const YEARS = [
+          { id: 'pre1975', label: 'Avant 1975', sub: 'Isolation souvent absente', coef: 1.45 },
+          { id: '1975-1990', label: '1975 – 1990', sub: 'Premières réglementations', coef: 1.28 },
+          { id: '1990-2005', label: '1990 – 2005', sub: 'Isolation partielle', coef: 1.12 },
+          { id: '2005-2012', label: '2005 – 2012', sub: 'RT 2005', coef: 1.05 },
+          { id: 'post2012', label: 'Après 2012', sub: 'RT 2012 ou RE 2020', coef: 1.0 },
+      ];
+
+      const HEATING = [
+          { id: 'gas', label: 'Chaudière gaz', icon: 'solar:flame-linear' },
+          { id: 'elec', label: 'Électrique', icon: 'solar:bolt-linear' },
+          { id: 'pac', label: 'Pompe à chaleur', icon: 'solar:water-drops-linear' },
+          { id: 'oil', label: 'Fioul', icon: 'solar:fuel-linear' },
+          { id: 'ac', label: 'Climatisation rév.', icon: 'solar:snowflake-linear' },
+          { id: 'unknown', label: 'Je ne sais pas', icon: 'solar:question-circle-linear' },
+      ];
+
+      const OCCUPATION_OPTS = [
+          { id: 'semaine', label: 'Semaine uniquement', sub: 'Lun–Ven, ~45h/semaine', icon: 'solar:calendar-linear' },
+          { id: '6j', label: '6 jours sur 7', sub: 'Lundi–Samedi', icon: 'solar:calendar-add-linear' },
+          { id: '7j', label: '7 jours sur 7', sub: 'Occupation continue', icon: 'solar:refresh-circle-linear' },
+          { id: 'etendu', label: 'Horaires étendus', sub: 'Soirs et weekends inclus', icon: 'solar:moon-linear' }
+      ];
+
+      const WORKS_LIST = [
+          { id: 'roof', label: 'Isolation toiture' },
+          { id: 'walls', label: 'Isolation des murs' },
+          { id: 'windows', label: 'Remplacement fenêtres' },
+          { id: 'heating', label: 'Nouveau système chauffage' },
+          { id: 'led', label: 'Passage LED complet' },
+          { id: 'regulation', label: 'Régulation / programmation' },
+      ];
+
+      const ECS_SYSTEMS = [
+          { id: 'elec_ecs', label: 'Chauffe-eau électrique', icon: 'solar:bolt-linear' },
+          { id: 'gas_ecs', label: 'Chaudière gaz', icon: 'solar:flame-linear' },
+          { id: 'pac_ecs', label: 'PAC eau chaude', icon: 'solar:water-drops-linear' },
+          { id: 'solar_ecs', label: 'Solaire thermique', icon: 'solar:sun-linear' },
+          { id: 'unknown_ecs', label: 'Je ne sais pas', icon: 'solar:question-circle-linear' },
+      ];
+
+      const DEFAULT_FORM = {
+          address: '',
+          activity: '',
+          activityMixPct: 50,
+          year: '',
+          surface: 300,
+          levels: 1,
+          heating: '',
+          heatingAge: '',
+          occupation: '',
+          consumptionMode: 'kwh',
+          elecKwh: '',
+          gasKwh: '',
+          elecEuro: '',
+          gasEuro: '',
+          noData: false,
+          works: [],
+          hasWorks: 'no',
+          ecsSystem: '',
+          firstName: '',
+          email: '',
+          phone: '',
+          consent: false
+      };
+
+      const LS_KEY = 'diagtertiaire_v1';
+
+      /* --- HELPERS --- */
+      const saveToLS = (data) => {
+          try { localStorage.setItem(LS_KEY, JSON.stringify(data)); } catch(e) {}
+      };
+      const loadFromLS = () => {
+          try {
+              const d = localStorage.getItem(LS_KEY);
+              return d ? JSON.parse(d) : null;
+          } catch(e) { return null; }
+      };
+      const clearLS = () => {
+          try { localStorage.removeItem(LS_KEY); } catch(e) {}
+      };
+
+      /* --- UI COMPONENTS --- */
+      const Icon = ({ icon, className = "" }) => (
+          <iconify-icon icon={icon} class={`${className} text-2xl`} style={{ strokeWidth: '1.5' }}></iconify-icon>
+      );
+
+      const Button = ({ children, onClick, disabled, variant = 'primary', className = '', type = 'button' }) => {
+          const base = "px-6 py-3 rounded-lg font-semibold text-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 flex items-center justify-center gap-2";
+          const styles = {
+              primary: "bg-[#1E3A5F] text-white hover:bg-[#162B47] focus:ring-[#1E3A5F] disabled:opacity-50 disabled:cursor-not-allowed shadow-sm",
+              secondary: "bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 focus:ring-slate-200",
+              ghost: "text-slate-500 hover:text-[#1E3A5F]",
+              green: "bg-[#2ECC71] text-white hover:bg-[#27AE60] focus:ring-[#2ECC71] shadow-sm"
+          };
+          return (
+              <button type={type} onClick={onClick} disabled={disabled} className={`${base} ${styles[variant]} ${className}`}>
+                  {children}
+              </button>
+          );
+      };
+
+      const CardSelect = ({ selected, onClick, icon, label, sub }) => (
+          <div
+              onClick={onClick}
+              className={`cursor-pointer border rounded-xl p-4 transition-all duration-200 flex flex-col items-center text-center gap-3 h-full relative group
+              ${selected ? 'bg-[#EEF2FF] border-[#1E3A5F] border-[2px] shadow-sm' : 'bg-white border-slate-200 hover:border-[#1E3A5F]/50 hover:shadow-sm'}`}
+          >
+              <div className={`p-2 rounded-full transition-colors ${selected ? 'bg-[#1E3A5F] text-white' : 'bg-slate-100 text-slate-400 group-hover:text-slate-600'}`}>
+                  <Icon icon={icon} />
+              </div>
+              <div>
+                  <div className={`text-sm ${selected ? 'font-semibold text-[#1E3A5F]' : 'font-medium text-slate-600'}`}>{label}</div>
+                  {sub && <div className="text-xs text-slate-400 mt-1 leading-tight">{sub}</div>}
+              </div>
+          </div>
+      );
+
+      const RadioFull = ({ selected, onClick, label, sub }) => (
+          <div onClick={onClick} className={`cursor-pointer border rounded-lg p-3 flex items-center justify-between transition-all ${selected ? 'border-[#1E3A5F] bg-[#EEF2FF] border-[2px]' : 'border-slate-200 bg-white hover:bg-slate-50'}`}>
+              <div className="flex flex-col">
+                  <span className={`text-sm ${selected ? 'font-semibold text-[#1E3A5F]' : 'font-medium text-slate-700'}`}>{label}</span>
+                  <span className="text-xs text-slate-400 italic">{sub}</span>
+              </div>
+              <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${selected ? 'border-[#1E3A5F]' : 'border-slate-300'}`}>
+                  {selected && <div className="w-2.5 h-2.5 rounded-full bg-[#1E3A5F]"></div>}
+              </div>
+          </div>
+      );
+
+      const SectionCard = ({ children, className = "" }) => (
+          <div className={`bg-white rounded-xl shadow-md border border-slate-100 p-4 md:p-8 ${className}`}>
+              {children}
+          </div>
+      );
+
+      const Input = ({ type = "text", value, onChange, placeholder, label, suffix, min, max, note }) => (
+          <div className="flex flex-col gap-2 w-full">
+              {label && <label className="text-sm font-medium text-[#374151]">{label}</label>}
+              <div className="relative">
+                  <input
+                      type={type} value={value} onChange={onChange} placeholder={placeholder} min={min} max={max}
+                      className="w-full border border-slate-300 rounded-lg px-4 py-2.5 text-sm focus:border-[#1E3A5F] focus:ring-1 focus:ring-[#1E3A5F] outline-none transition-colors text-[#1E3A5F]"
+                  />
+                  {suffix && <span className="absolute right-4 top-2.5 text-sm text-slate-400">{suffix}</span>}
+              </div>
+              {note && <p className="text-sm text-[#9CA3AF] italic">{note}</p>}
+          </div>
+      );
+
+      const Stepper = ({ currentStep }) => {
+          const steps = [
+              { id: 1, label: 'Bâtiment', pct: 25 },
+              { id: 2, label: 'Énergie', pct: 50 },
+              { id: 3, label: 'Contact', pct: 75 },
+              { id: 4, label: 'Rapport', pct: 100 }
+          ];
+          const progressPercentage = steps.find(s => s.id === currentStep)?.pct || 25;
+
+          return (
+              <div className="mb-8 no-print w-full max-w-2xl mx-auto">
+                  <div className="flex justify-between mb-3 px-1">
+                      {steps.map((s) => (
+                          <div key={s.id} className={`text-xs font-semibold tracking-wide transition-colors ${s.id <= currentStep ? 'text-[#1E3A5F]' : 'text-slate-300'}`}>
+                              {s.label.toUpperCase()}
+                          </div>
+                      ))}
+                  </div>
+                  <div className="h-1 bg-[#E5E7EB] rounded-full w-full overflow-hidden">
+                      <div
+                          className="h-full bg-[#1E3A5F] transition-all duration-500 ease-out rounded-full"
+                          style={{ width: `${progressPercentage}%` }}
+                      ></div>
+                  </div>
+              </div>
+          );
+      };
+
+      const FormHeader = ({ title, subtitle }) => (
+          <div className="bg-white border-b border-slate-100 pb-6 mb-6 text-center">
+              <h2 className="text-2xl tracking-tight font-semibold text-[#1E3A5F] mb-2">{title}</h2>
+              <p className="text-[#6B7280]">{subtitle}</p>
+          </div>
+      );
+
+      const SectionTitle = ({ children, sub }) => (
+          <div className="text-center mb-10">
+              <h2 className="text-2xl md:text-3xl tracking-tight font-semibold text-[#1E3A5F] mb-2">{children}</h2>
+              {sub && <p className="text-[#6B7280] text-sm">{sub}</p>}
+          </div>
+      );
+
+      /* --- CHART ERROR BOUNDARY --- */
+      class ChartErrorBoundary extends React.Component {
+          constructor(props) { super(props); this.state = { hasError: false }; }
+          static getDerivedStateFromError(error) { return { hasError: true }; }
+          render() {
+              if (this.state.hasError) {
+                  return (
+                      <div className="h-64 flex flex-col items-center justify-center bg-slate-50 rounded-xl border border-slate-200 text-center p-6">
+                          <Icon icon="solar:chart-2-linear" className="text-slate-300 mb-3" />
+                          <p className="text-slate-500 font-medium text-sm mb-2">Graphique indisponible</p>
+                          <p className="text-slate-400 text-xs">Valeurs disponibles en texte ci-dessous</p>
+                          {this.props.fallbackData && (
+                              <div className="mt-4 flex flex-col gap-1 w-full max-w-xs">
+                                  {this.props.fallbackData.map((d, i) => (
+                                      <div key={i} className="flex justify-between text-xs bg-white border border-slate-100 rounded px-3 py-1.5">
+                                          <span className="text-slate-600">{d.name}</span>
+                                          <span className="font-semibold text-[#1E3A5F]">{d.val} kWh/m²</span>
+                                      </div>
+                                  ))}
+                              </div>
+                          )}
+                      </div>
+                  );
+              }
+              return this.props.children;
+          }
+      }
+
+      /* --- PDF EXPORT --- */
+      const exportPDF = (data, priorities, kwhPerM2, dpeLabel, activityLabel, yearLabel) => {
+          try {
+              const { jsPDF } = window.jspdf;
+              if (!jsPDF) { alert("Export PDF indisponible. Veuillez réessayer."); return; }
+              const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+
+              const blue = [30, 58, 95];
+              const gray = [100, 116, 139];
+              const green = [46, 204, 113];
+              const pageW = 210;
+              const margin = 18;
+              const contentW = pageW - margin * 2;
+              let y = 0;
+
+              doc.setFillColor(...blue);
+              doc.rect(0, 0, 210, 28, 'F');
+              doc.setTextColor(255, 255, 255);
+              doc.setFontSize(16);
+              doc.setFont('helvetica', 'bold');
+              doc.text('DiagTertiaire', margin, 13);
+              doc.setFontSize(8);
+              doc.setFont('helvetica', 'normal');
+              doc.text(`Rapport généré le ${new Date().toLocaleDateString('fr-FR')}`, margin, 20);
+              doc.text('Estimation directionnelle : ordre de grandeur', pageW - margin, 20, { align: 'right' });
+              y = 36;
+
+              doc.setTextColor(...blue);
+              doc.setFontSize(13);
+              doc.setFont('helvetica', 'bold');
+              doc.text('Récapitulatif du bâtiment', margin, y);
+              y += 7;
+              doc.setFontSize(9);
+              doc.setFont('helvetica', 'normal');
+              doc.setTextColor(...gray);
+              const recapLines = [
+                  `Activité : ${activityLabel}`,
+                  `Surface : ${data.surface} m²`,
+                  `Année de construction : ${yearLabel}`,
+                  `Système de chauffage : ${data.heating || 'Non précisé'}`,
+                  `Occupation : ${data.occupation || 'Non précisé'}`,
+              ];
+              recapLines.forEach(line => { doc.text(line, margin, y); y += 5.5; });
+              y += 4;
+
+              doc.setFillColor(238, 242, 255);
+              doc.roundedRect(margin, y, contentW, 22, 3, 3, 'F');
+              doc.setTextColor(...blue);
+              doc.setFontSize(11);
+              doc.setFont('helvetica', 'bold');
+              doc.text('Performance énergétique estimée', margin + 5, y + 8);
+              doc.setFontSize(18);
+              doc.text(`Classe ${dpeLabel}  •  ${kwhPerM2} kWh/m²/an`, margin + 5, y + 17);
+              y += 30;
+
+              doc.setTextColor(...blue);
+              doc.setFontSize(13);
+              doc.setFont('helvetica', 'bold');
+              doc.text("Vos 3 priorités d'action", margin, y);
+              y += 7;
+
+              priorities.forEach((p, i) => {
+                  if (y > 240) { doc.addPage(); y = 18; }
+                  doc.setFillColor(248, 249, 250);
+                  doc.roundedRect(margin, y, contentW, 36, 3, 3, 'F');
+                  doc.setDrawColor(226, 232, 240);
+                  doc.roundedRect(margin, y, contentW, 36, 3, 3, 'S');
+                  doc.setTextColor(...blue);
+                  doc.setFontSize(10);
+                  doc.setFont('helvetica', 'bold');
+                  doc.text(`${i + 1}. ${p.title}`, margin + 5, y + 8);
+                  doc.setFont('helvetica', 'normal');
+                  doc.setFontSize(8.5);
+                  doc.setTextColor(...gray);
+                  doc.text(`Économies estimées : ${p.gainKwhVal.toLocaleString('fr-FR')} kWh/an  (${p.gainKwhPct})`, margin + 5, y + 15);
+                  doc.setTextColor(...green);
+                  doc.text(`Gain financier indicatif : ${p.gainEuro.toLocaleString('fr-FR')} €/an`, margin + 5, y + 21);
+                  doc.setTextColor(...gray);
+                  doc.text(`Coût estimatif : ${p.cost}`, margin + 5, y + 27);
+                  doc.text(`Retour sur investissement indicatif : ${p.roiLabel} (hors aides)`, margin + 5, y + 33);
+                  y += 42;
+              });
+
+              if (y > 250) { doc.addPage(); y = 18; }
+              doc.setFillColor(254, 243, 199);
+              doc.roundedRect(margin, y, contentW, 28, 3, 3, 'F');
+              doc.setTextColor(146, 64, 14);
+              doc.setFontSize(7.5);
+              doc.setFont('helvetica', 'bold');
+              doc.text('Avertissement important', margin + 4, y + 7);
+              doc.setFont('helvetica', 'normal');
+              const disclaimer = "Ce rapport constitue une estimation directionnelle basée sur des valeurs de référence sectorielles. Il ne remplace pas un audit énergétique professionnel réglementaire. Les économies et coûts présentés sont des ordres de grandeur à ±30%. Pour toute décision d'investissement, consultez un expert certifié.";
+              const lines = doc.splitTextToSize(disclaimer, contentW - 8);
+              doc.text(lines, margin + 4, y + 13);
+              y += 34;
+
+              doc.setFontSize(7);
+              doc.setTextColor(...gray);
+              doc.text('DiagTertiaire • Outil de cadrage énergétique • www.diagtertiaire.fr', pageW / 2, 290, { align: 'center' });
+              doc.save(`DiagTertiaire_rapport_${new Date().toISOString().slice(0,10)}.pdf`);
+          } catch (err) {
+              console.error('PDF export error:', err);
+              alert("Une erreur est survenue lors de la génération du PDF. Veuillez réessayer.");
+          }
+      };
+
+      /* --- STEPS --- */
+      const StepBuilding = ({ data, update, onNext }) => {
+          const isValid = data.address && data.activity && data.year && data.surface && data.levels;
+
+          return (
+              <div className="fade-in space-y-6">
+                  <SectionCard>
+                      <FormHeader title="Parlez-nous de votre bâtiment" subtitle="3 minutes suffisent pour obtenir votre estimation énergétique" />
+
+                      <div className="space-y-8">
+                          <Input
+                              label="Adresse du bâtiment"
+                              placeholder="Ex : 12 rue des Entrepreneurs, 69003 Lyon"
+                              value={data.address}
+                              onChange={(e) => update('address', e.target.value)}
+                              note="Utilisée uniquement pour identifier votre zone climatique"
+                          />
+
+                          <div>
+                              <label className="text-sm font-medium text-[#374151] mb-3 block">Type d'activité</label>
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                  {ACTIVITIES.map(act => (
+                                      <CardSelect
+                                          key={act.id}
+                                          selected={data.activity === act.id}
+                                          onClick={() => update('activity', act.id)}
+                                          icon={act.icon}
+                                          label={act.label}
+                                      />
+                                  ))}
+                              </div>
+                              {data.activity === 'mixed' && (
+                                  <div className="mt-4 bg-slate-50 p-4 rounded-lg border border-slate-200">
+                                      <label className="text-sm font-medium text-slate-700 flex justify-between mb-2">
+                                          <span>Quelle part de bureaux ?</span>
+                                          <span className="text-[#1E3A5F] font-semibold">{data.activityMixPct}%</span>
+                                      </label>
+                                      <input
+                                          type="range" min="0" max="100"
+                                          value={data.activityMixPct}
+                                          onChange={(e) => update('activityMixPct', parseInt(e.target.value))}
+                                          className="w-full"
+                                      />
+                                  </div>
+                              )}
+                          </div>
+
+                          <div>
+                              <label className="text-sm font-medium text-[#374151] mb-3 block">Année de construction</label>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                  {YEARS.map(yr => (
+                                      <RadioFull
+                                          key={yr.id}
+                                          selected={data.year === yr.id}
+                                          onClick={() => update('year', yr.id)}
+                                          label={yr.label}
+                                          sub={yr.sub}
+                                      />
+                                  ))}
+                              </div>
+                          </div>
+
+                          <div>
+                              <div className="flex justify-between items-end mb-2">
+                                  <label className="text-sm font-medium text-[#374151]">Surface approximative</label>
+                                  <div className="bg-[#1E3A5F]/10 text-[#1E3A5F] px-3 py-1 rounded text-sm font-semibold">{data.surface} m²</div>
+                              </div>
+                              <input
+                                  type="range" min="50" max="2000" step="10"
+                                  value={data.surface}
+                                  onChange={(e) => update('surface', parseInt(e.target.value))}
+                                  className="w-full mb-2"
+                              />
+                          </div>
+
+                          <div>
+                              <label className="text-sm font-medium text-[#374151] mb-3 block">Nombre de niveaux</label>
+                              <div className="flex gap-2">
+                                  {[1, 2, 3, 4].map(lvl => (
+                                      <button
+                                          type="button"
+                                          key={lvl}
+                                          onClick={() => update('levels', lvl)}
+                                          className={`flex-1 py-3 rounded-lg border font-medium text-sm transition-all
+                                          ${data.levels === lvl ? 'bg-[#1E3A5F] text-white border-[#1E3A5F] shadow-sm' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                                      >
+                                          {lvl === 4 ? '4+' : lvl}
+                                      </button>
+                                  ))}
+                              </div>
+                          </div>
+                      </div>
+
+                      <div className="pt-8 flex justify-end">
+                          <Button onClick={onNext} disabled={!isValid}>Suivant</Button>
+                      </div>
+                  </SectionCard>
+              </div>
+          );
+      };
+
+      const StepEnergy = ({ data, update, onNext, onBack }) => {
+          const isValid = data.heating && data.heatingAge && data.occupation;
+
+          const toggleWork = (id) => {
+              const current = data.works || [];
+              if (current.includes(id)) update('works', current.filter(w => w !== id));
+              else update('works', [...current, id]);
+          };
+
+          const showUnknownHeatingMsg = data.heating === 'unknown';
+
+          return (
+              <div className="fade-in space-y-6">
+                  <SectionCard>
+                      <FormHeader title="Consommation et usage" subtitle="Dites-nous en plus sur vos équipements" />
+
+                      <div className="space-y-8">
+                          <div>
+                              <label className="text-sm font-medium text-[#374151] mb-3 block">Système de chauffage principal</label>
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                  {HEATING.map(h => (
+                                      <CardSelect key={h.id} selected={data.heating === h.id} onClick={() => update('heating', h.id)} icon={h.icon} label={h.label} />
+                                  ))}
+                              </div>
+                              {showUnknownHeatingMsg && (
+                                  <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg flex gap-2 items-start text-yellow-800 text-sm">
+                                      <Icon icon="solar:info-circle-linear" className="shrink-0 mt-0.5 text-yellow-600" />
+                                      <span>Pas de problème — nous utiliserons des valeurs de référence sectorielles pour compléter l'estimation. Vous pourrez affiner plus tard.</span>
+                                  </div>
+                              )}
+                          </div>
+
+                          <div>
+                              <label className="text-sm font-medium text-[#374151] mb-3 block">Âge approx. du système</label>
+                              <div className="grid grid-cols-2 gap-3">
+                                  {['< 5 ans', '5 à 15 ans', '> 15 ans', 'Je ne sais pas'].map(age => (
+                                      <button
+                                          type="button"
+                                          key={age} onClick={() => update('heatingAge', age)}
+                                          className={`py-3 px-2 rounded-lg border text-sm font-medium transition-all
+                                          ${data.heatingAge === age ? 'bg-[#EEF2FF] border-[#1E3A5F] border-[2px] text-[#1E3A5F] font-semibold' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                                      >
+                                          {age}
+                                      </button>
+                                  ))}
+                              </div>
+                          </div>
+
+                          {(data.activity === 'hotel' || data.activity === 'health') && (
+                              <div>
+                                  <label className="text-sm font-medium text-[#374151] mb-3 block">Production d'eau chaude sanitaire</label>
+                                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                      {ECS_SYSTEMS.map(s => (
+                                          <CardSelect key={s.id} selected={data.ecsSystem === s.id} onClick={() => update('ecsSystem', s.id)} icon={s.icon} label={s.label} />
+                                      ))}
+                                  </div>
+                              </div>
+                          )}
+
+                          <div>
+                              <label className="text-sm font-medium text-[#374151] mb-3 block">Occupation du bâtiment</label>
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                  {OCCUPATION_OPTS.map(opt => (
+                                      <CardSelect key={opt.id} selected={data.occupation === opt.id} onClick={() => update('occupation', opt.id)} icon={opt.icon} label={opt.label} sub={opt.sub} />
+                                  ))}
+                              </div>
+                          </div>
+
+                          <div className="bg-[#F8F9FA] p-6 rounded-xl border border-slate-200">
+                              <label className="text-sm font-semibold text-[#1E3A5F] mb-4 block flex items-center gap-2">
+                                  <Icon icon="solar:bill-list-linear" /> Consommation annuelle
+                              </label>
+
+                              <div className="flex bg-slate-200 p-1 rounded-lg mb-4 w-fit">
+                                  <button type="button"
+                                      className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${data.consumptionMode === 'kwh' ? 'bg-white text-[#1E3A5F] shadow-sm' : 'text-slate-500'}`}
+                                      onClick={() => update('consumptionMode', 'kwh')}
+                                  >
+                                      Je connais mes kWh
+                                  </button>
+                                  <button type="button"
+                                      className={`px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${data.consumptionMode === 'euro' ? 'bg-white text-[#1E3A5F] shadow-sm' : 'text-slate-500'}`}
+                                      onClick={() => update('consumptionMode', 'euro')}
+                                  >
+                                      J'ai mes montants en €
+                                  </button>
+                              </div>
+
+                              {!data.noData ? (
+                                  <div className="space-y-4">
+                                      <Input
+                                          label={data.consumptionMode === 'kwh' ? "Électricité (kWh/an)" : "Facture Élec. (€/an)"}
+                                          type="number"
+                                          value={data.consumptionMode === 'kwh' ? data.elecKwh : data.elecEuro}
+                                          onChange={(e) => update(data.consumptionMode === 'kwh' ? 'elecKwh' : 'elecEuro', e.target.value)}
+                                          placeholder="0"
+                                      />
+                                      {(data.heating === 'gas' || data.heating === 'oil' || data.heating === 'unknown') && (
+                                          <Input
+                                              label={data.consumptionMode === 'kwh' ? "Gaz/Fioul (kWh/an)" : "Facture Gaz/Fioul (€/an)"}
+                                              type="number"
+                                              value={data.consumptionMode === 'kwh' ? data.gasKwh : data.gasEuro}
+                                              onChange={(e) => update(data.consumptionMode === 'kwh' ? 'gasKwh' : 'gasEuro', e.target.value)}
+                                              placeholder="0"
+                                          />
+                                      )}
+                                  </div>
+                              ) : (
+                                  <div className="p-3 bg-yellow-50 text-yellow-800 text-sm rounded border border-yellow-200 flex gap-2">
+                                      <Icon icon="solar:info-circle-linear" className="shrink-0 mt-0.5 text-yellow-600" />
+                                      <span>Aucun problème — nous utiliserons les valeurs de référence sectorielles pour votre type de bâtiment.</span>
+                                  </div>
+                              )}
+
+                              <div className="mt-4 flex items-center gap-2">
+                                  <input
+                                      type="checkbox" id="noData"
+                                      checked={data.noData} onChange={(e) => update('noData', e.target.checked)}
+                                      className="w-4 h-4 text-[#1E3A5F] rounded focus:ring-[#1E3A5F] cursor-pointer"
+                                  />
+                                  <label htmlFor="noData" className="text-sm text-slate-600 cursor-pointer">Je n'ai pas ces informations sous la main</label>
+                              </div>
+                          </div>
+
+                          <div>
+                              <label className="text-sm font-medium text-[#374151] mb-3 block">Avez-vous déjà réalisé des travaux d'économie d'énergie ?</label>
+                              <div className="flex gap-2 mb-4">
+                                  {['oui', 'non', 'partiel'].map(opt => (
+                                      <button type="button"
+                                          key={opt} onClick={() => update('hasWorks', opt === 'non' ? 'no' : 'yes')}
+                                          className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-all
+                                          ${(opt === 'non' && data.hasWorks === 'no') || (opt !== 'non' && data.hasWorks === 'yes') ? 'bg-[#EEF2FF] border-[#1E3A5F] text-[#1E3A5F]' : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                                      >
+                                          {opt === 'oui' ? 'Oui' : opt === 'non' ? 'Non' : 'Partiellement'}
+                                      </button>
+                                  ))}
+                              </div>
+
+                              {data.hasWorks === 'yes' && (
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200 fade-in">
+                                      {WORKS_LIST.map(w => (
+                                          <div
+                                              key={w.id} onClick={() => toggleWork(w.id)}
+                                              className={`cursor-pointer border rounded-lg p-3 flex items-center gap-3 transition-all
+                                              ${data.works.includes(w.id) ? 'bg-[#EEF2FF] border-[#1E3A5F] text-[#1E3A5F]' : 'bg-white border-slate-200 text-slate-600 hover:bg-white'}`}
+                                          >
+                                              <div className={`w-5 h-5 rounded border flex items-center justify-center shrink-0 ${data.works.includes(w.id) ? 'border-[#1E3A5F] bg-[#1E3A5F]' : 'border-slate-300'}`}>
+                                                  {data.works.includes(w.id) && <Icon icon="solar:check-linear" className="text-white text-xs" />}
+                                              </div>
+                                              <span className="text-sm font-medium">{w.label}</span>
+                                          </div>
+                                      ))}
+                                  </div>
+                              )}
+                          </div>
+                      </div>
+
+                      <div className="pt-8 flex justify-between">
+                          <Button variant="secondary" onClick={onBack}>Retour</Button>
+                          <Button onClick={onNext} disabled={!isValid}>Suivant</Button>
+                      </div>
+                  </SectionCard>
+              </div>
+          );
+      };
+
+      const MiniDPEGauge = ({ kwhPerM2, dpeLabel, dpeColor }) => (
+          <div className="bg-white rounded-xl border border-slate-100 p-5 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                  <span className="text-sm font-semibold text-[#1E3A5F]">Classe énergétique estimée</span>
+                  <span className="text-xs text-slate-400 italic">ordre de grandeur</span>
+              </div>
+              <div className="flex gap-1.5 items-end mb-3">
+                  {['A','B','C','D','E','F','G'].map((l, i) => {
+                      const colors = ['#1A9E5C','#4CB84C','#B2D24F','#F5E54A','#F5A623','#E8622A','#D4252A'];
+                      const heights = ['h-4','h-6','h-8','h-10','h-12','h-14','h-16'];
+                      const isActive = l === dpeLabel;
+                      return (
+                          <div key={l}
+                              className={`flex-1 ${heights[i]} rounded-sm flex items-center justify-center text-xs font-semibold transition-all ${isActive ? 'ring-2 ring-offset-1 ring-[#1E3A5F] scale-110' : 'opacity-60'}`}
+                              style={{ backgroundColor: colors[i], color: i < 3 ? '#1a1a1a' : '#fff' }}
+                          >
+                              {l}
+                          </div>
+                      );
+                  })}
+              </div>
+              <div className="text-center">
+                  <span className="text-2xl tracking-tight font-semibold" style={{ color: dpeColor }}>{dpeLabel}</span>
+                  <span className="text-slate-500 text-sm ml-2">• {kwhPerM2} kWh/m²/an</span>
+              </div>
+          </div>
+      );
+
+      const StepLead = ({ data, update, onNext, onBack }) => {
+          const isValid = data.firstName && data.email && data.consent;
+
+          const activityRef = ACTIVITIES.find(a => a.id === data.activity) || ACTIVITIES[0];
+          const yearRef = YEARS.find(y => y.id === data.year) || YEARS[0];
+          const getMixedRef = (pct) => Math.round((180 * pct / 100) + (350 * (100 - pct) / 100));
+          const refBase = data.activity === 'mixed' ? getMixedRef(data.activityMixPct) : activityRef.refKwh;
+
+          const sysCoef = data.heatingAge === '> 15 ans' ? 1.15 : data.heatingAge === '5 à 15 ans' ? 1.05 : 1.1;
+          let consumptionTotalKwh = 0;
+
+          if (data.noData) {
+              consumptionTotalKwh = refBase * data.surface * yearRef.coef * sysCoef;
+          } else {
+              consumptionTotalKwh = data.consumptionMode === 'kwh'
+                  ? (parseFloat(data.elecKwh)||0) + (parseFloat(data.gasKwh)||0)
+                  : ((parseFloat(data.elecEuro)||0)/0.25) + ((parseFloat(data.gasEuro)||0)/0.12);
+              if (consumptionTotalKwh === 0) consumptionTotalKwh = refBase * data.surface * yearRef.coef * sysCoef;
+          }
+
+          const kwhPerM2 = Math.round(consumptionTotalKwh / data.surface);
+          const getDPE = (val) => {
+              if(val <= 70) return { l:'A', c:'#1A9E5C' };
+              if(val <= 110) return { l:'B', c:'#4CB84C' };
+              if(val <= 180) return { l:'C', c:'#B2D24F' };
+              if(val <= 250) return { l:'D', c:'#F5E54A' };
+              if(val <= 330) return { l:'E', c:'#F5A623' };
+              if(val <= 420) return { l:'F', c:'#E8622A' };
+              return { l:'G', c:'#D4252A' };
+          };
+          const dpe = getDPE(kwhPerM2);
+
+          return (
+              <div className="fade-in max-w-lg mx-auto space-y-6">
+                  <div className="space-y-3">
+                      <MiniDPEGauge kwhPerM2={kwhPerM2} dpeLabel={dpe.l} dpeColor={dpe.c} />
+
+                      <div className="relative rounded-xl overflow-hidden border border-slate-100 shadow-sm">
+                          <div className="blur-overlay bg-white p-5 space-y-3">
+                              {[1,2,3].map(i => (
+                                  <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                                      <div className="w-8 h-8 rounded-full bg-[#1E3A5F]/20 flex-shrink-0"></div>
+                                      <div className="space-y-1.5 flex-1">
+                                          <div className="h-3 bg-slate-200 rounded w-3/4"></div>
+                                          <div className="h-2.5 bg-slate-100 rounded w-1/2"></div>
+                                      </div>
+                                      <div className="h-6 w-16 bg-green-100 rounded"></div>
+                                  </div>
+                              ))}
+                          </div>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center bg-white/60 backdrop-blur-sm">
+                              <div className="bg-[#1E3A5F] text-white rounded-xl px-5 py-4 text-center shadow-lg max-w-xs mx-4">
+                                  <Icon icon="solar:lock-keyhole-linear" className="mb-2 block mx-auto text-3xl" />
+                                  <p className="font-semibold text-sm mb-1">Débloquez vos 3 priorités</p>
+                                  <p className="text-xs text-blue-200">Entrez votre email ci-dessous pour accéder au rapport complet et au plan d'action personnalisé.</p>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+
+                  <SectionCard>
+                      <div className="text-center space-y-2 mb-6">
+                          <div className="w-16 h-16 bg-[#2ECC71]/10 rounded-full flex items-center justify-center mx-auto mb-4 text-[#2ECC71]">
+                              <Icon icon="solar:document-check-linear" className="text-4xl" />
+                          </div>
+                          <h2 className="text-2xl tracking-tight font-semibold text-[#1E3A5F]">Votre estimation est prête</h2>
+                          <p className="text-[#6B7280]">Entrez votre email pour accéder à votre rapport complet et recevoir un plan d'action concret.</p>
+                      </div>
+
+                      <div className="space-y-5">
+                          <Input label="Prénom" placeholder="Votre prénom" value={data.firstName} onChange={(e) => update('firstName', e.target.value)} />
+                          <Input type="email" label="Email professionnel" placeholder="vous@entreprise.com" value={data.email} onChange={(e) => update('email', e.target.value)} />
+                          <Input type="tel" label="Téléphone (optionnel)" placeholder="06 XX XX XX XX" value={data.phone} onChange={(e) => update('phone', e.target.value)} note="Pour être recontacté si vous le souhaitez" />
+
+                          <label className="flex gap-3 items-start cursor-pointer group p-3 border border-transparent hover:bg-slate-50 rounded-lg transition-colors">
+                              <div className="relative flex items-center mt-0.5">
+                                  <input
+                                      type="checkbox" checked={data.consent} onChange={(e) => update('consent', e.target.checked)}
+                                      className="peer h-4 w-4 cursor-pointer appearance-none rounded border border-slate-300 bg-white checked:border-[#1E3A5F] checked:bg-[#1E3A5F] transition-all"
+                                  />
+                                  <Icon icon="solar:check-linear" className="absolute left-0 top-0 text-white opacity-0 peer-checked:opacity-100 pointer-events-none text-xs" />
+                              </div>
+                              <span className="text-xs text-slate-500 leading-relaxed group-hover:text-slate-700">
+                                  J'accepte de recevoir mon rapport et des recommandations sur la rénovation énergétique. Désabonnement en 1 clic.
+                              </span>
+                          </label>
+
+                          <Button onClick={onNext} disabled={!isValid} className="w-full justify-center text-base py-4 shadow-lg shadow-[#1E3A5F]/20">
+                              Accéder à mon rapport →
+                          </Button>
+                      </div>
+                  </SectionCard>
+
+                  <div className="flex justify-center">
+                      <button type="button" onClick={onBack} className="text-slate-400 text-sm hover:text-slate-600 font-medium">Retour</button>
+                  </div>
+              </div>
+          );
+      };
+
+      const StepReport = ({ data }) => {
+          const [rechartsReady, setRechartsReady] = useState(false);
+
+          useEffect(() => {
+              const checkRecharts = () => {
+                  if (window.Recharts && window.Recharts.BarChart) setRechartsReady(true);
+                  else setTimeout(checkRecharts, 100);
+              };
+              checkRecharts();
+          }, []);
+
+          const parseCost = (costStr) => {
+              const nums = costStr.replace(/[^0-9]/g, ' ').trim().split(/\s+/).map(Number);
+              return nums.length >= 2 ? { min: nums[0], max: nums[1] } : { min: 0, max: 0 };
+          };
+
+          const aidsAmount = (costStr, aidsPct) => {
+              const { min, max } = parseCost(costStr);
+              const pct = parseFloat(aidsPct.replace('~','').replace('%','')) / 100;
+              return Math.round(((min + max) / 2) * pct);
+          };
+
+          const getMixedRef = (pct) => Math.round((180 * pct / 100) + (350 * (100 - pct) / 100));
+          const activityRef = ACTIVITIES.find(a => a.id === data.activity) || ACTIVITIES[0];
+          const yearRef = YEARS.find(y => y.id === data.year) || YEARS[0];
+          let sysCoef = data.heatingAge === '> 15 ans' ? 1.15 : data.heatingAge === '5 à 15 ans' ? 1.05 : 1.1;
+          const refBase = data.activity === 'mixed' ? getMixedRef(data.activityMixPct) : activityRef.refKwh;
+
+          let consumptionTotalKwh = 0;
+          if (data.noData) {
+              consumptionTotalKwh = refBase * data.surface * yearRef.coef * sysCoef;
+          } else {
+              consumptionTotalKwh = data.consumptionMode === 'kwh'
+                  ? (parseFloat(data.elecKwh)||0) + (parseFloat(data.gasKwh)||0)
+                  : ((parseFloat(data.elecEuro)||0)/0.25) + ((parseFloat(data.gasEuro)||0)/0.12);
+              if (consumptionTotalKwh === 0) consumptionTotalKwh = refBase * data.surface * yearRef.coef * sysCoef;
+          }
+          const kwhPerM2 = Math.round(consumptionTotalKwh / data.surface);
+          const avgPrice = (data.heating === 'gas' || data.heating === 'oil') ? 0.18 : 0.25;
+          const isLarge = data.surface >= 1000;
+          const targetVal = Math.round(refBase * (isLarge ? 0.6 : 0.55));
+
+          const getDPE = (val) => {
+              if(val <= 70) return { l:'A', c:'#1A9E5C', w:'30%' };
+              if(val <= 110) return { l:'B', c:'#4CB84C', w:'40%' };
+              if(val <= 180) return { l:'C', c:'#B2D24F', w:'50%' };
+              if(val <= 250) return { l:'D', c:'#F5E54A', w:'60%' };
+              if(val <= 330) return { l:'E', c:'#F5A623', w:'70%' };
+              if(val <= 420) return { l:'F', c:'#E8622A', w:'80%' };
+              return { l:'G', c:'#D4252A', w:'90%' };
+          };
+          const dpe = getDPE(kwhPerM2);
+
+          const getPriorities = () => {
+              const sFactor = data.surface / 300;
+              const cost = (min, max) => `${Math.round(min * sFactor).toLocaleString('fr-FR')} à ${Math.round(max * sFactor).toLocaleString('fr-FR')} €`;
+
+              const potentialPriorities = [
+                  { id: 'roof', tag:'Impact fort', color:'text-[#2ECC71]', title:"Isolation toiture", gainPct: 0.25, gainKwhPct:"25%", cost: cost(15000, 45000), aidsPct:"20%", roiLabel:"7 ans" },
+                  { id: 'walls', tag:'Confort', color:'text-[#F39C12]', title:"Isolation des murs", gainPct: 0.15, gainKwhPct:"15%", cost: cost(20000, 50000), aidsPct:"15%", roiLabel:"12 ans" },
+                  { id: 'windows', tag:'Complément', color:'text-[#F39C12]', title:"Remplacement fenêtres", gainPct: 0.10, gainKwhPct:"10%", cost: cost(8000, 25000), aidsPct:"15%", roiLabel:"9 ans" },
+                  { id: 'regulation', tag:'ROI rapide', color:'text-[#3B82F6]', title:"Régulation chauffage", gainPct: 0.15, gainKwhPct:"15%", cost: cost(2000, 8000), aidsPct:"40%", roiLabel:"3 ans" },
+                  { id: 'heating', tag:'Performance', color:'text-[#2ECC71]', title:"Remplacement chauffage", gainPct: 0.20, gainKwhPct:"20%", cost: cost(12000, 30000), aidsPct:"25%", roiLabel:"6 ans" },
+                  { id: 'led', tag:'ROI rapide', color:'text-[#3B82F6]', title:"Relamping LED complet", gainPct: 0.12, gainKwhPct:"12%", cost: cost(3000, 12000), aidsPct:"10%", roiLabel:"4 ans" }
+              ];
+
+              let selectedIds = [];
+              if (data.year === 'pre1975' || data.year === '1975-1990') selectedIds = ['roof', 'regulation', 'windows'];
+              else selectedIds = ['regulation', 'led', 'roof'];
+              if (data.heatingAge === '> 15 ans') selectedIds[2] = 'heating';
+
+              const doneWorks = data.works || [];
+              return selectedIds
+                  .filter(id => !doneWorks.includes(id))
+                  .slice(0, 3)
+                  .map(id => {
+                      const p = potentialPriorities.find(pp => pp.id === id);
+                      if(!p) return null;
+                      return {
+                          ...p,
+                          gainEuro: Math.round(consumptionTotalKwh * p.gainPct * avgPrice),
+                          gainKwhVal: Math.round(consumptionTotalKwh * p.gainPct),
+                          aidsEuro: aidsAmount(p.cost, p.aidsPct)
+                      };
+                  })
+                  .filter(Boolean);
+          };
+
+          const priorities = getPriorities();
+
+          const chartData = [
+              { name: 'Votre bâtiment', val: kwhPerM2, fill: '#1E3A5F' },
+              { name: `Référence ${activityRef.label}`, val: refBase, fill: '#95A5A6' },
+              { name: isLarge ? "Objectif 2030" : "Objectif Perf.", val: targetVal, fill: '#2ECC71' },
+          ];
+
+          const handleExportPDF = (e) => {
+              e.preventDefault();
+              exportPDF(data, priorities, kwhPerM2, dpe.l, activityRef.label, yearRef.label);
+          };
+
+          return (
+              <div className="fade-in pb-20 max-w-4xl mx-auto w-full">
+                  <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2 items-start text-amber-800 text-xs">
+                      <Icon icon="solar:info-circle-linear" className="shrink-0 mt-0.5 text-amber-600" />
+                      <span><strong>Estimation directionnelle</strong> — Ce rapport est un ordre de grandeur basé sur des valeurs sectorielles. Il ne remplace pas un audit réglementaire.</span>
+                  </div>
+
+                  <div className="bg-[#1E3A5F] rounded-t-xl p-6 text-white flex flex-col md:flex-row justify-between items-center gap-4 shadow-lg">
+                      <div className="flex items-center gap-2">
+                          <Icon icon="solar:buildings-2-linear" className="text-2xl" />
+                          <span className="font-semibold text-lg">DiagTertiaire</span>
+                      </div>
+                      <div className="text-xs opacity-80">Rapport généré le {new Date().toLocaleDateString()}</div>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-b-xl shadow-md mb-8 flex flex-wrap justify-center gap-3 border border-t-0 border-slate-200">
+                      <span className="px-3 py-1 bg-slate-100 rounded-full text-xs font-semibold text-slate-600">{activityRef.label}</span>
+                      <span className="px-3 py-1 bg-slate-100 rounded-full text-xs font-semibold text-slate-600">{data.surface} m²</span>
+                      <span className="px-3 py-1 bg-slate-100 rounded-full text-xs font-semibold text-slate-600">{yearRef.label}</span>
+                  </div>
+
+                  <SectionCard className="mb-8">
+                      <h2 className="text-xl tracking-tight font-semibold text-[#1E3A5F] mb-6">Performance énergétique estimée</h2>
+                      <div className="flex flex-col gap-1 mb-4 relative">
+                          {['A','B','C','D','E','F','G'].map((l, i) => {
+                              const info = getDPE(i === 0 ? 0 : i===1?71:i===2?111:i===3?181:i===4?251:i===5?331:421);
+                              return (
+                                  <div key={l} className="relative h-8 flex items-center rounded-r-md transition-all" style={{ width: info.w, backgroundColor: info.c }}>
+                                      <div className="w-8 flex justify-center font-semibold text-white pl-2 drop-shadow-md">{l}</div>
+                                      {dpe.l === l && (
+                                          <div className="hidden md:flex absolute top-0 right-0 h-full items-center translate-x-full pl-2 z-10">
+                                              <div className="w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] border-r-[#1E3A5F] mr-2 rotate-180"></div>
+                                              <span className="text-lg tracking-tight font-semibold text-[#1E3A5F] whitespace-nowrap">{kwhPerM2} kWh/m²/an</span>
+                                          </div>
+                                      )}
+                                  </div>
+                              );
+                          })}
+                      </div>
+                  </SectionCard>
+
+                  <SectionCard className="mb-8">
+                      <h2 className="text-xl tracking-tight font-semibold text-[#1E3A5F] mb-1">Consommation vs Référence</h2>
+                      <p className="text-xs text-slate-400 italic mb-4">Valeurs indicatives basées sur des moyennes sectorielles</p>
+                      <ChartErrorBoundary fallbackData={chartData}>
+                          <div className="h-64 w-full">
+                              {rechartsReady ? (
+                                  <ResponsiveContainer width="100%" height="100%">
+                                      <BarChart layout="vertical" data={chartData} margin={{ top: 0, right: 60, left: 0, bottom: 0 }}>
+                                          <XAxis type="number" hide />
+                                          <YAxis dataKey="name" type="category" width={140} tick={{fontSize: 12, fill:'#374151', fontWeight:500}} />
+                                          <Tooltip cursor={{fill: 'transparent'}} />
+                                          <Bar dataKey="val" radius={[0, 4, 4, 0]} barSize={24}>
+                                              {chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
+                                              <LabelList dataKey="val" position="right" fill="#374151" fontSize={12} fontWeight="600" formatter={(val) => `${val} kWh/m²`} />
+                                          </Bar>
+                                      </BarChart>
+                                  </ResponsiveContainer>
+                              ) : <div className="h-full flex items-center justify-center text-slate-400">Chargement...</div>}
+                          </div>
+                      </ChartErrorBoundary>
+                  </SectionCard>
+
+                  <div className="mb-8">
+                      <h2 className="text-xl tracking-tight font-semibold text-[#1E3A5F] mb-4">Vos 3 priorités d'action</h2>
+                      <div className="grid md:grid-cols-3 gap-6">
+                          {priorities.map((p, i) => (
+                              <div key={i} className="bg-white rounded-xl shadow-md border border-slate-100 overflow-hidden flex flex-col h-full">
+                                  <div className="p-4 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center">
+                                      <span className="text-xs font-semibold text-slate-400">PRIORITÉ #{i+1}</span>
+                                      <span className={`text-xs font-semibold px-2 py-1 rounded bg-white shadow-sm ${p.color}`}>{p.tag}</span>
+                                  </div>
+                                  <div className="p-5 flex-1 flex flex-col">
+                                      <h3 className="font-semibold text-[#1E3A5F] text-lg mb-4 leading-tight">{p.title}</h3>
+                                      <div className="space-y-3 text-sm flex-1">
+                                          <div className="flex items-start gap-2 text-slate-600">
+                                              <Icon icon="solar:bolt-linear" className="text-base" />
+                                              <span>{p.gainKwhVal.toLocaleString('fr-FR')} kWh/an ({p.gainKwhPct})</span>
+                                          </div>
+                                          <div className="flex items-start gap-2 text-[#2ECC71]">
+                                              <Icon icon="solar:wallet-money-linear" className="text-base" />
+                                              <span className="font-semibold">Gain est. : {p.gainEuro.toLocaleString('fr-FR')} €/an</span>
+                                          </div>
+                                          <div className="flex items-start gap-2 text-slate-600">
+                                              <Icon icon="solar:hammer-linear" className="text-base" />
+                                              <span>Coût : {p.cost}</span>
+                                          </div>
+                                      </div>
+                                      <div className="mt-6 pt-4 border-t border-slate-100 flex justify-between items-center">
+                                          <span className="text-xs text-slate-500">ROI indicatif</span>
+                                          <span className="font-semibold text-[#1E3A5F] text-xs">{p.roiLabel}</span>
+                                      </div>
+                                  </div>
+                              </div>
+                          ))}
+                      </div>
+                  </div>
+
+                  <div className="bg-[#1E3A5F] rounded-2xl p-8 shadow-xl text-white mb-8 break-inside-avoid">
+                      <div className="grid md:grid-cols-2 gap-8 items-center">
+                          <div className="bg-slate-700 aspect-video rounded-lg flex flex-col items-center justify-center relative cursor-pointer group border border-white/10">
+                              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform">
+                                  <Icon icon="solar:play-linear" className="text-white text-2xl" />
+                              </div>
+                              <div className="absolute bottom-3 left-0 w-full text-center text-xs font-medium text-slate-300">Yannis • Consultant Énergie<br/><span className="opacity-70">⏱ 2 minutes</span></div>
+                          </div>
+                          <div className="space-y-4">
+                              <h3 className="text-xl tracking-tight font-semibold">Votre rapport soulève des points importants</h3>
+                              <p className="text-slate-300 text-sm leading-relaxed">15 minutes pour analyser ensemble vos options et identifier les interlocuteurs qualifiés pour votre projet.</p>
+                              <button type="button" onClick={() => alert("RDV sim") } className="block w-full bg-white text-[#1E3A5F] font-semibold text-center py-3 rounded-lg hover:bg-slate-100 transition-colors">
+                                  📅 Réserver mon rendez-vous →
+                              </button>
+                          </div>
+                      </div>
+                  </div>
+
+                  <div className="border-t border-slate-200 pt-8 no-print">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <button type="button" onClick={handleExportPDF} className="bg-white border border-[#1E3A5F] text-[#1E3A5F] py-3 rounded-lg font-semibold hover:bg-slate-50 transition-colors flex items-center justify-center gap-2">
+                              <Icon icon="solar:file-download-linear" /> Télécharger en PDF
+                          </button>
+                          <button type="button" onClick={() => alert("RDV sim") } className="bg-[#1E3A5F] text-white py-3 rounded-lg font-semibold hover:bg-[#162B47] transition-colors flex items-center justify-center gap-2">
+                              <Icon icon="solar:calendar-linear" /> Réserver mon rendez-vous
+                          </button>
+                      </div>
+                  </div>
+              </div>
+          );
+      };
+
+      /* --- PAGES --- */
+      const PageHome = ({ navigate }) => (
+          <div className="fade-in">
+              {/* SECTION 1 - HERO */}
+              <section className="bg-gradient-to-b from-[#F8F9FA] to-white py-16 lg:py-24">
+                  <div className="max-w-6xl mx-auto px-4 grid md:grid-cols-2 gap-12 items-center">
+                      <div>
+                          <div className="inline-flex items-center gap-2 bg-[#2ECC71]/10 border border-[#2ECC71]/30 rounded-full px-4 py-1.5 text-sm font-semibold text-[#2ECC71] mb-6">
+                              <Icon icon="solar:clock-circle-bold" className="text-base" />
+                              Gratuit • 3 minutes • Résultat immédiat
+                          </div>
+                          <h1 className="text-4xl lg:text-5xl tracking-tight font-semibold text-slate-900 leading-[1.1] mb-6">
+                              Votre bâtiment tertiaire vous coûte-t-il trop cher en énergie ?
+                          </h1>
+                          <p className="text-lg text-[#6B7280] leading-relaxed mb-8">
+                              Le premier diagnostic gratuit conçu pour les bâtiments tertiaires. Comparez-vous aux bonnes références sectorielles, pas au logement.
+                          </p>
+
+                          <div className="grid sm:grid-cols-2 gap-6 mb-8">
+                              <div className="space-y-3">
+                                  <p className="text-sm font-semibold text-[#1E3A5F] uppercase tracking-wide">Propriétaires</p>
+                                  {['Évaluez la performance de votre patrimoine','Identifiez les postes les plus coûteux','Estimez le ROI de vos travaux'].map((t, i) => (
+                                      <div key={i} className="flex items-start gap-2">
+                                          <iconify-icon icon="solar:check-circle-bold" style={{color:'#2ECC71', fontSize:'18px', flexShrink:0, marginTop:'2px'}}></iconify-icon>
+                                          <span className="text-sm text-slate-600">{t}</span>
+                                      </div>
+                                  ))}
+                              </div>
+                              <div className="space-y-3">
+                                  <p className="text-sm font-semibold text-[#1E3A5F] uppercase tracking-wide">Locataires</p>
+                                  {['Objectivez vos demandes de rénovation','Négociez avec des chiffres concrets','Anticipez vos futures factures'].map((t, i) => (
+                                      <div key={i} className="flex items-start gap-2">
+                                          <iconify-icon icon="solar:check-circle-bold" style={{color:'#2ECC71', fontSize:'18px', flexShrink:0, marginTop:'2px'}}></iconify-icon>
+                                          <span className="text-sm text-slate-600">{t}</span>
+                                      </div>
+                                  ))}
+                              </div>
+                          </div>
+
+                          <button type="button" onClick={() => navigate('diagnostic')} className="bg-[#1E3A5F] text-white px-8 py-4 rounded-xl text-base font-semibold hover:bg-[#162B47] shadow-lg transition-all flex items-center gap-2">
+                              Obtenir mon diagnostic gratuit (3 min) <Icon icon="solar:arrow-right-linear" className="text-base" />
+                          </button>
+                          <div className="flex items-center gap-4 text-xs text-slate-500 mt-4">
+                              <span className="flex items-center gap-1"><iconify-icon icon="solar:check-read-linear" style={{fontSize:'14px', color:'#2ECC71'}}></iconify-icon> Aucune expertise requise</span>
+                              <span className="flex items-center gap-1"><iconify-icon icon="solar:check-read-linear" style={{fontSize:'14px', color:'#2ECC71'}}></iconify-icon> Résultat immédiat</span>
+                              <span className="flex items-center gap-1"><iconify-icon icon="solar:check-read-linear" style={{fontSize:'14px', color:'#2ECC71'}}></iconify-icon> Aucun engagement</span>
+                          </div>
+                      </div>
+
+                      <div className="hidden md:block">
+                          <div className="bg-white rounded-2xl shadow-2xl p-6 border border-slate-100 relative">
+                              <div className="flex items-center gap-3 mb-4">
+                                  <div className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl font-semibold" style={{backgroundColor:'#FFCC00'}}>
+                                      <span style={{color:'#1E3A5F'}}>D</span>
+                                  </div>
+                                  <div>
+                                      <div className="text-sm font-semibold text-slate-900">Classe estimée : D</div>
+                                      <div className="text-xs text-slate-400">245 kWh/m²/an</div>
+                                  </div>
+                              </div>
+                              <div className="space-y-2 mb-4">
+                                  {[{l:'Isolation toiture', c:'#F39C12', g:'2 100 €/an'},{l:'Régulation / GTB', c:'#0891B2', g:'1 500 €/an'}].map((p, i) => (
+                                      <div key={i} className="bg-slate-50 rounded-lg p-3">
+                                          <div className="flex items-center gap-2 mb-1">
+                                              <div className="w-2 h-2 rounded-full" style={{backgroundColor:p.c}} />
+                                              <span className="text-xs font-medium text-slate-700">{p.l}</span>
+                                          </div>
+                                          <span className="text-xs font-semibold text-[#2ECC71]">Économie : {p.g}</span>
+                                      </div>
+                                  ))}
+                              </div>
+                              <div className="absolute -top-3 -right-3 bg-[#2ECC71] text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1">
+                                  <iconify-icon icon="solar:bolt-linear" style={{fontSize:'14px'}}></iconify-icon> Rapport en 3 min
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+              </section>
+
+              {/* SECTION 2 - SOCIAL PROOF */}
+              <section className="bg-white py-8 border-y border-slate-100">
+                  <div className="max-w-6xl mx-auto px-4">
+                      <p className="text-center text-sm text-slate-500 mb-4">Utilisé par 1 247 propriétaires et gestionnaires de patrimoine</p>
+                      <div className="flex flex-wrap justify-center items-center gap-8">
+                          <div className="flex items-center gap-2 text-sm text-slate-600">
+                              <iconify-icon icon="solar:buildings-2-linear" style={{fontSize:'20px', color:'#1E3A5F'}}></iconify-icon>
+                              <span><strong className="font-semibold text-slate-900">847</strong> diagnostics ce mois</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-slate-600">
+                              <iconify-icon icon="solar:wallet-money-linear" style={{fontSize:'20px', color:'#2ECC71'}}></iconify-icon>
+                              <span><strong className="font-semibold text-slate-900">4,2M€</strong> d'économies identifiées</span>
+                          </div>
+                          <div className="flex items-center gap-2 text-sm text-slate-600">
+                              <iconify-icon icon="solar:star-bold" style={{fontSize:'20px', color:'#FFC107'}}></iconify-icon>
+                              <span><strong className="font-semibold text-slate-900">4.8/5</strong> sur 127 avis</span>
+                          </div>
+                      </div>
+                  </div>
+              </section>
+
+              {/* SECTION 3 - PROBLÈME */}
+              <section className="bg-[#F8F9FA] py-16">
+                  <div className="max-w-6xl mx-auto px-4">
+                      <SectionTitle sub="Sans diagnostic, vous perdez de l'argent chaque jour">Le coût caché de l'inaction</SectionTitle>
+                      <div className="grid md:grid-cols-3 gap-6">
+                          {[
+                              {icon:'solar:bill-list-linear', color:'#E74C3C', title:'Des factures qui explosent', desc:"En 3 ans, le prix de l'énergie a augmenté de 45% en moyenne. Sans diagnostic, impossible de savoir si vous payez 2 000 € ou 20 000 € de trop chaque année.", stat:'15 à 35% de surcoût énergétique sur les bâtiments non optimisés'},
+                              {icon:'solar:hourglass-linear', color:'#F39C12', title:'Aucun outil adapté', desc:"Les simulateurs en ligne sont conçus pour le logement. Un commerce qui consomme 350 kWh/m²/an y serait classé G — alors que c'est normal. Résultat : impossible de savoir si vous êtes bon ou mauvais.", stat:"Les références résidentielles faussent l'analyse de 40 à 60%"},
+                              {icon:'solar:wallet-linear', color:'#7B3F9E', title:'Des aides qui disparaissent', desc:"MaPrimeRénov', CEE, subventions ADEME : les enveloppes se vident. Les propriétaires qui attendent perdent jusqu'à 40% du budget travaux.", stat:'9 000 € en moyenne d\'aides non optimisées'},
+                          ].map((c, i) => (
+                              <div key={i} className="bg-white rounded-xl p-6 border border-slate-100 hover:shadow-lg transition-shadow">
+                                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{backgroundColor:c.color+'15'}}>
+                                      <iconify-icon icon={c.icon} style={{fontSize:'24px', color:c.color}}></iconify-icon>
+                                  </div>
+                                  <h3 className="text-base font-semibold text-slate-900 mb-3">{c.title}</h3>
+                                  <p className="text-sm text-slate-600 leading-relaxed mb-4">{c.desc}</p>
+                                  <div className="bg-slate-50 rounded-lg p-3 border-l-4" style={{borderColor:c.color}}>
+                                      <p className="text-xs font-semibold text-slate-700">{c.stat}</p>
+                                  </div>
+                              </div>
+                          ))}
+                      </div>
+                  </div>
+              </section>
+
+              {/* SECTION 4 - SOLUTION */}
+              <section className="bg-white py-16">
+                  <div className="max-w-6xl mx-auto px-4">
+                      <SectionTitle sub="Enfin un outil adapté au tertiaire">Un diagnostic en 3 minutes qui change tout</SectionTitle>
+                      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
+                          {[
+                              {icon:'solar:clock-circle-linear', color:'#2ECC71', title:'3 minutes top chrono', desc:'Quelques clics suffisent. Pas de rendez-vous, pas de visite, pas de paperasse.'},
+                              {icon:'solar:target-linear', color:'#0891B2', title:'Estimation sur-mesure', desc:'Algorithme basé sur 12 000+ bâtiments tertiaires. Prend en compte votre activité, surface, année.'},
+                              {icon:'solar:calculator-linear', color:'#F39C12', title:'Chiffrage immédiat', desc:'Classe énergétique + 3 priorités avec coûts, gains et ROI. Vous savez exactement où vous en êtes.'},
+                              {icon:'solar:shield-check-linear', color:'#1E3A5F', title:'100% gratuit et neutre', desc:"Aucun engagement. Aucune revente de données. Aucun démarchage commercial."},
+                          ].map((b, i) => (
+                              <div key={i} className="text-center">
+                                  <div className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-3" style={{backgroundColor:b.color+'15'}}>
+                                      <iconify-icon icon={b.icon} style={{fontSize:'28px', color:b.color}}></iconify-icon>
+                                  </div>
+                                  <h3 className="text-sm font-semibold text-slate-900 mb-2">{b.title}</h3>
+                                  <p className="text-xs text-slate-600 leading-relaxed">{b.desc}</p>
+                              </div>
+                          ))}
+                      </div>
+
+                      <div className="bg-gradient-to-br from-[#EEF2FF] to-[#E0F2FE] rounded-2xl p-6 border border-[#1E3A5F]/20">
+                          <div className="flex items-start gap-4">
+                              <iconify-icon icon="solar:chat-round-line-linear" style={{fontSize:'32px', color:'#1E3A5F', flexShrink:0}} />
+                              <div>
+                                  <p className="text-sm text-slate-700 italic leading-relaxed mb-2">
+                                      "Je pensais que mon hôtel était un gouffre énergétique. Les simulateurs classiques me mettaient en classe F. Avec DiagTertiaire, j'ai découvert que 280 kWh/m²/an, c'est la norme pour un hôtel. Ça m'a rassuré et permis de cibler les vrais problèmes : la régulation et l'ECS. J'ai économisé 3 200 €/an avec 5 000 € de travaux."
+                                  </p>
+                                  <p className="text-xs text-slate-500 font-medium">Sophie M., propriétaire hôtel 45 chambres</p>
+                              </div>
+                          </div>
+                      </div>
+
+                      <div className="text-center mt-8">
+                          <button type="button" onClick={() => navigate('exemple')} className="text-sm text-[#1E3A5F] hover:underline font-medium">
+                              → Voir un exemple de rapport complet
+                          </button>
+                      </div>
+                  </div>
+              </section>
+
+              {/* SECTION 5 - COMMENT ÇA MARCHE */}
+              <section className="bg-gradient-to-b from-[#F8F9FA] to-white py-16">
+                  <div className="max-w-6xl mx-auto px-4">
+                      <SectionTitle sub="Un processus simple et transparent">Comment ça marche ? Suivez le guide.</SectionTitle>
+                      <div className="grid md:grid-cols-4 gap-8 relative">
+                          {[
+                              {n:'01', icon:'solar:buildings-2-linear', color:'#1E3A5F', time:'30 sec', title:'Votre bâtiment', items:['Activité (bureau/commerce/hôtel)','Surface et année de construction']},
+                              {n:'02', icon:'solar:bolt-linear', color:'#2ECC71', time:'1 min', title:'Vos équipements', items:['Chauffage et consommation','Travaux déjà réalisés']},
+                              {n:'03', icon:'solar:inbox-linear', color:'#F39C12', time:'15 sec', title:'Votre email', items:['Pour recevoir le rapport complet','Données protégées, jamais revendues']},
+                              {n:'04', icon:'solar:document-text-linear', color:'#7B3F9E', time:'Instantané', title:'Votre diagnostic', items:['Classe énergétique estimée','3 priorités chiffrées','Aides mobilisables']},
+                          ].map((s, i) => (
+                              <div key={i} className="relative">
+                                  {i < 3 && (
+                                      <div className="hidden md:block absolute top-8 -right-4 z-0">
+                                          <iconify-icon icon="solar:arrow-right-linear" style={{fontSize:'24px', color:'#CBD5E1'}}></iconify-icon>
+                                      </div>
+                                  )}
+                                  <div className="relative z-10">
+                                      <div className="text-5xl font-semibold text-slate-100 mb-3">{s.n}</div>
+                                      <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3" style={{backgroundColor:s.color+'15'}}>
+                                          <iconify-icon icon={s.icon} style={{fontSize:'24px', color:s.color}}></iconify-icon>
+                                      </div>
+                                      <div className="inline-block bg-white border border-slate-200 rounded-full px-3 py-1 text-xs font-semibold text-slate-600 mb-3">{s.time}</div>
+                                      <h3 className="text-sm font-semibold text-slate-900 mb-2">{s.title}</h3>
+                                      <ul className="space-y-1">
+                                          {s.items.map((item, j) => (
+                                              <li key={j} className="text-xs text-slate-600 flex items-start gap-1.5">
+                                                  <iconify-icon icon="solar:arrow-right-linear" style={{fontSize:'14px', color:s.color, flexShrink:0, marginTop:'2px'}}></iconify-icon>
+                                                  {item}
+                                              </li>
+                                          ))}
+                                      </ul>
+                                  </div>
+                              </div>
+                          ))}
+                      </div>
+                      <div className="text-center mt-10">
+                          <button type="button" onClick={() => navigate('diagnostic')} className="bg-[#1E3A5F] text-white px-8 py-4 rounded-xl text-base font-semibold hover:bg-[#162B47] shadow-lg transition-all inline-flex items-center gap-2">
+                              Lancer mon diagnostic (ça prend 3 min) <Icon icon="solar:arrow-right-linear" className="text-base" />
+                          </button>
+                      </div>
+                  </div>
+              </section>
+
+              {/* SECTION 6 - CE QUE VOUS RECEVEZ */}
+              <section className="bg-white py-16">
+                  <div className="max-w-6xl mx-auto px-4">
+                      <SectionTitle sub="Voici exactement ce que contient votre rapport gratuit">Ce que vous recevez</SectionTitle>
+                      <div className="grid md:grid-cols-2 gap-6">
+                          {[
+                              {title:'Votre classe énergétique estimée', desc:'Jauge A à G avec votre position et comparaison vs référence sectorielle'},
+                              {title:'Vos 3 actions prioritaires', desc:'Pour chaque action : gain annuel en €, coût des travaux, ROI en années, aides mobilisables'},
+                              {title:"Votre plan d'action sur 3 mois", desc:'Étapes concrètes pour passer du diagnostic à la réalisation'},
+                              {title:'Économies estimées sur 5 et 10 ans', desc:'Projection financière avec et sans travaux pour arbitrer vos investissements'},
+                          ].map((r, i) => (
+                              <div key={i} className="flex items-start gap-4 p-5 rounded-xl border border-slate-200 hover:border-[#1E3A5F]/30 hover:shadow-md transition-all">
+                                  <div className="w-12 h-12 rounded-lg bg-[#1E3A5F]/10 flex items-center justify-center flex-shrink-0">
+                                      <iconify-icon icon="solar:document-text-linear" style={{fontSize:'24px', color:'#1E3A5F'}}></iconify-icon>
+                                  </div>
+                                  <div>
+                                      <h3 className="text-sm font-semibold text-slate-900 mb-1">{r.title}</h3>
+                                      <p className="text-xs text-slate-600 leading-relaxed">{r.desc}</p>
+                                  </div>
+                              </div>
+                          ))}
+                      </div>
+
+                      <div className="mt-8 bg-amber-50 border border-amber-200 rounded-xl p-5 flex items-start gap-3">
+                          <iconify-icon icon="solar:lightbulb-linear" style={{fontSize:'24px', color:'#F39C12', flexShrink:0}} />
+                          <div>
+                              <p className="text-sm font-bold text-amber-900 mb-1">Sachez si ça vaut le coup</p>
+                              <p className="text-xs text-amber-700">Avant d'investir 800 à 1 500 € dans un audit complet, notre diagnostic vous donne les clés pour décider en connaissance de cause.</p>
+                          </div>
+                      </div>
+
+                      <div className="text-center mt-8">
+                          <button type="button" onClick={() => navigate('diagnostic')} className="bg-[#1E3A5F] text-white px-8 py-4 rounded-xl text-base font-semibold hover:bg-[#162B47] shadow-lg transition-all inline-flex items-center gap-2">
+                              Je veux mon rapport gratuit <Icon icon="solar:arrow-right-linear" className="text-base" />
+                          </button>
+                      </div>
+                  </div>
+              </section>
+
+              {/* SECTION 7 - CAS D'USAGE */}
+              <section className="bg-[#F8F9FA] py-16">
+                  <div className="max-w-6xl mx-auto px-4">
+                      <SectionTitle sub="Des propriétaires et locataires comme vous">Qui utilise DiagTertiaire ?</SectionTitle>
+
+                      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+                          {[
+                              {profile:'Petit propriétaire tertiaire', icon:'solar:buildings-linear', color:'#E74C3C', quote:'J\'ai un local commercial de 180m². Tous les simulateurs en ligne m\'orientaient vers du résidentiel. Résultat : des recommandations absurdes. Ici, en 3 min, j\'ai eu une estimation cohérente avec mon activité.', usage:'Absence d\'outil adapté'},
+                              {profile:'Propriétaire exploitant', icon:'solar:user-linear', color:'#2ECC71', quote:'Je voulais savoir si mes factures étaient normales. En 3 min j\'ai su que mon bâtiment consommait 28% de plus que la référence. J\'ai lancé un audit complet et divisé ma facture par 2 en 18 mois.', usage:'Évaluation patrimoine'},
+                              {profile:'Gestionnaire de parc', icon:'solar:case-round-minimalistic-linear', color:'#0891B2', quote:'Je gère 12 bâtiments. Impossible de tout auditer. Ce diagnostic m\'a permis d\'identifier les 3 pires consommateurs et de prioriser mes budgets.', usage:'Priorisation investissements'},
+                              {profile:'Locataire bureau', icon:'solar:briefcase-linear', color:'#F39C12', quote:'Ma facture avait doublé en 2 ans. Grâce au rapport, j\'ai pu négocier avec mon propriétaire des travaux d\'isolation. Résultat : -40% sur ma facture.', usage:'Négociation bail vert'},
+                              {profile:'Expert-comptable', icon:'solar:calculator-linear', color:'#7B3F9E', quote:'Je conseille 40 PME. Quand un client me montre ses factures énergie, je peux maintenant lui proposer ce diagnostic en 2 clics. Ça positionne mon cabinet comme proactif et ça crée de la valeur ajoutée.', usage:'Service client additionnel'},
+                              {profile:'Agent immobilier', icon:'solar:home-smile-angle-linear', color:'#0891B2', quote:'Avant une mise en vente, je propose systématiquement ce diagnostic. Ça me permet d\'anticiper les objections sur la performance énergétique et de valoriser le bien si les résultats sont bons.', usage:'Valorisation avant cession'},
+                          ].map((c, i) => (
+                              <div key={i} className="bg-white rounded-xl p-6 border border-slate-100 hover:border-[#1E3A5F]/30 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group">
+                                  <div className="flex items-center gap-3 mb-4">
+                                      <div className="w-12 h-12 rounded-full flex items-center justify-center transition-transform group-hover:scale-110" style={{backgroundColor:c.color+'15'}}>
+                                          <iconify-icon icon={c.icon} style={{fontSize:'24px', color:c.color}} />
+                                      </div>
+                                      <div>
+                                          <p className="text-sm font-bold text-slate-900">{c.profile}</p>
+                                          <p className="text-xs text-slate-500">{c.usage}</p>
+                                      </div>
+                                  </div>
+                                  <p className="text-sm text-slate-600 italic leading-relaxed">"{c.quote}"</p>
+                              </div>
+                          ))}
+                      </div>
+                  </div>
+              </section>
+
+              {/* SECTION 8 - FAQ */}
+              <section className="bg-white py-16">
+                  <div className="max-w-4xl mx-auto px-4">
+                      <SectionTitle>Questions fréquentes</SectionTitle>
+                      <div className="space-y-3">
+                          {[
+                              {q:'C\'est vraiment gratuit ?', r:'Oui, totalement gratuit pour vous. Aucun paiement requis. L\'outil est accessible à tous sans condition.'},
+                              {q:'Pourquoi me demander mon email ?', r:'Pour vous envoyer le rapport complet en PDF et, si vous le souhaitez, des ressources utiles pour vous accompagner dans votre réflexion. Désinscription possible à tout moment.'},
+                              {q:'Est-ce aussi précis qu\'un audit RGE ?', r:'Non. C\'est une estimation directionnelle basée sur des valeurs de référence sectorielles. Pour un diagnostic réglementaire, un audit certifié est nécessaire.'},
+                              {q:'Je n\'ai pas mes factures sous la main', r:'Pas grave. L\'outil peut estimer votre consommation selon votre activité et surface.'},
+                              {q:'Combien de temps le diagnostic prend-il ?', r:'Environ 3 minutes. Si vous avez vos données de consommation à portée de main, c\'est encore plus rapide.'},
+                              {q:'Et après le diagnostic, que se passe-t-il ?', r:'Vous recevez le rapport par email. C\'est tout. Si vous voulez aller plus loin, vous pouvez prendre RDV (optionnel).'},
+                              {q:'Je suis locataire, ça m\'intéresse vraiment ?', r:'Absolument. Le rapport vous donne des arguments chiffrés pour demander des travaux au propriétaire ou renégocier votre bail.'},
+                          ].map((faq, i) => (
+                              <details key={i} className="group border border-slate-200 rounded-xl overflow-hidden">
+                                  <summary className="cursor-pointer px-5 py-4 bg-white hover:bg-slate-50 flex items-center justify-between font-medium text-sm text-slate-900">
+                                      {faq.q}
+                                      <iconify-icon icon="solar:alt-arrow-down-linear" className="group-open:rotate-180 transition-transform" style={{fontSize:'18px', color:'#94A3B8'}} />
+                                  </summary>
+                                  <div className="px-5 py-4 bg-slate-50 border-t border-slate-100">
+                                      <p className="text-sm text-slate-600 leading-relaxed">{faq.r}</p>
+                                  </div>
+                              </details>
+                          ))}
+                      </div>
+                  </div>
+              </section>
+
+              {/* SECTION 9 - URGENCE */}
+              <section className="bg-gradient-to-r from-[#1E3A5F] to-[#162B47] py-12">
+                  <div className="max-w-4xl mx-auto px-4 text-center">
+                      <div className="inline-flex items-center gap-2 bg-amber-500/20 border border-amber-400/30 rounded-full px-4 py-1.5 text-sm font-semibold text-amber-300 mb-4">
+                          <iconify-icon icon="solar:lightbulb-linear" style={{fontSize:'16px'}}></iconify-icon>
+                          Le problème que personne ne résout
+                      </div>
+                      <h2 className="text-2xl tracking-tight font-semibold text-white mb-2">Les simulateurs résidentiels ne fonctionnent pas pour le tertiaire</h2>
+                      <p className="text-slate-300 text-sm mb-6 max-w-2xl mx-auto">
+                          Un hôtel qui consomme 280 kWh/m²/an serait classé F en résidentiel — alors que c'est la norme.
+                          Un bureau à 180 kWh/m²/an serait considéré comme mauvais — alors que c'est performant.
+                          <strong className="text-white"> Impossible de s'y retrouver sans référence sectorielle.</strong>
+                      </p>
+                      <button type="button" onClick={() => navigate('diagnostic')} className="bg-[#2ECC71] text-white px-8 py-4 rounded-xl text-base font-semibold hover:bg-[#27AE60] shadow-lg transition-all inline-flex items-center gap-2">
+                          Comparer avec la bonne référence (3 min) <iconify-icon icon="solar:arrow-right-linear" style={{fontSize:'18px'}}></iconify-icon>
+                      </button>
+                      <p className="text-xs text-slate-400 mt-3">Gratuit • Adapté à votre activité • Résultat immédiat</p>
+                  </div>
+              </section>
+
+              {/* SECTION 10 - GARANTIES */}
+              <section className="bg-white py-12">
+                  <div className="max-w-6xl mx-auto px-4">
+                      <h3 className="text-lg font-semibold text-center text-slate-900 mb-8">Nos engagements</h3>
+                      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+                          {[
+                          {icon:'solar:database-linear', color:'#0891B2', title:'Basé sur données publiques', desc:'Sources ADEME et observatoires régionaux. Références sectorielles vérifiables et mises à jour régulièrement.'},
+                          {icon:'solar:bolt-circle-linear', color:'#F39C12', title:'Résultat immédiat', desc:"Pas de rendez-vous. Pas d'attente. Rapport PDF téléchargeable en 3 minutes."},
+                          {icon:'solar:hand-shake-linear', color:'#2ECC71', title:'Gratuit et sans engagement', desc:'Aucun paiement. Aucune obligation. Vous décidez si vous voulez aller plus loin.'},
+                          {icon:'solar:user-check-linear', color:'#1E3A5F', title:'Utilisation claire des données', desc:'Vos données peuvent être partagées avec des partenaires qualifiés si vous le souhaitez. Contrôle total sur vos choix.'}
+                        ].map((g, i) => (
+                              <div key={i} className="text-center p-5 rounded-xl border border-slate-100 hover:border-slate-200 transition-colors">
+                                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3" style={{backgroundColor:g.color+'15'}}>
+                                      <iconify-icon icon={g.icon} style={{fontSize:'24px', color:g.color}}></iconify-icon>
+                                  </div>
+                                  <h4 className="text-sm font-semibold text-slate-900 mb-1">{g.title}</h4>
+                                  <p className="text-xs text-slate-600 leading-relaxed">{g.desc}</p>
+                              </div>
+                          ))}
+                      </div>
+                  </div>
+              </section>
+
+              {/* SECTION 11 - CTA FINAL */}
+              <section className="bg-gradient-to-br from-[#2ECC71] to-[#27AE60] py-16">
+                  <div className="max-w-4xl mx-auto px-4 text-center">
+                      <h2 className="text-3xl tracking-tight font-semibold text-white mb-3">Prêt à savoir combien vous pourriez économiser chaque année ?</h2>
+                      <p className="text-lg text-white/90 mb-8">3 minutes. Gratuit. Sans engagement.</p>
+                      <button type="button" onClick={() => navigate('diagnostic')} className="bg-white text-[#2ECC71] font-semibold px-12 py-4 rounded-xl hover:bg-slate-50 transition-all shadow-xl text-base inline-flex items-center gap-2">
+                          Lancer mon diagnostic énergétique <iconify-icon icon="solar:arrow-right-linear" style={{fontSize:'20px'}}></iconify-icon>
+                      </button>
+                      <div className="flex flex-wrap justify-center gap-6 text-sm text-white/80 mt-6">
+                          <span className="flex items-center gap-1"><iconify-icon icon="solar:check-circle-bold" style={{fontSize:'16px'}}></iconify-icon> 1 247 diagnostics ce mois</span>
+                          <span className="flex items-center gap-1"><iconify-icon icon="solar:check-circle-bold" style={{fontSize:'16px'}}></iconify-icon> Note moyenne 4.8/5</span>
+                          <span className="flex items-center gap-1"><iconify-icon icon="solar:check-circle-bold" style={{fontSize:'16px'}}></iconify-icon> Déjà 4,2M€ identifiés</span>
+                      </div>
+                      <p className="text-xs text-white/60 mt-4">En continuant, vous acceptez notre politique de confidentialité. Désinscription en 1 clic.</p>
+                  </div>
+              </section>
+          </div>
+      );
+
+      const PageMethod = ({ navigate }) => (
+          <div className="fade-in">
+              <section className="bg-[#F8F9FA] py-16 text-center px-4">
+                  <div className="inline-flex items-center gap-2 bg-[#EEF2FF] text-[#1E3A5F] px-3 py-1 rounded-full text-xs font-semibold mb-4">
+                      <Icon icon="solar:shield-check-linear" /> Notre démarche
+                  </div>
+                  <h1 className="text-3xl md:text-4xl tracking-tight font-semibold text-[#1E3A5F] mb-4">Un constat de terrain.<br/>Une réponse accessible.</h1>
+                  <p className="text-[#6B7280] max-w-2xl mx-auto">
+                      DiagTertiaire aide les propriétaires de PME à cadrer leurs enjeux énergétiques avant d'investir dans un audit complet.
+                  </p>
+              </section>
+          </div>
+      );
+
+      const PageExample = ({ navigate }) => {
+          const FAKE_DATA = {
+              activity: 'office', activityMixPct: 0, year: 'pre1975', surface: 450, levels: 2,
+              heating: 'gas', heatingAge: '> 15 ans', occupation: 'semaine',
+              consumptionMode: 'kwh', elecKwh: 45000, gasKwh: 146700,
+              noData: false, works: [], hasWorks: 'no', ecsSystem: '',
+              firstName: 'Jean', email: 'jean@exemple.com', consent: true
+          };
+
+          return (
+              <div className="fade-in bg-[#F8F9FA] min-h-screen">
+                  <div className="py-12 text-center px-4">
+                      <h1 className="text-3xl tracking-tight font-semibold text-[#1E3A5F] mb-2">À quoi ressemble votre rapport ?</h1>
+                      <p className="text-[#6B7280]">Exemple pour un bureau de 450m² construit avant 1975.</p>
+                  </div>
+                  <div className="max-w-4xl mx-auto px-4 pb-12">
+                      <StepReport data={FAKE_DATA} />
+                  </div>
+              </div>
+          );
+      };
+
+      const PagePro = ({ navigate }) => (
+          <div className="fade-in">
+              <section className="bg-[#1E3A5F] py-20 text-center text-white px-4">
+                  <h1 className="text-4xl tracking-tight font-semibold mb-4">Pour les professionnels du chiffre</h1>
+                  <p className="text-lg text-blue-200 max-w-2xl mx-auto mb-8">
+                      Proposez un outil de cadrage énergétique à vos clients tertiaires (comptables, notaires, assureurs).
+                  </p>
+                  <button type="button" onClick={() => alert("Contact")} className="bg-white text-[#1E3A5F] px-8 py-4 rounded-xl font-semibold">Demander un accès pro</button>
+              </section>
+          </div>
+      );
+
+      const RestoreBanner = ({ onDismiss, onRestart }) => (
+          <div className="w-full bg-[#EEF2FF] border-b border-[#1E3A5F]/20 px-4 py-2.5 flex items-center justify-between gap-4 no-print">
+              <div className="flex items-center gap-2 text-[#1E3A5F] text-sm">
+                  <Icon icon="solar:history-linear" className="shrink-0 text-base" />
+                  <span className="font-medium">Reprendre votre estimation en cours ?</span>
+              </div>
+              <div className="flex items-center gap-3">
+                  <button type="button" onClick={onRestart} className="text-xs font-semibold text-red-600 hover:text-red-800 underline">Effacer</button>
+                  <button type="button" onClick={onDismiss} className="text-slate-400 hover:text-slate-600">
+                      <Icon icon="solar:close-circle-linear" className="text-base" />
+                  </button>
+              </div>
+          </div>
+      );
+
+      /* --- APP ROOT --- */
+      const App = () => {
+          const [currentPage, setCurrentPage] = useState('home');
+          const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+          const [diagStep, setDiagStep] = useState(1);
+          const [showRestoreBanner, setShowRestoreBanner] = useState(false);
+
+          const [formData, setFormData] = useState(() => {
+              const saved = loadFromLS();
+              return (saved && saved._hasData) ? { ...DEFAULT_FORM, ...saved } : { ...DEFAULT_FORM };
+          });
+
+          useEffect(() => {
+              const saved = loadFromLS();
+              if (saved && saved._hasData) setShowRestoreBanner(true);
+          }, []);
+
+          const saveTimeout = useRef(null);
+          useEffect(() => {
+              if (saveTimeout.current) clearTimeout(saveTimeout.current);
+              saveTimeout.current = setTimeout(() => {
+                  const hasData = !!(formData.address || formData.activity || formData.year);
+                  if (hasData) saveToLS({ ...formData, _hasData: true });
+              }, 600);
+              return () => { if (saveTimeout.current) clearTimeout(saveTimeout.current); };
+          }, [formData]);
+
+          const updateForm = useCallback((field, value) => {
+              setFormData(prev => ({ ...prev, [field]: value }));
+          }, []);
+
+          const handleRestart = () => {
+              clearLS();
+              setFormData({ ...DEFAULT_FORM });
+              setDiagStep(1);
+              setShowRestoreBanner(false);
+          };
+
+          const navigate = (page) => {
+              setCurrentPage(page);
+              setIsMobileMenuOpen(false);
+              window.scrollTo(0, 0);
+          };
+
+          const NavLink = ({ page, label }) => (
+              <button type="button"
+                  onClick={() => navigate(page)}
+                  className={`text-sm font-medium transition-colors ${currentPage === page ? 'text-[#1E3A5F] font-semibold border-b-2 border-[#1E3A5F]' : 'text-[#6B7280] hover:text-[#1E3A5F]'}`}
+              >
+                  {label}
+              </button>
+          );
+
+          return (
+              <div className="min-h-screen flex flex-col">
+                  {showRestoreBanner && <RestoreBanner onDismiss={() => setShowRestoreBanner(false)} onRestart={handleRestart} />}
+
+                  <nav className="bg-white border-b border-slate-200 sticky top-0 z-50">
+                      <div className="max-w-5xl mx-auto px-4 h-16 flex items-center justify-between">
+                          <div className="flex items-center gap-2 text-[#1E3A5F] cursor-pointer" onClick={() => navigate('home')}>
+                              <Icon icon="solar:buildings-2-linear" />
+                              <span className="font-semibold text-lg">DiagTertiaire</span>
+                          </div>
+
+                          <div className="hidden md:flex gap-8">
+                              <NavLink page="home" label="Accueil" />
+                              <NavLink page="methode" label="Approche" />
+                              <NavLink page="exemple" label="Rapport" />
+                              <NavLink page="pro" label="Espace Pro" />
+                          </div>
+
+                          <div className="hidden md:block">
+                              <button type="button" onClick={() => navigate('diagnostic')} className="bg-[#1E3A5F] text-white px-4 py-2 rounded-lg text-xs font-semibold hover:bg-[#162B47]">
+                                  Démarrer →
+                              </button>
+                          </div>
+
+                          <button type="button" className="md:hidden text-[#1E3A5F]" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
+                              <Icon icon={isMobileMenuOpen ? "solar:close-square-linear" : "solar:hamburger-menu-linear"} />
+                          </button>
+                      </div>
+
+                      {isMobileMenuOpen && (
+                          <div className="md:hidden bg-white border-t border-slate-100 p-4 flex flex-col gap-4">
+                              <NavLink page="home" label="Accueil" />
+                              <NavLink page="methode" label="Notre approche" />
+                              <NavLink page="exemple" label="Exemple de rapport" />
+                              <NavLink page="pro" label="Espace Pro" />
+                          </div>
+                      )}
+                  </nav>
+
+                  <main className="flex-1">
+                      {currentPage === 'home' && <PageHome navigate={navigate} />}
+
+                      {currentPage === 'diagnostic' && (
+                          <div className="max-w-4xl mx-auto px-4 py-8">
+                              {diagStep < 4 && <Stepper currentStep={diagStep} />}
+
+                              {diagStep === 1 && <StepBuilding data={formData} update={updateForm} onNext={() => setDiagStep(2)} />}
+                              {diagStep === 2 && <StepEnergy data={formData} update={updateForm} onNext={() => setDiagStep(3)} onBack={() => setDiagStep(1)} />}
+                              {diagStep === 3 && <StepLead data={formData} update={updateForm} onNext={() => setDiagStep(4)} onBack={() => setDiagStep(2)} />}
+                              {diagStep === 4 && <StepReport data={formData} />}
+                          </div>
+                      )}
+
+                      {currentPage === 'methode' && <PageMethod navigate={navigate} />}
+                      {currentPage === 'exemple' && <PageExample navigate={navigate} />}
+                      {currentPage === 'pro' && <PagePro navigate={navigate} />}
+                  </main>
+
+                  {currentPage !== 'diagnostic' && (
+                      <footer className="bg-[#1E3A5F] py-12">
+          <div className="max-w-6xl mx-auto px-4">
+            <div className="grid md:grid-cols-4 gap-8 mb-8">
+              
+              <div>
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
+                    <iconify-icon icon="solar:buildings-2-linear" style={{color:'white', fontSize:'18px'}} />
+                  </div>
+                  <span className="font-bold text-white">DiagTertiaire</span>
+                </div>
+                <p className="text-sm text-slate-400 leading-relaxed mb-4">Estimation directionnelle basée sur valeurs de référence sectorielles</p>
+                <div className="space-y-2">
+                  <button type="button" onClick={() => navigate('home')} className="block text-sm text-slate-300 hover:text-white transition-colors">À propos</button>
+                  <button type="button" className="block text-sm text-slate-300 hover:text-white transition-colors">Notre méthodologie</button>
+                  <a href="mailto:contact@diagtertiaire.fr" className="block text-sm text-slate-300 hover:text-white transition-colors">Contact</a>
+                </div>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-bold text-white mb-3">Ressources</h4>
+                <ul className="space-y-2">
+                  <li><button type="button" className="text-sm text-slate-300 hover:text-white transition-colors">Guide du décret tertiaire</button></li>
+                  <li><button type="button" className="text-sm text-slate-300 hover:text-white transition-colors">Références ADEME</button></li>
+                  <li><button type="button" className="text-sm text-slate-300 hover:text-white transition-colors">Blog</button></li>
+                  <li><button type="button" onClick={() => navigate('exemple')} className="text-sm text-slate-300 hover:text-white transition-colors">Exemple de rapport</button></li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-bold text-white mb-3">Légal</h4>
+                <ul className="space-y-2">
+                  <li><button type="button" className="text-sm text-slate-300 hover:text-white transition-colors">Mentions légales</button></li>
+                  <li><button type="button" className="text-sm text-slate-300 hover:text-white transition-colors">Politique de confidentialité</button></li>
+                  <li><button type="button" className="text-sm text-slate-300 hover:text-white transition-colors">CGU</button></li>
+                  <li><button type="button" className="text-sm text-slate-300 hover:text-white transition-colors">Gestion des cookies</button></li>
+                </ul>
+              </div>
+
+              <div>
+                <h4 className="text-sm font-bold text-white mb-3">Professionnel</h4>
+                <ul className="space-y-2">
+                  <li><button type="button" onClick={() => navigate('pro')} className="text-sm text-slate-300 hover:text-white transition-colors">Espace pro</button></li>
+                  <li><button type="button" className="text-sm text-slate-300 hover:text-white transition-colors">Devenir partenaire</button></li>
+                  <li><button type="button" className="text-sm text-slate-300 hover:text-white transition-colors">API & Intégrations</button></li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="pt-6 border-t border-white/10 flex flex-wrap justify-between items-center gap-4">
+              <p className="text-xs text-slate-400">© 2026 DiagTertiaire • Estimations basées sur données ADEME</p>
+              <div className="flex items-center gap-3">
+                {['SSL','RGPD','🇫🇷 FR'].map((b, i) => (
+                  <span key={i} className="text-xs text-slate-400 bg-white/5 px-2 py-1 rounded">{b}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </footer>
+                  )}
+              </div>
+          );
+      };
+
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<App />);
+    </script>
+  
+</body></html>
