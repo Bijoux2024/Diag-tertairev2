@@ -132,6 +132,11 @@
       };
 
       const LS_KEY = 'diagtertiaire_v1';
+      
+      
+      
+      const CTA_CALENDLY_URL = 'https://calendly.com/TON-LIEN'; // à remplacer
+const CTA_EMAIL = 'contact@diagtertiaire.fr';
 
       /* --- HELPERS --- */
       const saveToLS = (data) => {
@@ -286,7 +291,15 @@
       }
 
       /* --- PDF EXPORT --- */
-      const exportPDF = (data, priorities, kwhPerM2, dpeLabel, activityLabel, yearLabel) => {
+
+      
+
+      const exportPDF = (data, report) => {
+        const priorities = report?.priorities || [];
+const kwhPerM2 = report?.kwhPerM2 || 0;
+const dpeLabel = report?.dpe?.l || '-';
+const activityLabel = report?.activityRef?.label || 'Non précisé';
+const yearLabel = report?.yearRef?.label || 'Non précisé';
           try {
               const { jsPDF } = window.jspdf;
               if (!jsPDF) { alert("Export PDF indisponible. Veuillez réessayer."); return; }
@@ -359,12 +372,12 @@
                   doc.setFont('helvetica', 'normal');
                   doc.setFontSize(8.5);
                   doc.setTextColor(...gray);
-                  doc.text(`Économies estimées : ${p.gainKwhVal.toLocaleString('fr-FR')} kWh/an  (${p.gainKwhPct})`, margin + 5, y + 15);
+                  doc.text(`Économies estimées : ${p.gainKwhVal.toLocaleString('fr-FR')} kWh/an  (${p.gainKwhPct || '-'})`, margin + 5, y + 15);
                   doc.setTextColor(...green);
                   doc.text(`Gain financier indicatif : ${p.gainEuro.toLocaleString('fr-FR')} €/an`, margin + 5, y + 21);
                   doc.setTextColor(...gray);
                   doc.text(`Coût estimatif : ${p.cost}`, margin + 5, y + 27);
-                  doc.text(`Retour sur investissement indicatif : ${p.roiLabel} (hors aides)`, margin + 5, y + 33);
+                  doc.text(`Retour sur investissement indicatif : ${p.roiYears || p.roiLabel || 'À estimer'} (hors aides)`, margin + 5, y + 33);
                   y += 42;
               });
 
@@ -706,17 +719,8 @@
               if (consumptionTotalKwh === 0) consumptionTotalKwh = refBase * data.surface * yearRef.coef * sysCoef;
           }
 
-          const kwhPerM2 = Math.round(consumptionTotalKwh / data.surface);
-          const getDPE = (val) => {
-              if(val <= 70) return { l:'A', c:'#1A9E5C' };
-              if(val <= 110) return { l:'B', c:'#4CB84C' };
-              if(val <= 180) return { l:'C', c:'#B2D24F' };
-              if(val <= 250) return { l:'D', c:'#F5E54A' };
-              if(val <= 330) return { l:'E', c:'#F5A623' };
-              if(val <= 420) return { l:'F', c:'#E8622A' };
-              return { l:'G', c:'#D4252A' };
-          };
-          const dpe = getDPE(kwhPerM2);
+        const kwhPerM2 = Math.round(consumptionTotalKwh / data.surface);
+const dpe = getDPE(kwhPerM2);
 
           return (
               <div className="fade-in max-w-lg mx-auto space-y-6">
@@ -785,238 +789,487 @@
               </div>
           );
       };
+      /* --- REPORT ENGINE (source unique de calculs rapport écran + PDF) --- */
 
-      const StepReport = ({ data }) => {
-          const [rechartsReady, setRechartsReady] = useState(false);
+const ENERGY_PRICES = {
+  elec: 0.2516,      // ordre de grandeur réglementaire / indicatif
+  gas: 0.1119,
+  oil: 0.1280,
+  pac: 0.1000,       // simplifié (PAC plus performante)
+  ac: 0.1800,        // clim rév. (approx)
+  unknown: 0.1800
+};
 
-          useEffect(() => {
-              const checkRecharts = () => {
-                  if (window.Recharts && window.Recharts.BarChart) setRechartsReady(true);
-                  else setTimeout(checkRecharts, 100);
-              };
-              checkRecharts();
-          }, []);
+const formatEuro = (v) => `${Math.round(v).toLocaleString('fr-FR')} €`;
+const formatRangeEuro = (min, max) => `${Math.round(min).toLocaleString('fr-FR')} - ${Math.round(max).toLocaleString('fr-FR')} €`;
 
-          const parseCost = (costStr) => {
-              const nums = costStr.replace(/[^0-9]/g, ' ').trim().split(/\s+/).map(Number);
-              return nums.length >= 2 ? { min: nums[0], max: nums[1] } : { min: 0, max: 0 };
-          };
+const getEnergyPrice = (heatingId) => {
+  return ENERGY_PRICES[heatingId] ?? ENERGY_PRICES.unknown;
+};
 
-          const aidsAmount = (costStr, aidsPct) => {
-              const { min, max } = parseCost(costStr);
-              const pct = parseFloat(aidsPct.replace('~','').replace('%','')) / 100;
-              return Math.round(((min + max) / 2) * pct);
-          };
+const getHeatingLabel = (heatingId) => {
+  const h = HEATING.find(x => x.id === heatingId);
+  return h ? h.label : 'Non précisé';
+};
 
-          const getMixedRef = (pct) => Math.round((180 * pct / 100) + (350 * (100 - pct) / 100));
-          const activityRef = ACTIVITIES.find(a => a.id === data.activity) || ACTIVITIES[0];
-          const yearRef = YEARS.find(y => y.id === data.year) || YEARS[0];
-          let sysCoef = data.heatingAge === '> 15 ans' ? 1.15 : data.heatingAge === '5 à 15 ans' ? 1.05 : 1.1;
-          const refBase = data.activity === 'mixed' ? getMixedRef(data.activityMixPct) : activityRef.refKwh;
+const getOccupationLabel = (occId) => {
+  const o = OCCUPATION_OPTS.find(x => x.id === occId);
+  return o ? o.label : 'Non précisé';
+};
 
-          let consumptionTotalKwh = 0;
-          if (data.noData) {
-              consumptionTotalKwh = refBase * data.surface * yearRef.coef * sysCoef;
-          } else {
-              consumptionTotalKwh = data.consumptionMode === 'kwh'
-                  ? (parseFloat(data.elecKwh)||0) + (parseFloat(data.gasKwh)||0)
-                  : ((parseFloat(data.elecEuro)||0)/0.25) + ((parseFloat(data.gasEuro)||0)/0.12);
-              if (consumptionTotalKwh === 0) consumptionTotalKwh = refBase * data.surface * yearRef.coef * sysCoef;
-          }
-          const kwhPerM2 = Math.round(consumptionTotalKwh / data.surface);
-          const avgPrice = (data.heating === 'gas' || data.heating === 'oil') ? 0.18 : 0.25;
-          const isLarge = data.surface >= 1000;
-          const targetVal = Math.round(refBase * (isLarge ? 0.6 : 0.55));
+const getMixedRef = (pct = 50) => {
+  // Conservé volontairement simple (bureaux + retail)
+  return Math.round((180 * pct / 100) + (350 * (100 - pct) / 100));
+};
 
-          const getDPE = (val) => {
-              if(val <= 70) return { l:'A', c:'#1A9E5C', w:'30%' };
-              if(val <= 110) return { l:'B', c:'#4CB84C', w:'40%' };
-              if(val <= 180) return { l:'C', c:'#B2D24F', w:'50%' };
-              if(val <= 250) return { l:'D', c:'#F5E54A', w:'60%' };
-              if(val <= 330) return { l:'E', c:'#F5A623', w:'70%' };
-              if(val <= 420) return { l:'F', c:'#E8622A', w:'80%' };
-              return { l:'G', c:'#D4252A', w:'90%' };
-          };
-          const dpe = getDPE(kwhPerM2);
+const parseCostRange = (costStr) => {
+  if (!costStr || typeof costStr !== 'string') return { min: 0, max: 0 };
+  const nums = costStr.replace(/[^0-9]/g, ' ').trim().split(/\s+/).map(Number).filter(Boolean);
+  if (nums.length >= 2) return { min: nums[0], max: nums[1] };
+  if (nums.length === 1) return { min: nums[0], max: nums[0] };
+  return { min: 0, max: 0 };
+};
 
-          const getPriorities = () => {
-              const sFactor = data.surface / 300;
-              const cost = (min, max) => `${Math.round(min * sFactor).toLocaleString('fr-FR')} à ${Math.round(max * sFactor).toLocaleString('fr-FR')} €`;
+const estimateAidRanges = (priorityId, surface, isDecretEligible) => {
+  // Fourchettes prudentes et génériques (non contractuelles)
+  let cee = null;
+  let mpr = null;
+  let decret = null;
 
-              const potentialPriorities = [
-                  { id: 'roof', tag:'Impact fort', color:'text-[#2ECC71]', title:"Isolation toiture", gainPct: 0.25, gainKwhPct:"25%", cost: cost(15000, 45000), aidsPct:"20%", roiLabel:"7 ans" },
-                  { id: 'walls', tag:'Confort', color:'text-[#F39C12]', title:"Isolation des murs", gainPct: 0.15, gainKwhPct:"15%", cost: cost(20000, 50000), aidsPct:"15%", roiLabel:"12 ans" },
-                  { id: 'windows', tag:'Complément', color:'text-[#F39C12]', title:"Remplacement fenêtres", gainPct: 0.10, gainKwhPct:"10%", cost: cost(8000, 25000), aidsPct:"15%", roiLabel:"9 ans" },
-                  { id: 'regulation', tag:'ROI rapide', color:'text-[#3B82F6]', title:"Régulation chauffage", gainPct: 0.15, gainKwhPct:"15%", cost: cost(2000, 8000), aidsPct:"40%", roiLabel:"3 ans" },
-                  { id: 'heating', tag:'Performance', color:'text-[#2ECC71]', title:"Remplacement chauffage", gainPct: 0.20, gainKwhPct:"20%", cost: cost(12000, 30000), aidsPct:"25%", roiLabel:"6 ans" },
-                  { id: 'led', tag:'ROI rapide', color:'text-[#3B82F6]', title:"Relamping LED complet", gainPct: 0.12, gainKwhPct:"12%", cost: cost(3000, 12000), aidsPct:"10%", roiLabel:"4 ans" }
-              ];
+  if (priorityId === 'roof') {
+    cee = {
+      min: surface * 8,
+      max: surface * 22,
+      label: `CEE : ${formatRangeEuro(surface * 8, surface * 22)}`
+    };
+    mpr = {
+      label: `MaPrimeRénov' : montant variable selon statut et éligibilité`
+    };
+  }
 
-              let selectedIds = [];
-              if (data.year === 'pre1975' || data.year === '1975-1990') selectedIds = ['roof', 'regulation', 'windows'];
-              else selectedIds = ['regulation', 'led', 'roof'];
-              if (data.heatingAge === '> 15 ans') selectedIds[2] = 'heating';
+  if (priorityId === 'windows') {
+    cee = {
+      min: surface * 4,
+      max: surface * 12,
+      label: `CEE : ${formatRangeEuro(surface * 4, surface * 12)}`
+    };
+    mpr = {
+      label: `MaPrimeRénov' : montant variable selon statut et éligibilité`
+    };
+  }
 
-              const doneWorks = data.works || [];
-              return selectedIds
-                  .filter(id => !doneWorks.includes(id))
-                  .slice(0, 3)
-                  .map(id => {
-                      const p = potentialPriorities.find(pp => pp.id === id);
-                      if(!p) return null;
-                      return {
-                          ...p,
-                          gainEuro: Math.round(consumptionTotalKwh * p.gainPct * avgPrice),
-                          gainKwhVal: Math.round(consumptionTotalKwh * p.gainPct),
-                          aidsEuro: aidsAmount(p.cost, p.aidsPct)
-                      };
-                  })
-                  .filter(Boolean);
-          };
+  if (priorityId === 'heating') {
+    cee = {
+      min: 1500,
+      max: 8000,
+      label: `CEE : ${formatRangeEuro(1500, 8000)}`
+    };
+    mpr = {
+      label: `MaPrimeRénov' : montant variable selon statut et éligibilité`
+    };
+  }
 
-          const priorities = getPriorities();
+  if (priorityId === 'regulation' || priorityId === 'gtb') {
+    cee = {
+      min: 800,
+      max: 4000,
+      label: `CEE : ${formatRangeEuro(800, 4000)}`
+    };
+    mpr = {
+      label: `MaPrimeRénov' : généralement non prioritaire / à vérifier`
+    };
+  }
 
-          const chartData = [
-              { name: 'Votre bâtiment', val: kwhPerM2, fill: '#1E3A5F' },
-              { name: `Référence ${activityRef.label}`, val: refBase, fill: '#95A5A6' },
-              { name: isLarge ? "Objectif 2030" : "Objectif Perf.", val: targetVal, fill: '#2ECC71' },
-          ];
+  if (priorityId === 'led') {
+    cee = {
+      min: 500,
+      max: 2500,
+      label: `CEE : ${formatRangeEuro(500, 2500)}`
+    };
+    mpr = {
+      label: `MaPrimeRénov' : généralement non applicable`
+    };
+  }
 
-          const handleExportPDF = (e) => {
-              e.preventDefault();
-              exportPDF(data, priorities, kwhPerM2, dpe.l, activityRef.label, yearRef.label);
-          };
+  if (isDecretEligible) {
+    decret = {
+      label: `Bâtiment potentiellement soumis au Décret Tertiaire (analyse de conformité à prévoir)`
+    };
+  }
 
-          return (
-              <div className="fade-in pb-20 max-w-4xl mx-auto w-full">
-                  <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2 items-start text-amber-800 text-xs">
-                      <Icon icon="solar:info-circle-linear" className="shrink-0 mt-0.5 text-amber-600" />
-                      <span><strong>Estimation directionnelle</strong> — Ce rapport est un ordre de grandeur basé sur des valeurs sectorielles. Il ne remplace pas un audit réglementaire.</span>
-                  </div>
+  return { cee, mpr, decret };
+};
+const getDPE = (val) => {
+  if (val <= 70) return { l: 'A', c: '#1A9E5C', w: '40%' };
+  if (val <= 110) return { l: 'B', c: '#4CB84C', w: '48%' };
+  if (val <= 180) return { l: 'C', c: '#B2D24F', w: '56%' };
+  if (val <= 250) return { l: 'D', c: '#F5E54A', w: '64%' };
+  if (val <= 330) return { l: 'E', c: '#F5A623', w: '72%' };
+  if (val <= 420) return { l: 'F', c: '#E8622A', w: '80%' };
+  return { l: 'G', c: '#D4252A', w: '88%' };
+};
+const buildReportData = (data) => {
+  const activityRef = ACTIVITIES.find(a => a.id === data.activity) || ACTIVITIES[0];
+  const yearRef = YEARS.find(y => y.id === data.year) || YEARS[0];
 
-                  <div className="bg-[#1E3A5F] rounded-t-xl p-6 text-white flex flex-col md:flex-row justify-between items-center gap-4 shadow-lg">
-                      <div className="flex items-center gap-2">
-                          <Icon icon="solar:buildings-2-linear" className="text-2xl" />
-                          <span className="font-semibold text-lg">DiagTertiaire</span>
-                      </div>
-                      <div className="text-xs opacity-80">Rapport généré le {new Date().toLocaleDateString()}</div>
-                  </div>
+  const refBase = data.activity === 'mixed'
+    ? getMixedRef(data.activityMixPct || 50)
+    : activityRef.refKwh;
 
-                  <div className="bg-white p-4 rounded-b-xl shadow-md mb-8 flex flex-wrap justify-center gap-3 border border-t-0 border-slate-200">
-                      <span className="px-3 py-1 bg-slate-100 rounded-full text-xs font-semibold text-slate-600">{activityRef.label}</span>
-                      <span className="px-3 py-1 bg-slate-100 rounded-full text-xs font-semibold text-slate-600">{data.surface} m²</span>
-                      <span className="px-3 py-1 bg-slate-100 rounded-full text-xs font-semibold text-slate-600">{yearRef.label}</span>
-                  </div>
+  const heatingLabel = getHeatingLabel(data.heating);
+  const occupationLabel = getOccupationLabel(data.occupation);
 
-                  <SectionCard className="mb-8">
-                      <h2 className="text-xl tracking-tight font-semibold text-[#1E3A5F] mb-6">Performance énergétique estimée</h2>
-                      <div className="flex flex-col gap-1 mb-4 relative">
-                          {['A','B','C','D','E','F','G'].map((l, i) => {
-                              const info = getDPE(i === 0 ? 0 : i===1?71:i===2?111:i===3?181:i===4?251:i===5?331:421);
-                              return (
-                                  <div key={l} className="relative h-8 flex items-center rounded-r-md transition-all" style={{ width: info.w, backgroundColor: info.c }}>
-                                      <div className="w-8 flex justify-center font-semibold text-white pl-2 drop-shadow-md">{l}</div>
-                                      {dpe.l === l && (
-                                          <div className="hidden md:flex absolute top-0 right-0 h-full items-center translate-x-full pl-2 z-10">
-                                              <div className="w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] border-r-[#1E3A5F] mr-2 rotate-180"></div>
-                                              <span className="text-lg tracking-tight font-semibold text-[#1E3A5F] whitespace-nowrap">{kwhPerM2} kWh/m²/an</span>
-                                          </div>
-                                      )}
-                                  </div>
-                              );
-                          })}
-                      </div>
-                  </SectionCard>
+  // Prix énergie
+  const avgPrice = getEnergyPrice(data.heating);
 
-                  <SectionCard className="mb-8">
-                      <h2 className="text-xl tracking-tight font-semibold text-[#1E3A5F] mb-1">Consommation vs Référence</h2>
-                      <p className="text-xs text-slate-400 italic mb-4">Valeurs indicatives basées sur des moyennes sectorielles</p>
-                      <ChartErrorBoundary fallbackData={chartData}>
-                          <div className="h-64 w-full">
-                              {rechartsReady ? (
-                                  <ResponsiveContainer width="100%" height="100%">
-                                      <BarChart layout="vertical" data={chartData} margin={{ top: 0, right: 60, left: 0, bottom: 0 }}>
-                                          <XAxis type="number" hide />
-                                          <YAxis dataKey="name" type="category" width={140} tick={{fontSize: 12, fill:'#374151', fontWeight:500}} />
-                                          <Tooltip cursor={{fill: 'transparent'}} />
-                                          <Bar dataKey="val" radius={[0, 4, 4, 0]} barSize={24}>
-                                              {chartData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.fill} />)}
-                                              <LabelList dataKey="val" position="right" fill="#374151" fontSize={12} fontWeight="600" formatter={(val) => `${val} kWh/m²`} />
-                                          </Bar>
-                                      </BarChart>
-                                  </ResponsiveContainer>
-                              ) : <div className="h-full flex items-center justify-center text-slate-400">Chargement...</div>}
-                          </div>
-                      </ChartErrorBoundary>
-                  </SectionCard>
+  // Conso totale existante : on reprend ta logique actuelle (si data.noData -> estimation)
+  // IMPORTANT : on garde le comportement actuel, on ne casse pas ton moteur.
+  let sysCoef = data.heatingAge === '> 15 ans' ? 1.15 : data.heatingAge === '5 à 15 ans' ? 1.05 : 1.1;
 
-                  <div className="mb-8">
-                      <h2 className="text-xl tracking-tight font-semibold text-[#1E3A5F] mb-4">Vos 3 priorités d'action</h2>
-                      <div className="grid md:grid-cols-3 gap-6">
-                          {priorities.map((p, i) => (
-                              <div key={i} className="bg-white rounded-xl shadow-md border border-slate-100 overflow-hidden flex flex-col h-full">
-                                  <div className="p-4 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center">
-                                      <span className="text-xs font-semibold text-slate-400">PRIORITÉ #{i+1}</span>
-                                      <span className={`text-xs font-semibold px-2 py-1 rounded bg-white shadow-sm ${p.color}`}>{p.tag}</span>
-                                  </div>
-                                  <div className="p-5 flex-1 flex flex-col">
-                                      <h3 className="font-semibold text-[#1E3A5F] text-lg mb-4 leading-tight">{p.title}</h3>
-                                      <div className="space-y-3 text-sm flex-1">
-                                          <div className="flex items-start gap-2 text-slate-600">
-                                              <Icon icon="solar:bolt-linear" className="text-base" />
-                                              <span>{p.gainKwhVal.toLocaleString('fr-FR')} kWh/an ({p.gainKwhPct})</span>
-                                          </div>
-                                          <div className="flex items-start gap-2 text-[#2ECC71]">
-                                              <Icon icon="solar:wallet-money-linear" className="text-base" />
-                                              <span className="font-semibold">Gain est. : {p.gainEuro.toLocaleString('fr-FR')} €/an</span>
-                                          </div>
-                                          <div className="flex items-start gap-2 text-slate-600">
-                                              <Icon icon="solar:hammer-linear" className="text-base" />
-                                              <span>Coût : {p.cost}</span>
-                                          </div>
-                                      </div>
-                                      <div className="mt-6 pt-4 border-t border-slate-100 flex justify-between items-center">
-                                          <span className="text-xs text-slate-500">ROI indicatif</span>
-                                          <span className="font-semibold text-[#1E3A5F] text-xs">{p.roiLabel}</span>
-                                      </div>
-                                  </div>
-                              </div>
-                          ))}
-                      </div>
-                  </div>
+  let consumptionTotalKwh = 0;
+  if (data.noData) {
+    consumptionTotalKwh = Math.round((refBase * yearRef.coef * sysCoef) * Number(data.surface || 0));
+  } else {
+    const elec = Number(data.elecKwh || 0);
+    const gas = Number(data.gasKwh || 0);
+    consumptionTotalKwh = elec + gas;
+    if (!consumptionTotalKwh || consumptionTotalKwh <= 0) {
+      consumptionTotalKwh = Math.round((refBase * yearRef.coef * sysCoef) * Number(data.surface || 0));
+    }
+  }
 
-                  <div className="bg-[#1E3A5F] rounded-2xl p-8 shadow-xl text-white mb-8 break-inside-avoid">
-                      <div className="grid md:grid-cols-2 gap-8 items-center">
-                          <div className="bg-slate-700 aspect-video rounded-lg flex flex-col items-center justify-center relative cursor-pointer group border border-white/10">
-                              <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform">
-                                  <Icon icon="solar:play-linear" className="text-white text-2xl" />
-                              </div>
-                              <div className="absolute bottom-3 left-0 w-full text-center text-xs font-medium text-slate-300">Yannis • Consultant Énergie<br/><span className="opacity-70">⏱ 2 minutes</span></div>
-                          </div>
-                          <div className="space-y-4">
-                              <h3 className="text-xl tracking-tight font-semibold">Votre rapport soulève des points importants</h3>
-                              <p className="text-slate-300 text-sm leading-relaxed">15 minutes pour analyser ensemble vos options et identifier les interlocuteurs qualifiés pour votre projet.</p>
-                              <button type="button" onClick={() => alert("RDV sim") } className="block w-full bg-white text-[#1E3A5F] font-semibold text-center py-3 rounded-lg hover:bg-slate-100 transition-colors">
-                                  📅 Réserver mon rendez-vous →
-                              </button>
-                          </div>
-                      </div>
-                  </div>
+  const surface = Math.max(1, Number(data.surface || 1));
+  const kwhPerM2 = Math.round(consumptionTotalKwh / surface);
 
-                  <div className="border-t border-slate-200 pt-8 no-print">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <button type="button" onClick={handleExportPDF} className="bg-white border border-[#1E3A5F] text-[#1E3A5F] py-3 rounded-lg font-semibold hover:bg-slate-50 transition-colors flex items-center justify-center gap-2">
-                              <Icon icon="solar:file-download-linear" /> Télécharger en PDF
-                          </button>
-                          <button type="button" onClick={() => alert("RDV sim") } className="bg-[#1E3A5F] text-white py-3 rounded-lg font-semibold hover:bg-[#162B47] transition-colors flex items-center justify-center gap-2">
-                              <Icon icon="solar:calendar-linear" /> Réserver mon rendez-vous
-                          </button>
-                      </div>
-                  </div>
-              </div>
-          );
+  // DPE (on réutilise ta fonction existante si elle est déjà définie)
+  const dpe = typeof getDPE === 'function' ? getDPE(kwhPerM2) : { l: 'D', c: '#F59E0B', w: '70%' };
+
+  const refTotal = refBase * surface;
+  const diffPctRaw = ((kwhPerM2 - refBase) / refBase) * 100;
+  const diffPct = Math.round(diffPctRaw);
+
+  const totalCost = Math.round(consumptionTotalKwh * avgPrice);
+  const wasteKwh = Math.max(0, consumptionTotalKwh - refTotal);
+  const wasteEuro = Math.round(wasteKwh * avgPrice);
+
+  const isDecretEligible = surface >= 1000;
+
+  // Priorités (conserver ta logique + exclusion travaux déjà réalisés)
+  const cost = (min, max) => `${min.toLocaleString('fr-FR')} - ${max.toLocaleString('fr-FR')} €`;
+
+  const potentialPriorities = [
+    { id: 'roof', tag: 'Enveloppe', title: "Isolation toiture / combles", gainPct: 0.18, cost: cost(6000, 25000), roiLabel: "5 à 9 ans" },
+    { id: 'regulation', tag: 'Pilotage', title: "Régulation / programmation", gainPct: 0.10, cost: cost(1500, 8000), roiLabel: "2 à 5 ans" },
+    { id: 'windows', tag: 'Confort', title: "Menuiseries / étanchéité", gainPct: 0.08, cost: cost(5000, 30000), roiLabel: "6 à 12 ans" },
+    { id: 'heating', tag: 'Performance', title: "Remplacement chauffage", gainPct: 0.20, cost: cost(12000, 30000), roiLabel: "6 à 10 ans" },
+    { id: 'led', tag: 'ROI rapide', title: "Relamping LED complet", gainPct: 0.12, cost: cost(3000, 12000), roiLabel: "2 à 4 ans" }
+  ];
+
+  let selectedIds = [];
+  if (data.year === 'pre1975' || data.year === '1975-1990') selectedIds = ['roof', 'regulation', 'windows'];
+  else selectedIds = ['regulation', 'led', 'roof'];
+
+  if (data.heatingAge === '> 15 ans') {
+    selectedIds[2] = 'heating';
+  }
+
+  const doneWorks = Array.isArray(data.works) ? data.works : [];
+  const priorities = selectedIds
+    .filter(id => !doneWorks.includes(id))
+    .slice(0, 3)
+    .map((id) => {
+      const p = potentialPriorities.find(x => x.id === id);
+      if (!p) return null;
+
+      const gainKwhVal = Math.round(consumptionTotalKwh * p.gainPct);
+      const gainEuro = Math.round(gainKwhVal * avgPrice);
+
+      const { min, max } = parseCostRange(p.cost);
+      const roiYears = gainEuro > 0 ? `${(Math.round(((min + max) / 2) / gainEuro * 10) / 10).toLocaleString('fr-FR')} ans` : p.roiLabel;
+
+      const aids = estimateAidRanges(p.id, surface, isDecretEligible);
+
+      return {
+        ...p,
+        gainKwhVal,
+  gainKwhPct: `${Math.round(p.gainPct * 100)}%`,
+  gainEuro,
+  roiYears,
+  aids,
+  costMin: min,
+  costMax: max
       };
+    })
+    .filter(Boolean);
 
+  // Projection 5/10 ans (indicative, hors inflation énergie)
+  const annualSavingsIfTop3 = priorities.reduce((sum, p) => sum + p.gainEuro, 0);
+  const projection5Y = annualSavingsIfTop3 * 5;
+  const projection10Y = annualSavingsIfTop3 * 10;
+
+  // Timeline (générique + condition décret)
+  const timeline = [
+    { step: 1, title: "Audit / visite technique", desc: "Valider les postes prioritaires et les hypothèses de consommation." },
+    { step: 2, title: "Chiffrage et aides", desc: "Confirmer les devis et l'éligibilité réelle aux aides." },
+    { step: 3, title: "Planification travaux", desc: "Prioriser les actions selon budget, usage et contraintes d'exploitation." },
+    { step: 4, title: isDecretEligible ? "Suivi conformité Décret Tertiaire" : "Suivi des gains", desc: isDecretEligible ? "Structurer la trajectoire 2030/2040/2050." : "Vérifier les économies après travaux." }
+  ];
+
+  return {
+    activityRef,
+    yearRef,
+    heatingLabel,
+    occupationLabel,
+    surface,
+    refBase,
+    refTotal,
+    consumptionTotalKwh,
+    kwhPerM2,
+    dpe,
+    avgPrice,
+    totalCost,
+    diffPct,
+    diffPctRaw,
+    wasteKwh,
+    wasteEuro,
+    isDecretEligible,
+    priorities,
+    annualSavingsIfTop3,
+    projection5Y,
+    projection10Y,
+    timeline,
+    disclaimer: {
+      precision: "Ordre de grandeur (±30%)",
+      legalShort: "Estimation directionnelle basée sur données déclaratives et références sectorielles. Non contractuel."
+    }
+  };
+};
+
+    const StepReport = ({ data }) => {
+  const [rechartsReady, setRechartsReady] = useState(false);
+
+  const report = buildReportData(data);
+  const {
+    activityRef,
+    yearRef,
+    refBase,
+    kwhPerM2,
+    dpe,
+    isDecretEligible,
+    priorities
+  } = report;
+
+  useEffect(() => {
+    const checkRecharts = () => {
+      if (window.Recharts && window.Recharts.BarChart) setRechartsReady(true);
+      else setTimeout(checkRecharts, 100);
+    };
+    checkRecharts();
+  }, []);
+
+  const targetVal = isDecretEligible ? Math.round(refBase * 0.6) : Math.round(refBase * 0.8);
+
+  const chartData = [
+    { name: 'Votre bâtiment', val: kwhPerM2, fill: '#1E3A5F' },
+    { name: `Référence ${activityRef.label}`, val: refBase, fill: '#95A5A6' },
+    { name: isDecretEligible ? 'Objectif 2030' : 'Objectif perf.', val: targetVal, fill: '#2ECC71' },
+  ];
+
+  const handleExportPDF = (e) => {
+    e.preventDefault();
+    exportPDF(data, report);
+  };
+
+  return (
+    <div className="fade-in pb-20 max-w-4xl mx-auto w-full">
+      <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2 items-start text-amber-800 text-xs">
+        <Icon icon="solar:info-circle-linear" className="shrink-0 mt-0.5 text-amber-600" />
+        <span><strong>Estimation directionnelle</strong> : ce rapport est un ordre de grandeur basé sur des valeurs sectorielles. Il ne remplace pas un audit réglementaire.</span>
+      </div>
+
+      <div className="bg-[#1E3A5F] rounded-t-xl p-6 text-white flex flex-col md:flex-row justify-between items-center gap-4 shadow-lg">
+        <div className="flex items-center gap-2">
+          <Icon icon="solar:buildings-2-linear" className="text-2xl" />
+          <span className="font-semibold text-lg">DiagTertiaire</span>
+        </div>
+        <div className="text-xs opacity-80">Rapport généré le {new Date().toLocaleDateString()}</div>
+      </div>
+
+      <div className="bg-white p-4 rounded-b-xl shadow-md mb-8 flex flex-wrap justify-center gap-3 border border-t-0 border-slate-200">
+        <span className="px-3 py-1 bg-slate-100 rounded-full text-xs font-semibold text-slate-600">{activityRef.label}</span>
+        <span className="px-3 py-1 bg-slate-100 rounded-full text-xs font-semibold text-slate-600">{data.surface} m²</span>
+        <span className="px-3 py-1 bg-slate-100 rounded-full text-xs font-semibold text-slate-600">{yearRef.label}</span>
+      </div>
+
+      <SectionCard className="mb-8">
+        <h2 className="text-xl tracking-tight font-semibold text-[#1E3A5F] mb-6">Performance énergétique estimée</h2>
+
+        <div className="flex flex-col gap-1 mb-4 relative">
+          {['A','B','C','D','E','F','G'].map((l, i) => {
+            const info = getDPE(i === 0 ? 0 : i === 1 ? 71 : i === 2 ? 111 : i === 3 ? 181 : i === 4 ? 251 : i === 5 ? 331 : 421);
+            return (
+              <div
+                key={l}
+                className="relative h-8 flex items-center rounded-r-md transition-all"
+                style={{ width: info.w, backgroundColor: info.c }}
+              >
+                <div className="w-8 flex justify-center font-semibold text-white pl-2 drop-shadow-md">{l}</div>
+
+                {dpe.l === l && (
+                  <div className="hidden md:flex absolute top-0 right-0 h-full items-center translate-x-full pl-2 z-10">
+                    <div className="w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] border-r-[#1E3A5F] mr-2 rotate-180"></div>
+                    <span className="text-lg tracking-tight font-semibold text-[#1E3A5F] whitespace-nowrap">
+                      {kwhPerM2} kWh/m²/an
+                    </span>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </SectionCard>
+
+      <SectionCard className="mb-8">
+        <h2 className="text-xl tracking-tight font-semibold text-[#1E3A5F] mb-1">Consommation vs Référence</h2>
+        <p className="text-xs text-slate-400 italic mb-4">Valeurs indicatives basées sur des moyennes sectorielles</p>
+
+        <ChartErrorBoundary fallbackData={chartData}>
+          <div className="h-64 w-full">
+            {rechartsReady ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart layout="vertical" data={chartData} margin={{ top: 0, right: 60, left: 0, bottom: 0 }}>
+                  <XAxis type="number" hide />
+                  <YAxis dataKey="name" type="category" width={140} tick={{ fontSize: 12, fill: '#374151', fontWeight: 500 }} />
+                  <Tooltip cursor={{ fill: 'transparent' }} />
+                  <Bar dataKey="val" radius={[0, 4, 4, 0]} barSize={24}>
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.fill} />
+                    ))}
+                    <LabelList
+                      dataKey="val"
+                      position="right"
+                      fill="#374151"
+                      fontSize={12}
+                      fontWeight="600"
+                      formatter={(val) => `${val} kWh/m²`}
+                    />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-slate-400">Chargement...</div>
+            )}
+          </div>
+        </ChartErrorBoundary>
+      </SectionCard>
+
+      {priorities.length === 0 && (
+        <div className="bg-white rounded-xl border border-slate-200 p-4 text-sm text-slate-600 mb-4">
+          Vous avez déjà réalisé plusieurs actions pertinentes. Le rapport complet peut être affiné avec un audit pour identifier les optimisations restantes (réglages, pilotage, maintenance, usages).
+        </div>
+      )}
+
+      <div className="mb-8">
+        <h2 className="text-xl tracking-tight font-semibold text-[#1E3A5F] mb-4">Vos 3 priorités d'action</h2>
+
+        <div className="grid md:grid-cols-3 gap-6">
+          {priorities.map((p, i) => (
+            <div key={i} className="bg-white rounded-xl shadow-md border border-slate-100 overflow-hidden flex flex-col h-full">
+              <div className="p-4 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center">
+                <span className="text-xs font-semibold text-slate-400">PRIORITÉ #{i + 1}</span>
+                <span className="text-xs font-semibold px-2 py-1 rounded bg-white shadow-sm text-[#1E3A5F]">{p.tag}</span>
+              </div>
+
+              <div className="p-5 flex-1 flex flex-col">
+                <h3 className="font-semibold text-[#1E3A5F] text-lg mb-4 leading-tight">{p.title}</h3>
+
+                <div className="space-y-3 text-sm flex-1">
+                  <div className="flex items-start gap-2 text-slate-600">
+                    <Icon icon="solar:bolt-linear" className="text-base" />
+                    <span>{p.gainKwhVal.toLocaleString('fr-FR')} kWh/an</span>
+                  </div>
+
+                  <div className="flex items-start gap-2 text-[#2ECC71]">
+                    <Icon icon="solar:wallet-money-linear" className="text-base" />
+                    <span className="font-semibold">Gain est. : {p.gainEuro.toLocaleString('fr-FR')} €/an</span>
+                  </div>
+
+                  <div className="flex items-start gap-2 text-slate-600">
+                    <Icon icon="solar:hammer-linear" className="text-base" />
+                    <span>Coût : {p.cost}</span>
+                  </div>
+
+                  <div className="mt-3 pt-3 border-t border-slate-100 space-y-1">
+                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Aides indicatives</p>
+
+                    {p.aids?.cee?.label && <p className="text-xs text-slate-600">• {p.aids.cee.label}</p>}
+                    {p.aids?.mpr?.label && <p className="text-xs text-slate-600">• {p.aids.mpr.label}</p>}
+                    {p.aids?.decret?.label && <p className="text-xs text-slate-600">• {p.aids.decret.label}</p>}
+                  </div>
+                </div>
+
+                <div className="mt-6 pt-4 border-t border-slate-100 flex justify-between items-center">
+                  <span className="text-xs text-slate-500">ROI indicatif</span>
+                  <span className="font-semibold text-[#1E3A5F] text-xs">{p.roiYears}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="bg-[#1E3A5F] rounded-2xl p-8 shadow-xl text-white mb-8 break-inside-avoid">
+        <div className="grid md:grid-cols-2 gap-8 items-center">
+          <div className="bg-slate-700 aspect-video rounded-lg flex flex-col items-center justify-center relative cursor-pointer group border border-white/10">
+            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform">
+              <Icon icon="solar:play-linear" className="text-white text-2xl" />
+            </div>
+            <div className="absolute bottom-3 left-0 w-full text-center text-xs font-medium text-slate-300">
+              Yannis • Consultant Énergie
+              <br />
+              <span className="opacity-70">⏱ 2 minutes</span>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h3 className="text-xl tracking-tight font-semibold">Votre rapport soulève des points importants</h3>
+            <p className="text-slate-300 text-sm leading-relaxed">
+              15 minutes pour analyser ensemble vos options et identifier les interlocuteurs qualifiés pour votre projet.
+            </p>
+
+            <a
+              href={CTA_CALENDLY_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full bg-white text-[#1E3A5F] font-semibold text-center py-3 rounded-lg hover:bg-slate-100 transition-colors"
+            >
+              📅 Réserver mon rendez-vous →
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <button
+          type="button"
+          onClick={handleExportPDF}
+          className="bg-white border border-[#1E3A5F] text-[#1E3A5F] py-3 rounded-lg font-semibold hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
+        >
+          <Icon icon="solar:file-download-linear" /> Télécharger en PDF
+        </button>
+
+        <a
+          href={CTA_CALENDLY_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bg-[#1E3A5F] text-white py-3 rounded-lg font-semibold hover:bg-[#162B47] transition-colors flex items-center justify-center gap-2"
+        >
+          <Icon icon="solar:calendar-linear" /> Réserver mon rendez-vous
+        </a>
+      </div>
+    </div>
+  );
+};
       /* --- PAGES --- */
       const PageHome = ({ navigate }) => (
           <div className="fade-in">
@@ -1430,7 +1683,14 @@
                   <p className="text-lg text-blue-200 max-w-2xl mx-auto mb-8">
                       Proposez un outil de cadrage énergétique à vos clients tertiaires (comptables, notaires, assureurs).
                   </p>
-                  <button type="button" onClick={() => alert("Contact")} className="bg-white text-[#1E3A5F] px-8 py-4 rounded-xl font-semibold">Demander un accès pro</button>
+                  <a
+  href={CTA_CALENDLY_URL}
+  target="_blank"
+  rel="noopener noreferrer"
+  className="block w-full bg-white text-[#1E3A5F] font-semibold text-center py-3 rounded-lg hover:bg-slate-100 transition-colors"
+>
+  📅 Réserver mon rendez-vous →
+</a>
               </section>
           </div>
       );
