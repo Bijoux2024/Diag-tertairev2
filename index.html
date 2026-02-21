@@ -300,6 +300,8 @@ const kwhPerM2 = report?.kwhPerM2 || 0;
 const dpeLabel = report?.dpe?.l || '-';
 const activityLabel = report?.activityRef?.label || 'Non précisé';
 const yearLabel = report?.yearRef?.label || 'Non précisé';
+const heatingLabel = report?.heatingLabel || 'Non précisé';
+const occupationLabel = report?.occupationLabel || 'Non précisé';
           try {
               const { jsPDF } = window.jspdf;
               if (!jsPDF) { alert("Export PDF indisponible. Veuillez réessayer."); return; }
@@ -334,12 +336,12 @@ const yearLabel = report?.yearRef?.label || 'Non précisé';
               doc.setFont('helvetica', 'normal');
               doc.setTextColor(...gray);
               const recapLines = [
-                  `Activité : ${activityLabel}`,
-                  `Surface : ${data.surface} m²`,
-                  `Année de construction : ${yearLabel}`,
-                  `Système de chauffage : ${data.heating || 'Non précisé'}`,
-                  `Occupation : ${data.occupation || 'Non précisé'}`,
-              ];
+    `Activité : ${activityLabel}`,
+    `Surface : ${formatInt(data.surface)} m²`,
+    `Année de construction : ${yearLabel}`,
+    `Système de chauffage : ${heatingLabel}`,
+    `Occupation : ${occupationLabel}`,
+];
               recapLines.forEach(line => { doc.text(line, margin, y); y += 5.5; });
               y += 4;
 
@@ -372,9 +374,9 @@ const yearLabel = report?.yearRef?.label || 'Non précisé';
                   doc.setFont('helvetica', 'normal');
                   doc.setFontSize(8.5);
                   doc.setTextColor(...gray);
-                  doc.text(`Économies estimées : ${p.gainKwhVal.toLocaleString('fr-FR')} kWh/an  (${p.gainKwhPct || '-'})`, margin + 5, y + 15);
-                  doc.setTextColor(...green);
-                  doc.text(`Gain financier indicatif : ${p.gainEuro.toLocaleString('fr-FR')} €/an`, margin + 5, y + 21);
+                  doc.text(`Économies estimées : ${formatInt(p.gainKwhVal)} kWh/an  (${p.gainKwhPct || '-'})`, margin + 5, y + 15);
+doc.setTextColor(...green);
+doc.text(`Gain financier indicatif : ${formatEuro(p.gainEuro)}/an`, margin + 5, y + 21);
                   doc.setTextColor(...gray);
                   doc.text(`Coût estimatif : ${p.cost}`, margin + 5, y + 27);
                   doc.text(`Retour sur investissement indicatif : ${p.roiYears || p.roiLabel || 'À estimer'} (hors aides)`, margin + 5, y + 33);
@@ -800,8 +802,21 @@ const ENERGY_PRICES = {
   unknown: 0.1800
 };
 
-const formatEuro = (v) => `${Math.round(v).toLocaleString('fr-FR')} €`;
-const formatRangeEuro = (min, max) => `${Math.round(min).toLocaleString('fr-FR')} - ${Math.round(max).toLocaleString('fr-FR')} €`;
+const formatInt = (v) => Math.round(Number(v || 0)).toLocaleString('fr-FR');
+const formatEuro = (v) => `${formatInt(v)} €`;
+const formatRangeEuro = (min, max) => `${formatInt(min)} - ${formatInt(max)} €`;
+
+const formatRoiYears = (cost, annualSaving) => {
+  const c = Number(cost || 0);
+  const s = Number(annualSaving || 0);
+
+  if (s <= 0) return 'Non calculable';
+
+  const roi = c / s;
+  if (roi < 0.1) return '< 0,1 an';
+  if (roi < 2) return `${roi.toFixed(1).replace('.', ',')} an`;
+  return `${roi.toFixed(1).replace('.', ',')} ans`;
+};
 
 const getEnergyPrice = (heatingId) => {
   return ENERGY_PRICES[heatingId] ?? ENERGY_PRICES.unknown;
@@ -927,16 +942,28 @@ const buildReportData = (data) => {
   let sysCoef = data.heatingAge === '> 15 ans' ? 1.15 : data.heatingAge === '5 à 15 ans' ? 1.05 : 1.1;
 
   let consumptionTotalKwh = 0;
-  if (data.noData) {
-    consumptionTotalKwh = Math.round((refBase * yearRef.coef * sysCoef) * Number(data.surface || 0));
+if (data.noData) {
+  consumptionTotalKwh = Math.round((refBase * yearRef.coef * sysCoef) * Number(data.surface || 0));
+} else {
+  if (data.consumptionMode === 'euro') {
+    const elecEuro = Number(data.elecEuro || 0);
+    const gasEuro = Number(data.gasEuro || 0);
+
+    // Conversion simple cohérente avec StepLead
+    const elecKwhFromEuro = elecEuro / 0.25;
+    const gasKwhFromEuro = gasEuro / 0.12;
+
+    consumptionTotalKwh = elecKwhFromEuro + gasKwhFromEuro;
   } else {
     const elec = Number(data.elecKwh || 0);
     const gas = Number(data.gasKwh || 0);
     consumptionTotalKwh = elec + gas;
-    if (!consumptionTotalKwh || consumptionTotalKwh <= 0) {
-      consumptionTotalKwh = Math.round((refBase * yearRef.coef * sysCoef) * Number(data.surface || 0));
-    }
   }
+
+  if (!consumptionTotalKwh || consumptionTotalKwh <= 0) {
+    consumptionTotalKwh = Math.round((refBase * yearRef.coef * sysCoef) * Number(data.surface || 0));
+  }
+}
 
   const surface = Math.max(1, Number(data.surface || 1));
   const kwhPerM2 = Math.round(consumptionTotalKwh / surface);
@@ -985,8 +1012,9 @@ const buildReportData = (data) => {
       const gainEuro = Math.round(gainKwhVal * avgPrice);
 
       const { min, max } = parseCostRange(p.cost);
-      const roiYears = gainEuro > 0 ? `${(Math.round(((min + max) / 2) / gainEuro * 10) / 10).toLocaleString('fr-FR')} ans` : p.roiLabel;
-
+const roiYears = gainEuro > 0
+  ? formatRoiYears((min + max) / 2, gainEuro)
+  : p.roiLabel;
       const aids = estimateAidRanges(p.id, surface, isDecretEligible);
 
       return {
