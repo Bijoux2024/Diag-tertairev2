@@ -1,23 +1,23 @@
-<html lang="fr"><head>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DiagTertiaire - Performance Énergétique Tertiaire</title> 
+    <title>DiagTertiaire - Performance Énergétique Tertiaire</title>
 
-    <!-- Fonts -->
+    <!-- Polices -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Libraries -->
+    <!-- Bibliothèques externes -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script crossorigin="" src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin="" src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/prop-types/prop-types.min.js"></script>
-<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
+    <script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
     <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
     <style>
       /* Global & Reset */
       body { font-family: 'Inter', sans-serif; background-color: #F8F9FA; color: #374151; -webkit-font-smoothing: antialiased; }
@@ -45,19 +45,50 @@
 
       .blur-overlay { filter: blur(5px); pointer-events: none; user-select: none; }
     </style>
-  </head>
-  <body class="antialiased text-[#374151] bg-[#F8F9FA]">
+</head>
+<body class="antialiased text-[#374151] bg-[#F8F9FA]">
     <div id="root"></div>
 
     <script type="text/babel">
+      /* ╔═══════════════════════════════════════════════════════════════════════════╗
+         ║                           DIAGTERTIAIRE                                   ║
+         ║                   Pré-diagnostic énergétique tertiaire                    ║
+         ║                                                                           ║
+         ║  NAVIGATION RAPIDE :                                                      ║
+         ║  → SECTION 1  : Imports & Setup React                   (lignes 53-56)  ║
+         ║  → SECTION 2  : Constantes Métier                       (lignes 60-145) ║
+         ║  → SECTION 3  : Configuration & Helpers                 (lignes 150-378)║
+         ║  → SECTION 4  : Composants UI Réutilisables            (lignes 165-378)║
+         ║  → SECTION 5  : Formulaire Multi-Étapes                (lignes 379-1925)║
+         ║  → SECTION 6  : Moteur de Calcul & Export PDF          (lignes 1928+)  ║
+         ║  → SECTION 7  : Pages (Home, Méthode, Exemple, Pro)    (lignes 2920+)  ║
+         ║  → SECTION 8  : App Root & Navigation                  (lignes 3959+)  ║
+         ╚═══════════════════════════════════════════════════════════════════════════╝ */
+
+      /* ═══════════════════════════════════════════════════════════════════════════
+         SECTION 1: IMPORTS & SETUP REACT
+         
+         Imports des hooks React et de Recharts pour les graphiques
+         ═══════════════════════════════════════════════════════════════════════════ */
       const { useState, useEffect, useCallback, useRef } = React;
       const RechartsObj = window.Recharts || {};
       const { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList } = RechartsObj;
 
-      /* ===== DONNEES METIER - FORMULAIRE & REFERENCES ===== */
-// [CRITIQUE] Les IDs d'activité (ex: office, retail, health...) sont utilisés partout
-// (formulaire, moteur multi-postes, priorités, rapport). Ne pas renommer sans propagations.
-      /* --- CONSTANTS & DATA --- */
+      /* ═══════════════════════════════════════════════════════════════════════════
+         SECTION 2: CONSTANTES MÉTIER
+         
+         Données de référence pour le diagnostic :
+         - ACTIVITIES    : Activités tertiaires avec consommation de référence (kWh/m²/an)
+         - YEARS         : Périodes de construction avec coefficient d'isolation
+         - HEATING       : Types de systèmes de chauffage
+         - OCCUPATION    : Régimes d'occupation du bâtiment
+         - WORKS_LIST    : Liste des travaux de rénovation possibles
+         - ECS_SYSTEMS   : Systèmes d'eau chaude sanitaire
+         - DEFAULT_FORM  : État initial du formulaire
+         
+         ⚠️  IMPORTANT : Les IDs (ex: 'office', 'pre1975', 'gas') sont utilisés 
+             partout dans le code. Ne pas modifier sans propagation complète.
+         ═══════════════════════════════════════════════════════════════════════════ */
       const ACTIVITIES = [
           { id: 'office', label: 'Bureaux', icon: 'solar:buildings-2-linear', refKwh: 180 },
           { id: 'retail', label: 'Commerce / Retail', icon: 'solar:shop-linear', refKwh: 350 },
@@ -130,6 +161,20 @@
           elecEuro: '',
           gasEuro: '',
           noData: false,
+
+      /* ═══════════════════════════════════════════════════════════════════════════
+         SECTION 4: COMPOSANTS UI RÉUTILISABLES
+         
+         Composants de base pour construire l'interface :
+         - Icon          : Wrapper pour icônes Iconify
+         - Button        : Boutons avec variants (primary, secondary, ghost, green)
+         - Input         : Champs de saisie avec label et suffixe optionnel
+         - CardSelect    : Cartes cliquables avec icône (pour choix multiples)
+         - RadioFull     : Boutons radio stylisés
+         - SectionCard   : Conteneur de section avec ombre
+         - Stepper       : Barre de progression du formulaire
+         - FormHeader    : En-tête de formulaire avec titre/sous-titre
+         ═══════════════════════════════════════════════════════════════════════════ */
           works: [],
           hasWorks: 'no',
           ecsSystem: '',
@@ -143,6 +188,14 @@
       
       
       
+
+      /* ═══════════════════════════════════════════════════════════════════════════
+         SECTION 3: CONFIGURATION & HELPERS
+         
+         - LocalStorage : Sauvegarde/restauration de la session utilisateur
+         - URLs         : Calendly, email de contact
+         - Helpers      : Formatage, calculs DPE, prix énergies, aides
+         ═══════════════════════════════════════════════════════════════════════════ */
       const CTA_CALENDLY_URL = 'https://calendly.com/TON-LIEN'; // à remplacer
 const CTA_EMAIL = 'contact@diagtertiaire.fr';
 
@@ -337,6 +390,22 @@ a.href = url;
 a.download = "rapport-diagnostic.pdf";
 document.body.appendChild(a);
 a.click();
+
+      /* ═══════════════════════════════════════════════════════════════════════════
+         SECTION 5: FORMULAIRE MULTI-ÉTAPES (DIAGNOSTIC)
+         
+         Flow utilisateur en 4 étapes :
+         
+         → STEP 1 (StepBuilding)  : Activité, surface, année de construction
+         → STEP 2 (StepEnergy)    : Chauffage, consommation, travaux déjà réalisés
+         → STEP 3 (StepLead)      : Capture du lead (email, consentement)
+         → STEP 4 (StepReport)    : Affichage du rapport avec export PDF
+         
+         Chaque composant Step :
+         - Reçoit data + update callback + onNext/onBack
+         - Valide les champs avant de permettre le passage à l'étape suivante
+         - Sauvegarde automatiquement dans localStorage (voir App)
+         ═══════════════════════════════════════════════════════════════════════════ */
 a.remove();
 
 window.URL.revokeObjectURL(url);
@@ -1886,6 +1955,30 @@ const buildActionCatalog = ({ data, surface, postes, avgPrice, isDecretEligible 
       }, 0)
     );
 
+
+      /* ═══════════════════════════════════════════════════════════════════════════
+         SECTION 6: MOTEUR DE CALCUL & EXPORT PDF
+         
+         ▸ buildReportData(data)
+           Fonction centrale qui transforme les données du formulaire en rapport complet.
+           
+           Entrées  : Objet data (activité, surface, année, consommation, etc.)
+           Sorties  : Objet avec {
+             kwhPerM2, dpe, priorities, 
+             projections, aides, timeline
+           }
+           
+           Logique :
+           1. Récupération références (activité, année, chauffage)
+           2. Calcul consommation totale (ou estimation si pas de données)
+           3. Calcul DPE (A-G)
+           4. Sélection des 3 actions prioritaires selon profil
+           5. Calcul ROI et aides pour chaque action
+         
+         ▸ exportPDF(data, analysis)
+           Génère le PDF du rapport via jsPDF.
+           TODO: Migrer vers PDFShift pour un rendu professionnel.
+         ═══════════════════════════════════════════════════════════════════════════ */
     const gainEuro = Math.round(gainKwhVal * avgPrice);
     const gainPctTotal = Math.max(0, Math.round((gainKwhVal / Math.max(1, Object.values(postes).reduce((s, v) => s + v, 0))) * 100));
     const aids = estimateAidRanges(a.id, surface, isDecretEligible);
@@ -2878,6 +2971,18 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
         <div className="grid md:grid-cols-2 gap-6 items-center">
           <div>
             <h3 className="text-xl tracking-tight font-semibold mb-2">
+
+      /* ═══════════════════════════════════════════════════════════════════════════
+         SECTION 7: PAGES
+         
+         → PageHome      : Landing page avec sections marketing + CTA
+         → PageMethod    : Explication de la méthodologie
+         → PageExample   : Exemple de rapport (avec fake data)
+         → PagePro       : Offre pour les professionnels
+         → RestoreBanner : Bannière de reprise de session
+         
+         Toutes les pages reçoivent navigate() pour le routing.
+         ═══════════════════════════════════════════════════════════════════════════ */
               Besoin d'un cadrage plus fiable pour passer à l'action ?
             </h3>
             <p className="text-sm text-blue-100 leading-relaxed">
@@ -3917,6 +4022,21 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
                   { icon: 'solar:palette-linear', title: 'Marque blanche', desc: 'Option de personnalisation pour votre structure.' },
                 ].map((item, i) => (
                   <div key={i} className="bg-white/10 border border-white/15 rounded-xl p-4">
+
+      /* ═══════════════════════════════════════════════════════════════════════════
+         SECTION 8: APP ROOT - NAVIGATION & ÉTAT GLOBAL
+         
+         Composant principal qui gère :
+         - Routing client-side (currentPage: home/diagnostic/methode/exemple/pro)
+         - État du formulaire (formData)
+         - Étape courante du diagnostic (diagStep: 1-4)
+         - Sauvegarde auto dans localStorage
+         - Restauration de session
+         
+         Navigation :
+         - navigate(page) change currentPage et scroll to top
+         - Dans diagnostic : setDiagStep(1-4) pour les étapes
+         ═══════════════════════════════════════════════════════════════════════════ */
                     <Icon icon={item.icon} className="text-lg mb-2" />
                     <h3 className="text-sm font-semibold mb-1">{item.title}</h3>
                     <p className="text-xs text-blue-100 leading-relaxed">{item.desc}</p>
@@ -4151,3 +4271,4 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
     </script>
   
 </body></html>
+  
