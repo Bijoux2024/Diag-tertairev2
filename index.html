@@ -161,10 +161,13 @@ const CTA_EMAIL = 'contact@diagtertiaire.fr';
       };
 
       /* --- UI COMPONENTS --- */
-      const Icon = ({ icon, className = "" }) => (
-          <iconify-icon icon={icon} class={`${className} text-2xl`} style={{ strokeWidth: '1.5' }}></iconify-icon>
-      );
-
+     const Icon = ({ icon, className = "", style = {} }) => (
+    <iconify-icon
+        icon={icon}
+        class={`${className} text-2xl`}
+        style={{ strokeWidth: '1.5', ...style }}
+    ></iconify-icon>
+);
       const Button = ({ children, onClick, disabled, variant = 'primary', className = '', type = 'button' }) => {
           const base = "px-6 py-3 rounded-lg font-semibold text-sm transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 flex items-center justify-center gap-2";
           const styles = {
@@ -2902,7 +2905,7 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
               className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
               style={{ backgroundColor: `${card.color}15` }}
             >
-              <iconify-icon icon={card.icon} style={{ fontSize: '22px', color: card.color }}></iconify-icon>
+<Icon icon={card.icon} className="text-[22px]" style={{ color: card.color }} />
             </div>
             <div>
               <h3 className="text-sm font-semibold text-slate-900">{card.title}</h3>
@@ -2923,7 +2926,7 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
 
     <div className="grid md:grid-cols-3 gap-3">
       <div className="rounded-lg border border-slate-200 bg-white px-4 py-3 flex items-start gap-2">
-        <iconify-icon icon="solar:target-linear" style={{ fontSize: '18px', color: '#1E3A5F', marginTop: '1px' }}></iconify-icon>
+<Icon icon="solar:target-linear" className="text-[18px]" style={{ color: '#1E3A5F', marginTop: '1px' }} />
         <div>
           <p className="text-xs font-semibold text-slate-800">Références tertiaires</p>
           <p className="text-xs text-slate-500">Comparaison par activité, pas sur des standards résidentiels.</p>
@@ -2931,7 +2934,7 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
       </div>
 
       <div className="rounded-lg border border-slate-200 bg-white px-4 py-3 flex items-start gap-2">
-        <iconify-icon icon="solar:shield-check-linear" style={{ fontSize: '18px', color: '#2ECC71', marginTop: '1px' }}></iconify-icon>
+        <Icon icon="solar:shield-check-linear" className="text-[18px]" style={{ color: '#2ECC71', marginTop: '1px' }} />
         <div>
           <p className="text-xs font-semibold text-slate-800">Estimation claire</p>
           <p className="text-xs text-slate-500">Ordre de grandeur utile pour décider si un audit complet est pertinent.</p>
@@ -2939,7 +2942,7 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
       </div>
 
       <div className="rounded-lg border border-slate-200 bg-white px-4 py-3 flex items-start gap-2">
-        <iconify-icon icon="solar:document-text-linear" style={{ fontSize: '18px', color: '#F39C12', marginTop: '1px' }}></iconify-icon>
+        <Icon icon="solar:document-text-linear" className="text-[18px]" style={{ color: '#F39C12', marginTop: '1px' }} />
         <div>
           <p className="text-xs font-semibold text-slate-800">Rapport actionnable</p>
           <p className="text-xs text-slate-500">Priorités, gains, coûts, ROI indicatif et premières aides à vérifier.</p>
@@ -3267,16 +3270,53 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
   </div>
 </div>
 <div className="mt-6 bg-white border border-slate-200 rounded-2xl p-5">
-  <h3 className="text-base font-semibold text-[#1E3A5F] mb-2">
-    Pourquoi ce pré-diagnostic existe
-  </h3>
+  <div className="flex items-center gap-2 mb-3 text-[#1E3A5F]">
+    <Icon icon="solar:document-text-linear" className="text-lg" />
+    <h3 className="text-base font-semibold">Pourquoi ce pré-diagnostic existe</h3>
+  </div>
+
   <p className="text-sm text-slate-600 leading-relaxed mb-3">
-    Un audit énergétique complet est souvent pertinent, mais il représente un coût et demande du temps.
-    L’objectif de DiagTertiaire est de vous aider à décider s’il faut passer à l’action, et sur quels postes en priorité.
+    Un audit énergétique complet est souvent la bonne étape, mais il mobilise du temps, des données
+    (factures, plans, équipements) et un budget. DiagTertiaire sert à <strong>pré-cadrer la décision</strong>
+    avant d’engager cette démarche.
   </p>
+
+  <div className="grid md:grid-cols-3 gap-3 mb-3">
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <div className="flex items-center gap-2 mb-1 text-[#1E3A5F]">
+        <Icon icon="solar:clock-circle-linear" className="text-base" />
+        <span className="text-xs font-semibold">Temps</span>
+      </div>
+      <p className="text-xs text-slate-600 leading-relaxed">
+        Lecture rapide pour objectiver la situation sans lancer immédiatement une mission complète.
+      </p>
+    </div>
+
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <div className="flex items-center gap-2 mb-1 text-[#1E3A5F]">
+        <Icon icon="solar:wallet-money-linear" className="text-base" />
+        <span className="text-xs font-semibold">Budget</span>
+      </div>
+      <p className="text-xs text-slate-600 leading-relaxed">
+        Un pré-diagnostic aide à prioriser les postes avant de financer un audit détaillé ou des études.
+      </p>
+    </div>
+
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <div className="flex items-center gap-2 mb-1 text-[#1E3A5F]">
+        <Icon icon="solar:chart-square-linear" className="text-base" />
+        <span className="text-xs font-semibold">Décision</span>
+      </div>
+      <p className="text-xs text-slate-600 leading-relaxed">
+        Le rapport structure une discussion bailleur, locataire, direction ou bureau d’études.
+      </p>
+    </div>
+  </div>
+
   <p className="text-sm text-slate-600 leading-relaxed">
-    Ce rapport donne un <strong>ordre de grandeur crédible</strong> pour cadrer le besoin, estimer l’écart à la référence
-    et préparer une discussion avec un auditeur, un bureau d’études ou un propriétaire.
+    Le rapport fournit des <strong>estimations directionnelles non contractuelles</strong> (consommations, gains, coûts,
+    aides indicatives, ROI brut/net) pour cadrer le besoin. Si l’enjeu est confirmé, il faut ensuite passer
+    à un audit complet / étude technique pour sécuriser les décisions et les travaux.
   </p>
 </div>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
@@ -3397,33 +3437,7 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
           ))}
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 p-5">
-  <h3 className="text-sm font-semibold text-[#1E3A5F] mb-3">Quand passer à un audit complet</h3>
-
-  <ul className="space-y-2 text-sm text-slate-600">
-    <li className="flex items-start gap-2">
-      <iconify-icon icon="solar:arrow-right-linear" style={{fontSize:'16px', color:'#1E3A5F', marginTop:'2px'}}></iconify-icon>
-      <span>Écart important à la référence sectorielle (ex : +25% à +30% et plus)</span>
-    </li>
-    <li className="flex items-start gap-2">
-      <iconify-icon icon="solar:arrow-right-linear" style={{fontSize:'16px', color:'#1E3A5F', marginTop:'2px'}}></iconify-icon>
-      <span>Projet de travaux ou arbitrage budgétaire à sécuriser</span>
-    </li>
-    <li className="flex items-start gap-2">
-      <iconify-icon icon="solar:arrow-right-linear" style={{fontSize:'16px', color:'#1E3A5F', marginTop:'2px'}}></iconify-icon>
-      <span>Négociation bailleur / locataire avec besoin d’un support technique plus solide</span>
-    </li>
-    <li className="flex items-start gap-2">
-      <iconify-icon icon="solar:arrow-right-linear" style={{fontSize:'16px', color:'#1E3A5F', marginTop:'2px'}}></iconify-icon>
-      <span>Obligations réglementaires (Décret Tertiaire, audit, stratégie patrimoniale)</span>
-    </li>
-  </ul>
-
-  <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
-    Si vous n’avez pas vos factures, DiagTertiaire peut générer un ordre de grandeur.
-    <strong> La précision augmente nettement</strong> dès que vous saisissez vos consommations réelles.
-  </div>
-</div>
+      
 
        {/* SOURCES / HYPOTHESES */}
        <div className="mt-6 bg-white rounded-xl border border-slate-200 p-5">
