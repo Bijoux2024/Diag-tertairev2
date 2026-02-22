@@ -1673,7 +1673,7 @@ const buildReportData = (data) => {
                               Gratuit • 3 minutes • Résultat immédiat
                           </div>
                           <h1 className="text-4xl lg:text-5xl tracking-tight font-semibold text-slate-900 leading-[1.1] mb-6">
-                              Votre bâtiment tertiaire vous coûte-t-il trop cher en énergie ? test10
+                              Votre bâtiment tertiaire vous coûte-t-il trop cher en énergie ? 
                           </h1>
                           <p className="text-lg text-[#6B7280] leading-relaxed mb-8">
                               Le premier diagnostic gratuit conçu pour les bâtiments tertiaires. Comparez-vous aux bonnes références sectorielles, pas au logement.
@@ -1740,26 +1740,88 @@ const buildReportData = (data) => {
                   </div>
               </section>
 
-              {/* SECTION 2 - SOCIAL PROOF */}
-              <section className="bg-white py-8 border-y border-slate-100">
-                  <div className="max-w-6xl mx-auto px-4">
-                      <p className="text-center text-sm text-slate-500 mb-4">Utilisé par 1 247 propriétaires et gestionnaires de patrimoine</p>
-                      <div className="flex flex-wrap justify-center items-center gap-8">
-                          <div className="flex items-center gap-2 text-sm text-slate-600">
-                              <iconify-icon icon="solar:buildings-2-linear" style={{fontSize:'20px', color:'#1E3A5F'}}></iconify-icon>
-                              <span><strong className="font-semibold text-slate-900">847</strong> diagnostics ce mois</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-slate-600">
-                              <iconify-icon icon="solar:wallet-money-linear" style={{fontSize:'20px', color:'#2ECC71'}}></iconify-icon>
-                              <span><strong className="font-semibold text-slate-900">4,2M€</strong> d'économies identifiées</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-slate-600">
-                              <iconify-icon icon="solar:star-bold" style={{fontSize:'20px', color:'#FFC107'}}></iconify-icon>
-                              <span><strong className="font-semibold text-slate-900">4.8/5</strong> sur 127 avis</span>
-                          </div>
-                      </div>
-                  </div>
-              </section>
+              {/* SECTION 2 - SEGMENTATION PROFILS + PREUVES */}
+<section className="bg-white py-10 border-y border-slate-100">
+  <div className="max-w-6xl mx-auto px-4">
+    <div className="grid lg:grid-cols-3 gap-4 mb-6">
+      {[
+        {
+          title: "Je suis propriétaire",
+          icon: "solar:buildings-2-linear",
+          color: "#1E3A5F",
+          desc: "Évaluez rapidement la performance de votre actif et identifiez les travaux prioritaires selon le ROI.",
+          cta: "Lancer mon diagnostic",
+          action: () => navigate('diagnostic')
+        },
+        {
+          title: "Je suis locataire / exploitant",
+          icon: "solar:briefcase-linear",
+          color: "#F39C12",
+          desc: "Objectivez vos surcoûts énergétiques et préparez une discussion chiffrée avec le propriétaire.",
+          cta: "Voir un exemple de rapport",
+          action: () => navigate('exemple')
+        },
+        {
+          title: "Je suis un professionnel",
+          icon: "solar:case-round-minimalistic-linear",
+          color: "#2ECC71",
+          desc: "Proposez un diagnostic de cadrage à vos clients (cabinet comptable, conseil, immobilier, courtage).",
+          cta: "Découvrir l’espace pro",
+          action: () => navigate('pro')
+        }
+      ].map((card, i) => (
+        <div key={i} className="bg-slate-50 border border-slate-200 rounded-xl p-5 hover:border-slate-300 hover:shadow-sm transition-all">
+          <div className="flex items-start gap-3 mb-3">
+            <div
+              className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0"
+              style={{ backgroundColor: `${card.color}15` }}
+            >
+              <iconify-icon icon={card.icon} style={{ fontSize: '22px', color: card.color }}></iconify-icon>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900">{card.title}</h3>
+              <p className="text-xs text-slate-600 mt-1 leading-relaxed">{card.desc}</p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={card.action}
+            className="w-full mt-2 bg-white border border-slate-300 text-slate-700 text-sm font-semibold py-2.5 rounded-lg hover:bg-slate-100 transition-colors"
+          >
+            {card.cta}
+          </button>
+        </div>
+      ))}
+    </div>
+
+    <div className="grid md:grid-cols-3 gap-3">
+      <div className="rounded-lg border border-slate-200 bg-white px-4 py-3 flex items-start gap-2">
+        <iconify-icon icon="solar:target-linear" style={{ fontSize: '18px', color: '#1E3A5F', marginTop: '1px' }}></iconify-icon>
+        <div>
+          <p className="text-xs font-semibold text-slate-800">Références tertiaires</p>
+          <p className="text-xs text-slate-500">Comparaison par activité, pas sur des standards résidentiels.</p>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-slate-200 bg-white px-4 py-3 flex items-start gap-2">
+        <iconify-icon icon="solar:shield-check-linear" style={{ fontSize: '18px', color: '#2ECC71', marginTop: '1px' }}></iconify-icon>
+        <div>
+          <p className="text-xs font-semibold text-slate-800">Estimation claire</p>
+          <p className="text-xs text-slate-500">Ordre de grandeur utile pour décider si un audit complet est pertinent.</p>
+        </div>
+      </div>
+
+      <div className="rounded-lg border border-slate-200 bg-white px-4 py-3 flex items-start gap-2">
+        <iconify-icon icon="solar:document-text-linear" style={{ fontSize: '18px', color: '#F39C12', marginTop: '1px' }}></iconify-icon>
+        <div>
+          <p className="text-xs font-semibold text-slate-800">Rapport actionnable</p>
+          <p className="text-xs text-slate-500">Priorités, gains, coûts, ROI indicatif et premières aides à vérifier.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
               {/* SECTION 3 - PROBLÈME */}
               <section className="bg-[#F8F9FA] py-16">
@@ -1947,14 +2009,11 @@ const buildReportData = (data) => {
                       <SectionTitle>Questions fréquentes</SectionTitle>
                       <div className="space-y-3">
                           {[
-                              {q:'C\'est vraiment gratuit ?', r:'Oui, totalement gratuit pour vous. Aucun paiement requis. L\'outil est accessible à tous sans condition.'},
-                              {q:'Pourquoi me demander mon email ?', r:'Pour vous envoyer le rapport complet en PDF et, si vous le souhaitez, des ressources utiles pour vous accompagner dans votre réflexion. Désinscription possible à tout moment.'},
-                              {q:'Est-ce aussi précis qu\'un audit RGE ?', r:'Non. C\'est une estimation directionnelle basée sur des valeurs de référence sectorielles. Pour un diagnostic réglementaire, un audit certifié est nécessaire.'},
-                              {q:'Je n\'ai pas mes factures sous la main', r:'Pas grave. L\'outil peut estimer votre consommation selon votre activité et surface.'},
-                              {q:'Combien de temps le diagnostic prend-il ?', r:'Environ 3 minutes. Si vous avez vos données de consommation à portée de main, c\'est encore plus rapide.'},
-                              {q:'Et après le diagnostic, que se passe-t-il ?', r:'Vous recevez le rapport par email. C\'est tout. Si vous voulez aller plus loin, vous pouvez prendre RDV (optionnel).'},
-                              {q:'Je suis locataire, ça m\'intéresse vraiment ?', r:'Absolument. Le rapport vous donne des arguments chiffrés pour demander des travaux au propriétaire ou renégocier votre bail.'},
-                          ].map((faq, i) => (
+  {q:'C\'est vraiment gratuit ?', r:'Oui. Le diagnostic est gratuit et sans engagement. Il sert à vous donner un premier niveau de lecture avant un éventuel audit complet.'},
+  {q:'Est-ce un audit réglementaire ?', r:'Non. C’est une estimation directionnelle basée sur vos données déclaratives et des références sectorielles tertiaires. Pour un audit réglementaire, un bureau d’études certifié reste nécessaire.'},
+  {q:'Je n’ai pas mes factures, est-ce utile ?', r:'Oui. L’outil peut générer une estimation à partir de votre activité, de la surface et de la période de construction.'},
+  {q:'Je suis locataire, à quoi ça me sert ?', r:'Le rapport vous aide à objectiver la discussion avec le propriétaire avec des ordres de grandeur sur les surcoûts, les priorités et le ROI des actions.'}
+].map((faq, i) => (
                               <details key={i} className="group border border-slate-200 rounded-xl overflow-hidden">
                                   <summary className="cursor-pointer px-5 py-4 bg-white hover:bg-slate-50 flex items-center justify-between font-medium text-sm text-slate-900">
                                       {faq.q}
@@ -1969,25 +2028,7 @@ const buildReportData = (data) => {
                   </div>
               </section>
 
-              {/* SECTION 9 - URGENCE */}
-              <section className="bg-gradient-to-r from-[#1E3A5F] to-[#162B47] py-12">
-                  <div className="max-w-4xl mx-auto px-4 text-center">
-                      <div className="inline-flex items-center gap-2 bg-amber-500/20 border border-amber-400/30 rounded-full px-4 py-1.5 text-sm font-semibold text-amber-300 mb-4">
-                          <iconify-icon icon="solar:lightbulb-linear" style={{fontSize:'16px'}}></iconify-icon>
-                          Le problème que personne ne résout
-                      </div>
-                      <h2 className="text-2xl tracking-tight font-semibold text-white mb-2">Les simulateurs résidentiels ne fonctionnent pas pour le tertiaire</h2>
-                      <p className="text-slate-300 text-sm mb-6 max-w-2xl mx-auto">
-                          Un hôtel qui consomme 280 kWh/m²/an serait classé F en résidentiel — alors que c'est la norme.
-                          Un bureau à 180 kWh/m²/an serait considéré comme mauvais — alors que c'est performant.
-                          <strong className="text-white"> Impossible de s'y retrouver sans référence sectorielle.</strong>
-                      </p>
-                      <button type="button" onClick={() => navigate('diagnostic')} className="bg-[#2ECC71] text-white px-8 py-4 rounded-xl text-base font-semibold hover:bg-[#27AE60] shadow-lg transition-all inline-flex items-center gap-2">
-                          Comparer avec la bonne référence (3 min) <iconify-icon icon="solar:arrow-right-linear" style={{fontSize:'18px'}}></iconify-icon>
-                      </button>
-                      <p className="text-xs text-slate-400 mt-3">Gratuit • Adapté à votre activité • Résultat immédiat</p>
-                  </div>
-              </section>
+          
 
               {/* SECTION 10 - GARANTIES */}
               <section className="bg-white py-12">
