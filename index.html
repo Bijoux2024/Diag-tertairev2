@@ -860,7 +860,7 @@ function getActivityPosteShares(activity) {
     retail:        { heating: 0.30, ecs: 0.08, lighting: 0.30, auxiliaries: 0.15, specific: 0.17 },
     restaurant:    { heating: 0.22, ecs: 0.22, lighting: 0.18, auxiliaries: 0.16, specific: 0.22 },
     hotel:         { heating: 0.25, ecs: 0.28, lighting: 0.18, auxiliaries: 0.14, specific: 0.15 },
-    healthc:    { heating: 0.30, ecs: 0.20, lighting: 0.18, auxiliaries: 0.17, specific: 0.15 },
+    health:    { heating: 0.30, ecs: 0.20, lighting: 0.18, auxiliaries: 0.17, specific: 0.15 },
     warehouse:     { heating: 0.42, ecs: 0.03, lighting: 0.22, auxiliaries: 0.18, specific: 0.15 },
     mixed:         { heating: 0.33, ecs: 0.10, lighting: 0.22, auxiliaries: 0.18, specific: 0.17 }
   };
@@ -868,13 +868,15 @@ function getActivityPosteShares(activity) {
 }
 
 function getEcsImpactFactor(form) {
-  const ecs = form.ecsSystem || 'unknown';
-  if (ecs === 'none') return 0.35;          // peu ou pas d'ECS
-  if (ecs === 'electric') return 1.15;      // souvent coûteux
-  if (ecs === 'gas') return 1.00;
-  if (ecs === 'heatpump') return 0.75;      // plus performant
-  if (ecs === 'solar') return 0.55;         // appoint réduit
-  return 1.00; // unknown
+  const ecs = form.ecsSystem || 'unknown_ecs';
+
+  if (ecs === 'none_ecs') return 0.35;
+  if (ecs === 'elec_ecs') return 1.15;
+  if (ecs === 'gas_ecs') return 1.00;
+  if (ecs === 'pac_ecs') return 0.75;
+  if (ecs === 'solar_ecs') return 0.55;
+
+  return 1.00; // unknown_ecs
 }
 
 function computeConsumptionBreakdown(totalKwh, form) {
@@ -918,20 +920,25 @@ function computeConsumptionBreakdown(totalKwh, form) {
 
 function getActionGainsByPoste(form) {
   const activity = form.activity || 'mixed';
-  const buildingYear = Number(form.year) || 2005;
-  const heatingAge = Number(form.heatingAge) || 12;
-  const hasRecentWorks = !!form.recentWorks;
-  const ecsSystem = form.ecsSystem || 'unknown';
+  const yearId = form.year || '2005-2012';
+  const heatingAgeLabel = form.heatingAge || '5 à 15 ans';
+  const hasRecentWorks = form.hasWorks === 'yes' && Array.isArray(form.works) && form.works.length > 0;
+  const ecsSystem = form.ecsSystem || 'unknown_ecs';
 
-  // coefficients simples mais crédibles
-  const oldBuildingBoost = buildingYear < 2000 ? 1.15 : 1.0;
-  const veryOldBuildingBoost = buildingYear < 1980 ? 1.25 : oldBuildingBoost;
-  const oldHeatingBoost = heatingAge >= 15 ? 1.15 : 1.0;
+  const isVeryOldBuilding = yearId === 'pre1975';
+  const isOldBuilding = yearId === 'pre1975' || yearId === '1975-1990' || yearId === '1990-2005';
+  const isOldHeating = heatingAgeLabel === '> 15 ans';
+
+  const oldBuildingBoost = isOldBuilding ? 1.15 : 1.0;
+  const veryOldBuildingBoost = isVeryOldBuilding ? 1.25 : oldBuildingBoost;
+  const oldHeatingBoost = isOldHeating ? 1.15 : 1.0;
   const recentWorksPenalty = hasRecentWorks ? 0.85 : 1.0;
 
   const ledBoost = (activity === 'retail' || activity === 'office') ? 1.15 : 1.0;
   const ecsBoost = (activity === 'hotel' || activity === 'restaurant' || activity === 'health') ? 1.20 : 0.80;
-  const ecsSystemBoost = ecsSystem === 'electric' ? 1.15 : (ecsSystem === 'heatpump' || ecsSystem === 'solar' ? 0.75 : 1.0);
+  const ecsSystemBoost =
+    ecsSystem === 'elec_ecs' ? 1.15 :
+    (ecsSystem === 'pac_ecs' || ecsSystem === 'solar_ecs' ? 0.75 : 1.0);
 
   return {
     roof: {
@@ -957,7 +964,7 @@ function getActionGainsByPoste(form) {
     },
     heating: {
       heating: 0.20 * oldHeatingBoost,
-      ecs: 0.04, // légère amélioration globale si système mieux piloté
+      ecs: 0.04,
       lighting: 0,
       auxiliaries: 0.03,
       specific: 0
@@ -2913,125 +2920,142 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
       const PageHome = ({ navigate }) => (
           <div className="fade-in">
               {/* SECTION 1 - HERO */}
-              <section className="bg-gradient-to-b from-[#F8F9FA] to-white py-16 lg:py-20">
-    <div className="max-w-6xl mx-auto px-4 grid md:grid-cols-2 gap-10 items-center">
-        <div>
-            <div className="inline-flex items-center gap-2 bg-[#2ECC71]/10 border border-[#2ECC71]/25 rounded-full px-4 py-1.5 text-xs font-semibold text-[#1E3A5F] mb-5">
-                <Icon icon="solar:bolt-circle-linear" className="text-sm text-[#2ECC71]" />
-                Pré-diagnostic tertiaire gratuit
-            </div>
+              <section className="relative overflow-hidden bg-gradient-to-b from-[#F8FBFF] via-white to-[#FFF9F1] py-16 lg:py-24">
+  {/* Halo visuel doux */}
+  <div className="absolute inset-0 pointer-events-none">
+    <div className="absolute top-10 left-[8%] w-72 h-72 rounded-full bg-[#F5E7CF] opacity-35 blur-3xl" />
+    <div className="absolute bottom-8 right-[10%] w-72 h-72 rounded-full bg-[#DCEBFF] opacity-45 blur-3xl" />
+  </div>
 
-            <h1 className="text-3xl lg:text-5xl tracking-tight font-semibold text-slate-900 leading-[1.08] mb-4">
-                Estimez rapidement la performance énergétique de votre bâtiment tertiaire
-            </h1>
+  <div className="relative max-w-6xl mx-auto px-4 grid md:grid-cols-2 gap-10 lg:gap-14 items-center">
+    <div className="relative">
+      <div className="inline-flex items-center gap-2 bg-white/85 backdrop-blur border border-[#E9D8B5] rounded-full px-4 py-1.5 text-xs font-semibold text-[#1E3A5F] mb-6 shadow-sm">
+        <Icon icon="solar:bolt-circle-linear" className="text-sm text-[#2ECC71]" />
+        Pré-diagnostic tertiaire gratuit
+      </div>
 
-            <p className="text-base lg:text-lg text-slate-600 leading-relaxed mb-6">
-                Obtenez une estimation claire, des économies potentielles et des actions prioritaires en quelques minutes.
-            </p>
+      <h1 className="text-3xl md:text-4xl lg:text-5xl tracking-tight font-semibold text-slate-900 leading-[1.05] mb-5">
+        Estimez rapidement la performance énergétique de votre bâtiment tertiaire
+      </h1>
 
-            <ul className="space-y-2.5 mb-7">
-                {[
-                    "Classe énergétique estimée adaptée au tertiaire",
-                    "Économies potentielles et priorités de travaux",
-                    "Rapport PDF exportable pour décider plus vite"
-                ].map((item, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
-                        <Icon icon="solar:check-circle-bold" className="text-base text-[#2ECC71] mt-0.5 shrink-0" />
-                        <span>{item}</span>
-                    </li>
-                ))}
-            </ul>
+      <p className="text-base lg:text-lg text-slate-600 leading-relaxed mb-7 max-w-xl">
+        Obtenez une estimation claire, des économies potentielles et des actions prioritaires en quelques minutes.
+      </p>
 
-            <div className="flex flex-col sm:flex-row gap-3">
-                <button
-                    type="button"
-                    onClick={() => navigate('diagnostic')}
-                    className="bg-[#1E3A5F] text-white px-6 py-3.5 rounded-xl text-sm font-semibold hover:bg-[#162B47] shadow-sm transition-colors inline-flex items-center justify-center gap-2"
-                >
-                    Lancer le diagnostic
-                    <Icon icon="solar:arrow-right-linear" className="text-base" />
-                </button>
+      <ul className="space-y-3 mb-8">
+        {[
+          "Classe énergétique estimée adaptée au tertiaire",
+          "Économies potentielles et priorités de travaux",
+          "Rapport PDF exportable pour décider plus vite"
+        ].map((item, i) => (
+          <li key={i} className="flex items-start gap-2.5 text-sm text-slate-700">
+            <Icon icon="solar:check-circle-bold" className="text-base text-[#2ECC71] mt-0.5 shrink-0" />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
 
-                <button
-                    type="button"
-                    onClick={() => navigate('exemple')}
-                    className="bg-white border border-slate-300 text-slate-700 px-6 py-3.5 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors"
-                >
-                    Voir un exemple de rapport
-                </button>
-            </div>
+      <div className="flex flex-col sm:flex-row gap-3 mb-4">
+        <button
+          type="button"
+          onClick={() => navigate('diagnostic')}
+          className="bg-[#1E3A5F] text-white px-6 py-3.5 rounded-xl text-sm font-semibold hover:bg-[#162B47] shadow-sm hover:shadow-md transition-all inline-flex items-center justify-center gap-2"
+        >
+          Lancer le diagnostic
+          <Icon icon="solar:arrow-right-linear" className="text-base" />
+        </button>
 
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500 mt-4">
-                <span className="flex items-center gap-1">
-                    <Icon icon="solar:check-read-linear" className="text-sm text-[#2ECC71]" />
-                    Gratuit
-                </span>
-                <span className="flex items-center gap-1">
-                    <Icon icon="solar:check-read-linear" className="text-sm text-[#2ECC71]" />
-                    Sans engagement
-                </span>
-                <span className="flex items-center gap-1">
-                    <Icon icon="solar:check-read-linear" className="text-sm text-[#2ECC71]" />
-                    Rapport PDF
-                </span>
-            </div>
-        </div>
+        <button
+          type="button"
+          onClick={() => navigate('exemple')}
+          className="bg-white/90 backdrop-blur border border-slate-300 text-slate-700 px-6 py-3.5 rounded-xl text-sm font-semibold hover:bg-white transition-all"
+        >
+          Voir un exemple de rapport
+        </button>
+      </div>
 
-        <div className="md:block">
-            <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-5 relative">
-                <div className="flex items-start justify-between gap-3 mb-4">
-                    <div>
-                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Synthèse estimée</p>
-                        <p className="text-sm font-semibold text-slate-900">Bureau • 450 m²</p>
-                    </div>
-                    <div className="rounded-full bg-[#2ECC71]/10 text-[#1E3A5F] text-xs font-semibold px-3 py-1 border border-[#2ECC71]/20">
-                        Rapport
-                    </div>
-                </div>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
+        <span className="flex items-center gap-1">
+          <Icon icon="solar:check-read-linear" className="text-sm text-[#2ECC71]" />
+          Gratuit
+        </span>
+        <span className="flex items-center gap-1">
+          <Icon icon="solar:check-read-linear" className="text-sm text-[#2ECC71]" />
+          Sans engagement
+        </span>
+        <span className="flex items-center gap-1">
+          <Icon icon="solar:check-read-linear" className="text-sm text-[#2ECC71]" />
+          Rapport PDF
+        </span>
+      </div>
 
-                <div className="grid grid-cols-[auto_1fr] gap-3 items-center mb-4">
-                    <div className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-semibold border border-slate-200" style={{ backgroundColor: '#FFCC00' }}>
-                        <span style={{ color: '#1E3A5F' }}>D</span>
-                    </div>
-                    <div>
-                        <p className="text-sm font-semibold text-slate-900">Classe estimée : D</p>
-                        <p className="text-xs text-slate-500">245 kWh/m²/an • ordre de grandeur</p>
-                    </div>
-                </div>
-
-                <div className="rounded-xl border border-slate-200 p-3 mb-3 bg-slate-50">
-                    <p className="text-xs text-slate-500 mb-1">Économies potentielles</p>
-                    <p className="text-sm font-semibold text-[#2ECC71]">≈ 3 600 € / an</p>
-                </div>
-
-                <div className="space-y-2">
-                    {[
-                        { label: "Régulation / pilotage", value: "ROI estimé 2 à 4 ans", dot: "#0891B2" },
-                        { label: "Isolation toiture", value: "Priorité forte", dot: "#F39C12" },
-                        { label: "Relamping LED", value: "Gain rapide", dot: "#2ECC71" }
-                    ].map((row, i) => (
-                        <div key={i} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2">
-                            <div className="flex items-center gap-2 min-w-0">
-                                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: row.dot }} />
-                                <span className="text-xs font-medium text-slate-700 truncate">{row.label}</span>
-                            </div>
-                            <span className="text-[11px] text-slate-500 whitespace-nowrap">{row.value}</span>
-                        </div>
-                    ))}
-                </div>
-
-                <div className="absolute -top-2 -right-2 bg-[#1E3A5F] text-white text-[11px] font-semibold px-2.5 py-1 rounded-full shadow">
-                    En quelques minutes
-                </div>
-            </div>
-        </div>
+      {/* Micro-copy humaine */}
+      <p className="text-xs sm:text-sm text-slate-600 mt-3 leading-relaxed">
+        Un premier niveau de lecture fiable pour décider vite, sans avancer à l’aveugle.
+      </p>
     </div>
+
+    <div className="md:block">
+      <div className="relative rounded-2xl border border-slate-200/80 bg-white/95 backdrop-blur p-5 shadow-xl shadow-slate-200/60">
+        {/* Accent visuel chaud discret */}
+        <div className="absolute -top-3 -left-3 w-16 h-16 rounded-2xl bg-[#F5E7CF] opacity-70 blur-xl pointer-events-none" />
+
+        <div className="flex items-start justify-between gap-3 mb-4">
+          <div>
+            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Synthèse estimée</p>
+            <p className="text-sm font-semibold text-slate-900">Bureau • 450 m²</p>
+          </div>
+          <div className="rounded-full bg-[#FFF4DF] text-[#1E3A5F] text-xs font-semibold px-3 py-1 border border-[#F0DFC0]">
+            Rapport
+          </div>
+        </div>
+
+        <div className="grid grid-cols-[auto_1fr] gap-3 items-center mb-4">
+          <div className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-semibold border border-[#F0E4C8] shadow-sm" style={{ backgroundColor: '#FFF4DF' }}>
+            <span style={{ color: '#1E3A5F' }}>D</span>
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-slate-900">Classe estimée : D</p>
+            <p className="text-xs text-slate-500">245 kWh/m²/an • ordre de grandeur</p>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 p-3 mb-3 bg-gradient-to-r from-[#F7FBF8] to-white">
+          <p className="text-xs text-slate-500 mb-1">Économies potentielles</p>
+          <p className="text-sm font-semibold text-[#2ECC71]">≈ 3 600 € / an</p>
+        </div>
+
+        <div className="space-y-2">
+          {[
+            { label: "Régulation / pilotage", value: "ROI estimé 2 à 4 ans", dot: "#0891B2" },
+            { label: "Isolation toiture", value: "Priorité forte", dot: "#F39C12" },
+            { label: "Relamping LED", value: "Gain rapide", dot: "#2ECC71" }
+          ].map((row, i) => (
+            <div
+              key={i}
+              className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 hover:border-slate-300 hover:shadow-sm transition-all"
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: row.dot }} />
+                <span className="text-xs font-medium text-slate-700 truncate">{row.label}</span>
+              </div>
+              <span className="text-[11px] text-slate-500 whitespace-nowrap">{row.value}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="absolute -top-2 -right-2 bg-[#1E3A5F] text-white text-[11px] font-semibold px-2.5 py-1 rounded-full shadow">
+          En quelques minutes
+        </div>
+      </div>
+    </div>
+  </div>
 </section>
 
               {/* SECTION 2 - SEGMENTATION PROFILS + PREUVES */}
 {/* SECTION 2 - POUR QUI + CE QUE VOUS OBTENEZ */}
-<section className="bg-white py-10 border-y border-slate-100">
-  <div className="max-w-6xl mx-auto px-4">
+<section className="bg-[#FFFCF6] py-12 border-y border-[#F1E8D8]">
+    <div className="max-w-6xl mx-auto px-4">
 
     {/* POUR QUI ? */}
     <div className="mb-10">
@@ -3067,7 +3091,7 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
         ].map((item, i) => (
           <div
             key={i}
-            className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 flex items-start gap-3"
+            className="rounded-xl border border-slate-200/80 bg-white px-4 py-4 flex items-start gap-3 hover:border-slate-300 hover:shadow-sm transition-all"
           >
             <div
               className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
@@ -3134,7 +3158,7 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
         ].map((card, i) => (
           <div
             key={i}
-            className="rounded-xl border border-slate-200 bg-white p-4 hover:border-slate-300 hover:shadow-sm transition-all"
+            className="rounded-2xl border border-slate-200 bg-white p-4 hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
           >
             <div
               className="w-10 h-10 rounded-lg flex items-center justify-center mb-3"
@@ -3154,7 +3178,7 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
 </section>
 
               {/* SECTION 3 - POURQUOI C'EST CRÉDIBLE */}
-<section className="bg-[#F8F9FA] py-14">
+<section className="bg-[#F6FAFF] py-16">
   <div className="max-w-6xl mx-auto px-4">
     <div className="text-center mb-8">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
@@ -3201,7 +3225,7 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
           ]
         }
       ].map((card, i) => (
-        <div key={i} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div key={i} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200">
           <div
             className="w-11 h-11 rounded-xl flex items-center justify-center mb-3"
             style={{ backgroundColor: `${card.color}15` }}
@@ -3246,7 +3270,7 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
 
               {/* SECTION 4 - SOLUTION */}
              {/* SECTION 4 - EXEMPLE DE RAPPORT */}
-<section className="bg-white py-16">
+<section className="bg-white py-18 md:py-20">
   <div className="max-w-6xl mx-auto px-4">
     <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-6">
       <div>
@@ -3469,9 +3493,9 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
   </div>
 </section>
               {/* SECTION 6 - CE QUE VOUS RECEVEZ */}
-              <section className="bg-white py-16">
+              <section className="bg-[#F6FAFF] py-16">
                   <div className="max-w-6xl mx-auto px-4">
-                      <SectionTitle sub="Voici exactement ce que contient votre rapport gratuit">Ce que vous recevez</SectionTitle>
+                      <SectionTitle sub="Un livrable concret pour décider sans avancer à l’aveugle">Ce que contient votre rapport</SectionTitle>
                       <div className="grid md:grid-cols-2 gap-6">
                           {[
                               {title:'Votre classe énergétique estimée', desc:'Jauge A à G avec votre position et comparaison vs référence sectorielle'},
@@ -3479,7 +3503,7 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
                               {title:"Votre plan d'action sur 3 mois", desc:'Étapes concrètes pour passer du diagnostic à la réalisation'},
                               {title:'Économies estimées sur 5 et 10 ans', desc:'Projection financière avec et sans travaux pour arbitrer vos investissements'},
                           ].map((r, i) => (
-                              <div key={i} className="flex items-start gap-4 p-5 rounded-xl border border-slate-200 hover:border-[#1E3A5F]/30 hover:shadow-md transition-all">
+                              <div key={i} className="flex items-start gap-4 p-5 rounded-2xl border border-slate-200 bg-white hover:border-[#1E3A5F]/25 hover:shadow-md transition-all duration-200">
                                   <div className="w-12 h-12 rounded-lg bg-[#1E3A5F]/10 flex items-center justify-center flex-shrink-0">
                                       <iconify-icon icon="solar:document-text-linear" style={{fontSize:'24px', color:'#1E3A5F'}}></iconify-icon>
                                   </div>
@@ -3491,7 +3515,7 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
                           ))}
                       </div>
 
-                      <div className="mt-8 bg-amber-50 border border-amber-200 rounded-xl p-5 flex items-start gap-3">
+                      <div className="mt-8 rounded-2xl border border-[#EADFC8] bg-gradient-to-r from-[#FFF6E8] to-white p-5 flex items-start gap-3 shadow-sm">
                           <iconify-icon icon="solar:lightbulb-linear" style={{fontSize:'24px', color:'#F39C12', flexShrink:0}} />
                           <div>
                               <p className="text-sm font-bold text-amber-900 mb-1">Sachez si ça vaut le coup</p>
@@ -3501,19 +3525,19 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
 
                       <div className="text-center mt-8">
                           <button type="button" onClick={() => navigate('diagnostic')} className="bg-[#1E3A5F] text-white px-8 py-4 rounded-xl text-base font-semibold hover:bg-[#162B47] shadow-lg transition-all inline-flex items-center gap-2">
-                              Je veux mon rapport gratuit <Icon icon="solar:arrow-right-linear" className="text-base" />
+                              Lancer le diagnostic <Icon icon="solar:arrow-right-linear" className="text-base" />
                           </button>
                       </div>
                   </div>
               </section>
 
               {/* SECTION 7 - PROFESSIONNELS */}
-<section className="bg-white py-14">
+<section className="bg-[#FFFCF6] py-16">
   <div className="max-w-6xl mx-auto px-4">
-    <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-6 md:p-7">
+    <div className="rounded-2xl border border-[#E6DCC7] bg-gradient-to-br from-white to-[#FFF7EA] p-6 md:p-7 shadow-sm">
       <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-6 items-start">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-700 mb-1">
             Espace Pro
           </p>
           <h2 className="text-2xl md:text-3xl tracking-tight font-semibold text-slate-900 mb-2">
@@ -3541,7 +3565,7 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
                 desc: "Version pro pour votre activité."
               }
             ].map((item, i) => (
-              <div key={i} className="rounded-xl border border-slate-200 bg-white p-4">
+              <div key={i} className="rounded-xl border border-slate-200 bg-white p-4 hover:border-slate-300 hover:shadow-sm transition-all duration-200">
                 <div className="w-9 h-9 rounded-lg bg-[#1E3A5F]/10 flex items-center justify-center mb-2">
                   <Icon icon={item.icon} className="text-[18px] text-[#1E3A5F]" />
                 </div>
@@ -3552,7 +3576,7 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-5">
+        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
           <p className="text-sm font-semibold text-slate-900 mb-2">
             Pour qui ?
           </p>
@@ -3598,7 +3622,7 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
 </section>
 
              {/* SECTION 8 - FAQ */}
-<section className="bg-[#F8F9FA] py-14">
+<section className="bg-white py-16">
   <div className="max-w-4xl mx-auto px-4">
     <div className="text-center mb-6">
       <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
@@ -3633,7 +3657,7 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
       ].map((item, i) => (
         <details
           key={i}
-          className="group rounded-xl border border-slate-200 bg-white p-4 open:shadow-sm"
+          className="group rounded-xl border border-slate-200 bg-slate-50/60 p-4 open:shadow-sm hover:border-slate-300 transition-all"
         >
           <summary className="list-none cursor-pointer flex items-center justify-between gap-3">
             <span className="text-sm font-semibold text-slate-900">{item.q}</span>
@@ -3646,7 +3670,7 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
       ))}
     </div>
 
-    <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-7">
+    <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-8">
       <button
         type="button"
         onClick={() => navigate('diagnostic')}
@@ -3673,7 +3697,9 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
              {/* SECTION 11 - CTA FINAL */}
 <section className="bg-white py-16">
   <div className="max-w-5xl mx-auto px-4">
-    <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-[#1E3A5F] to-[#162B47] p-6 md:p-8 text-white shadow-lg">
+    <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-[#1E3A5F] to-[#162B47] p-6 md:p-8 text-white shadow-lg">
+  <div className="absolute -top-8 -right-6 w-28 h-28 rounded-full bg-[#F5E7CF] opacity-15 blur-2xl pointer-events-none" />
+  <div className="absolute -bottom-8 -left-8 w-28 h-28 rounded-full bg-[#DCEBFF] opacity-15 blur-2xl pointer-events-none" />
       <div className="text-center">
         <p className="text-xs font-semibold uppercase tracking-wide text-white/70 mb-2">
           Pré-diagnostic tertiaire
@@ -3723,93 +3749,7 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
     </div>
   </div>
 </section>
-    {/* CTA FINAL */}
-    <section className="bg-white py-16 px-4 border-t border-slate-100">
-      <div className="max-w-4xl mx-auto">
-        <div className="rounded-2xl bg-[#1E3A5F] text-white p-8 text-center shadow-xl">
-          <h2 className="text-2xl tracking-tight font-semibold mb-2">
-            Vous voulez un premier niveau de lecture fiable en 3 minutes ?
-          </h2>
-          <p className="text-sm text-blue-100 mb-6 max-w-2xl mx-auto">
-            Lancez le diagnostic, récupérez votre rapport, puis décidez si vous devez approfondir avec un expert.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <button
-              type="button"
-              onClick={() => navigate('diagnostic')}
-              className="bg-white text-[#1E3A5F] px-6 py-3 rounded-xl text-sm font-semibold hover:bg-slate-100"
-            >
-              Démarrer maintenant
-            </button>
-            <button
-              type="button"
-              onClick={() => navigate('exemple')}
-              className="bg-transparent border border-white/30 text-white px-6 py-3 rounded-xl text-sm font-semibold hover:bg-white/10"
-            >
-              Voir un rapport exemple
-            </button>
-          </div>
-        </div>
-      </div>
-    </section>
-  </div>
-);
-
-      const PageExample = ({ navigate }) => {
-          const FAKE_DATA = {
-              activity: 'office', activityMixPct: 0, year: 'pre1975', surface: 450, levels: 2,
-              heating: 'gas', heatingAge: '> 15 ans', occupation: 'semaine',
-              consumptionMode: 'kwh', elecKwh: 45000, gasKwh: 146700,
-              noData: false, works: [], hasWorks: 'no', ecsSystem: '',
-              firstName: 'Jean', email: 'jean@exemple.com', consent: true
-          };
-
-          return (
-              <div className="fade-in bg-[#F8F9FA] min-h-screen">
-                  <div className="py-12 text-center px-4">
-                      <h1 className="text-3xl tracking-tight font-semibold text-[#1E3A5F] mb-2">À quoi ressemble votre rapport ?</h1>
-                      <p className="text-[#6B7280]">Exemple pour un bureau de 450m² construit avant 1975.</p>
-                  </div>
-                  <div className="max-w-4xl mx-auto px-4 pb-12">
-                      <StepReport data={FAKE_DATA} />
-                  </div>
-              </div>
-          );
-      };
-
-      const PagePro = ({ navigate }) => (
-          <div className="fade-in">
-              <section className="bg-[#1E3A5F] py-20 text-center text-white px-4">
-                  <h1 className="text-4xl tracking-tight font-semibold mb-4">Pour les professionnels du chiffre</h1>
-                  <p className="text-lg text-blue-200 max-w-2xl mx-auto mb-8">
-                      Proposez un outil de cadrage énergétique à vos clients tertiaires (comptables, notaires, assureurs).
-                  </p>
-                  <a
-  href={CTA_CALENDLY_URL}
-  target="_blank"
-  rel="noopener noreferrer"
-  className="block w-full bg-white text-[#1E3A5F] font-semibold text-center py-3 rounded-lg hover:bg-slate-100 transition-colors"
->
-  📅 Réserver mon rendez-vous →
-</a>
-              </section>
-          </div>
-      );
-
-      const RestoreBanner = ({ onDismiss, onRestart }) => (
-          <div className="w-full bg-[#EEF2FF] border-b border-[#1E3A5F]/20 px-4 py-2.5 flex items-center justify-between gap-4 no-print">
-              <div className="flex items-center gap-2 text-[#1E3A5F] text-sm">
-                  <Icon icon="solar:history-linear" className="shrink-0 text-base" />
-                  <span className="font-medium">Reprendre votre estimation en cours ?</span>
-              </div>
-              <div className="flex items-center gap-3">
-                  <button type="button" onClick={onRestart} className="text-xs font-semibold text-red-600 hover:text-red-800 underline">Effacer</button>
-                  <button type="button" onClick={onDismiss} className="text-slate-400 hover:text-slate-600">
-                      <Icon icon="solar:close-circle-linear" className="text-base" />
-                  </button>
-              </div>
-          </div>
+            </div>
       );
 
       /* --- APP ROOT --- */
@@ -3939,9 +3879,9 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
                   </main>
 
                   {currentPage !== 'diagnostic' && (
-                      <footer className="bg-[#1E3A5F] py-12">
+                      <footer className="bg-[#1A3454] py-10">
           <div className="max-w-6xl mx-auto px-4">
-            <div className="grid md:grid-cols-4 gap-8 mb-8">
+            <div className="grid md:grid-cols-4 gap-6 md:gap-8 mb-7">
               
               <div>
                 <div className="flex items-center gap-2 mb-4">
@@ -3950,7 +3890,7 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
                   </div>
                   <span className="font-bold text-white">DiagTertiaire</span>
                 </div>
-                <p className="text-sm text-slate-400 leading-relaxed mb-4">Estimation directionnelle basée sur valeurs de référence sectorielles</p>
+                <p className="text-sm text-slate-300/90 leading-relaxed mb-4">Pré-diagnostic énergétique tertiaire orienté décision, basé sur références sectorielles.</p>
                 <div className="space-y-2">
                   <button type="button" onClick={() => navigate('home')} className="block text-sm text-slate-300 hover:text-white transition-colors">À propos</button>
                   <button type="button" className="block text-sm text-slate-300 hover:text-white transition-colors">Notre méthodologie</button>
@@ -3988,7 +3928,7 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
               </div>
             </div>
 
-            <div className="pt-6 border-t border-white/10 flex flex-wrap justify-between items-center gap-4">
+            <div className="pt-5 border-t border-white/10 flex flex-wrap justify-between items-center gap-3">
               <p className="text-xs text-slate-400">© 2026 DiagTertiaire • Estimations basées sur données ADEME</p>
               <div className="flex items-center gap-3">
                 {['SSL','RGPD','🇫🇷 FR'].map((b, i) => (
