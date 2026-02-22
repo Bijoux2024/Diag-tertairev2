@@ -2772,7 +2772,7 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
                               Gratuit • 3 minutes • Résultat immédiat
                           </div>
                           <h1 className="text-4xl lg:text-5xl tracking-tight font-semibold text-slate-900 leading-[1.1] mb-6">
-                              Votre bâtiment tertiaire vous coûte-t-il trop cher en énergie ? test 100
+                              Votre bâtiment tertiaire vous coûte-t-il trop cher en énergie ? test 200
                           </h1>
                           <p className="text-lg text-[#6B7280] leading-relaxed mb-8">
                               Le premier diagnostic gratuit conçu pour les bâtiments tertiaires. Comparez-vous aux bonnes références sectorielles, pas au logement.
@@ -3001,14 +3001,14 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
                           ].map((s, i) => (
                               <div key={i} className="relative">
                                   {i < 3 && (
-                                      <div className="hidden md:block absolute top-8 -right-4 z-0">
-                                          <Icon icon="solar:arrow-right-linear" className="text-2xl" style={{ color:'#CBD5E1' }} />
-                                      </div>
-                                  )}
+    <div className="hidden md:block absolute top-8 -right-4 z-0 text-slate-300">
+        <Icon icon="solar:arrow-right-linear" className="text-2xl" />
+    </div>
+)}
                                   <div className="relative z-10">
                                       <div className="text-5xl font-bold text-slate-300 mb-3 tracking-tight">{s.n}</div>
                                       <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3" style={{backgroundColor:s.color+'15'}}>
-                                          <Icon icon={s.icon} className="text-2xl" style={{ color:s.color }} />
+                                         <Icon icon={s.icon} className="text-2xl" style={{ color: s.color 
                                       </div>
                                       <div className="inline-block bg-white border border-slate-200 rounded-full px-3 py-1 text-xs font-semibold text-slate-600 mb-3">{s.time}</div>
                                       <h3 className="text-sm font-semibold text-slate-900 mb-2">{s.title}</h3>
@@ -3158,13 +3158,22 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
                       <h2 className="text-3xl tracking-tight font-semibold text-white mb-3">Prêt à savoir combien vous pourriez économiser chaque année ?</h2>
                       <p className="text-lg text-white/90 mb-8">3 minutes. Gratuit. Sans engagement.</p>
                       <button type="button" onClick={() => navigate('diagnostic')} className="bg-white text-[#2ECC71] font-semibold px-12 py-4 rounded-xl hover:bg-slate-50 transition-all shadow-xl text-base inline-flex items-center gap-2">
-                          Lancer mon diagnostic énergétique <iconify-icon icon="solar:arrow-right-linear" style={{fontSize:'20px'}}></iconify-icon>
+                          Lancer mon diagnostic énergétique <Icon icon="solar:arrow-right-linear" className="text-sm" style={{color:s.color, flexShrink:0, marginTop:'2px'}} />
                       </button>
                       <div className="flex flex-wrap justify-center gap-6 text-sm text-white/80 mt-6">
-                          <span className="flex items-center gap-1"><iconify-icon icon="solar:check-circle-bold" style={{fontSize:'16px'}}></iconify-icon> 1 247 diagnostics ce mois</span>
-                          <span className="flex items-center gap-1"><iconify-icon icon="solar:check-circle-bold" style={{fontSize:'16px'}}></iconify-icon> Note moyenne 4.8/5</span>
-                          <span className="flex items-center gap-1"><iconify-icon icon="solar:check-circle-bold" style={{fontSize:'16px'}}></iconify-icon> Déjà 4,2M€ identifiés</span>
-                      </div>
+  <span className="flex items-center gap-1">
+    <iconify-icon icon="solar:check-circle-bold" style={{fontSize:'16px'}}></iconify-icon>
+    Références adaptées au tertiaire
+  </span>
+  <span className="flex items-center gap-1">
+    <iconify-icon icon="solar:check-circle-bold" style={{fontSize:'16px'}}></iconify-icon>
+    Rapport orienté décision
+  </span>
+  <span className="flex items-center gap-1">
+    <iconify-icon icon="solar:check-circle-bold" style={{fontSize:'16px'}}></iconify-icon>
+    Pré-audit en 3 minutes
+  </span>
+</div>
                       <p className="text-xs text-white/60 mt-4">En continuant, vous acceptez notre politique de confidentialité. Désinscription en 1 clic.</p>
                   </div>
               </section>
@@ -3313,11 +3322,14 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
     Un audit complet est utile, mais il représente un coût et demande du temps (visite, relevés, devis, échanges).
     Beaucoup d’exploitants et propriétaires hésitent à se lancer sans première lecture claire.
   </p>
-  <p className="text-sm text-slate-600 leading-relaxed">
-    DiagTertiaire sert à <strong>valider rapidement s’il y a un vrai sujet</strong>, estimer l’ordre de grandeur,
-    et identifier les postes à regarder en priorité avant de passer à un audit technique complet.
-  </p>
+ <p className="text-sm text-slate-600 leading-relaxed">
+  DiagTertiaire est un outil de <strong>pré-audit orienté décision</strong>. Il vous aide à estimer un niveau de consommation,
+  identifier les grands postes de gains, et décider s’il faut aller plus loin.
+  <strong> Un audit complet a un coût :</strong> notre objectif est donc de vous aider à valider d’abord le besoin,
+  puis à cadrer les bonnes priorités avant de passer à l’action.
+</p>
 </div>
+
 
           <div className="bg-white rounded-xl border border-slate-200 p-5">
   <h3 className="text-sm font-semibold text-[#1E3A5F] mb-3">Ce que l’outil fait (et ne fait pas)</h3>
@@ -3372,6 +3384,45 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
 </div>
 
         </div>
+       {/* SOURCES / HYPOTHESES */}
+       <div className="mt-6 bg-white rounded-xl border border-slate-200 p-5">
+  <div className="flex items-center gap-2 mb-3 text-[#1E3A5F]">
+    <Icon icon="solar:document-add-linear" className="text-lg" />
+    <h3 className="text-sm font-semibold">Quand passer à un audit complet</h3>
+  </div>
+
+  <div className="grid md:grid-cols-2 gap-4">
+    <ul className="space-y-2 text-sm text-slate-600">
+      <li className="flex items-start gap-2">
+        <Icon icon="solar:check-circle-bold" className="text-base mt-0.5 text-[#2ECC71]" />
+        <span>Écart important à la référence (ex: +20% à +30% et plus)</span>
+      </li>
+      <li className="flex items-start gap-2">
+        <Icon icon="solar:check-circle-bold" className="text-base mt-0.5 text-[#2ECC71]" />
+        <span>Projet d’investissement ou arbitrage CAPEX à préparer</span>
+      </li>
+      <li className="flex items-start gap-2">
+        <Icon icon="solar:check-circle-bold" className="text-base mt-0.5 text-[#2ECC71]" />
+        <span>Besoin de négociation bailleur / locataire sur des bases chiffrées</span>
+      </li>
+    </ul>
+
+    <ul className="space-y-2 text-sm text-slate-600">
+      <li className="flex items-start gap-2">
+        <Icon icon="solar:check-circle-bold" className="text-base mt-0.5 text-[#2ECC71]" />
+        <span>Préparation d’un plan pluriannuel de travaux</span>
+      </li>
+      <li className="flex items-start gap-2">
+        <Icon icon="solar:check-circle-bold" className="text-base mt-0.5 text-[#2ECC71]" />
+        <span>Contrainte réglementaire ou exigence interne de conformité</span>
+      </li>
+      <li className="flex items-start gap-2">
+        <Icon icon="solar:check-circle-bold" className="text-base mt-0.5 text-[#2ECC71]" />
+        <span>Besoin d’un dimensionnement technique réel (CVC, ECS, GTB, ventilation)</span>
+      </li>
+    </ul>
+  </div>
+</div>
       </div>
     </section>
 
@@ -3423,9 +3474,9 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
             <div>
               <p className="text-sm font-semibold text-amber-900 mb-1">Point important</p>
               <p className="text-xs text-amber-800 leading-relaxed">
-                Les prix de l’énergie, aides et coûts d’intervention évoluent. Le rapport a vocation à vous orienter rapidement,
-                pas à se substituer à un chiffrage entreprise par entreprise.
-              </p>
+  Les prix de l’énergie, aides et coûts d’intervention évoluent. Le rapport a vocation à vous orienter rapidement et à valider un besoin,
+  pas à se substituer à un audit complet ni à un chiffrage d'entreprises.
+</p>
             </div>
           </div>
         </div>
