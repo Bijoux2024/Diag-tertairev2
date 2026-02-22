@@ -3597,473 +3597,132 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
   </div>
 </section>
 
-              {/* SECTION 8 - FAQ */}
-              <section className="bg-white py-16">
-                  <div className="max-w-4xl mx-auto px-4">
-                      <SectionTitle>Questions fréquentes</SectionTitle>
-                      <div className="space-y-3">
-                          {[
-  {q:'C\'est vraiment gratuit ?', r:'Oui. Le diagnostic est gratuit et sans engagement. Il sert à vous donner un premier niveau de lecture avant un éventuel audit complet.'},
-{q:'Est-ce un audit réglementaire ?', r:'Non. C’est une estimation directionnelle basée sur vos données déclaratives et des références sectorielles tertiaires. Ce n’est ni un audit réglementaire, ni un devis, ni un DPE opposable. Pour engager des travaux ou répondre à une obligation réglementaire, un bureau d’études certifié reste nécessaire.'},
-  {q:'Je n’ai pas mes factures, est-ce utile ?', r:'Oui. L’outil peut générer une estimation à partir de votre activité, de la surface et de la période de construction.'},
-  {q:'Je suis locataire, à quoi ça me sert ?', r:'Le rapport vous aide à objectiver la discussion avec le propriétaire avec des ordres de grandeur sur les surcoûts, les priorités et le ROI des actions.'}
-].map((faq, i) => (
-                              <details key={i} className="group border border-slate-200 rounded-xl overflow-hidden">
-                                  <summary className="cursor-pointer px-5 py-4 bg-white hover:bg-slate-50 flex items-center justify-between font-medium text-sm text-slate-900">
-                                      {faq.q}
-                                      <iconify-icon icon="solar:alt-arrow-down-linear" className="group-open:rotate-180 transition-transform" style={{fontSize:'18px', color:'#94A3B8'}} />
-                                  </summary>
-                                  <div className="px-5 py-4 bg-slate-50 border-t border-slate-100">
-                                      <p className="text-sm text-slate-600 leading-relaxed">{faq.r}</p>
-                                  </div>
-                              </details>
-                          ))}
-                      </div>
-                  </div>
-              </section>
+             {/* SECTION 8 - FAQ */}
+<section className="bg-[#F8F9FA] py-14">
+  <div className="max-w-4xl mx-auto px-4">
+    <div className="text-center mb-6">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
+        FAQ
+      </p>
+      <h2 className="text-2xl md:text-3xl tracking-tight font-semibold text-slate-900">
+        Questions fréquentes
+      </h2>
+      <p className="text-sm text-slate-600 mt-2">
+        Les réponses essentielles avant de lancer votre pré-diagnostic.
+      </p>
+    </div>
 
-          
+    <div className="space-y-3">
+      {[
+        {
+          q: "Est-ce un audit réglementaire ?",
+          a: "Non. DiagTertiaire est un pré-diagnostic orienté décision. Il aide à cadrer rapidement le sujet avant un audit réglementaire, un devis ou une visite terrain."
+        },
+        {
+          q: "Est-ce gratuit ?",
+          a: "Oui, le pré-diagnostic est gratuit et sans engagement. Vous obtenez une estimation synthétique et un rapport exportable."
+        },
+        {
+          q: "Sur quelles données est-ce basé ?",
+          a: "L’outil s’appuie sur des références sectorielles publiques et des benchmarks tertiaires. Le résultat donne un ordre de grandeur utile pour prioriser."
+        },
+        {
+          q: "Le rapport peut-il être partagé ?",
+          a: "Oui. Le rapport PDF est conçu pour être partagé avec un propriétaire, un locataire exploitant, un expert-comptable, un bureau d’études ou un artisan."
+        }
+      ].map((item, i) => (
+        <details
+          key={i}
+          className="group rounded-xl border border-slate-200 bg-white p-4 open:shadow-sm"
+        >
+          <summary className="list-none cursor-pointer flex items-center justify-between gap-3">
+            <span className="text-sm font-semibold text-slate-900">{item.q}</span>
+            <span className="shrink-0 text-slate-400 group-open:rotate-45 transition-transform text-lg leading-none">+</span>
+          </summary>
+          <p className="text-sm text-slate-600 leading-relaxed mt-2 pr-6">
+            {item.a}
+          </p>
+        </details>
+      ))}
+    </div>
+
+    <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-7">
+      <button
+        type="button"
+        onClick={() => navigate('diagnostic')}
+        className="bg-[#1E3A5F] text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#162B47] transition-colors"
+      >
+        Lancer le diagnostic
+      </button>
+
+      <button
+        type="button"
+        onClick={() => navigate('exemple')}
+        className="text-sm text-[#1E3A5F] font-semibold hover:underline inline-flex items-center gap-1"
+      >
+        Voir un exemple de rapport
+        <Icon icon="solar:arrow-right-linear" className="text-sm" />
+      </button>
+    </div>
+  </div>
+</section>
 
              
               {/* SECTION 10 - GARANTIES (fusionnée dans "Pourquoi c’est crédible") */}
 
-              {/* SECTION 11 - CTA FINAL */}
-              <section className="bg-gradient-to-br from-[#2ECC71] to-[#27AE60] py-16">
-                  <div className="max-w-4xl mx-auto px-4 text-center">
-                      <h2 className="text-3xl tracking-tight font-semibold text-white mb-3">Prêt à savoir combien vous pourriez économiser chaque année ?</h2>
-                      <p className="text-lg text-white/90 mb-8">3 minutes. Gratuit. Sans engagement.</p>
-                      <button type="button" onClick={() => navigate('diagnostic')} className="bg-white text-[#2ECC71] font-semibold px-12 py-4 rounded-xl hover:bg-slate-50 transition-all shadow-xl text-base inline-flex items-center gap-2">
-                          Lancer mon diagnostic énergétique <Icon icon="solar:arrow-right-linear" className="text-sm text-[#2ECC71]" />
-                      </button>
-                      <div className="flex flex-wrap justify-center gap-6 text-sm text-white/80 mt-6">
- <span className="flex items-center gap-1"><iconify-icon icon="solar:check-circle-bold" style={{fontSize:'16px'}}></iconify-icon> Références adaptées au tertiaire</span>
-<span className="flex items-center gap-1"><iconify-icon icon="solar:check-circle-bold" style={{fontSize:'16px'}}></iconify-icon> Rapport orienté décision</span>
-<span className="flex items-center gap-1"><iconify-icon icon="solar:check-circle-bold" style={{fontSize:'16px'}}></iconify-icon> Sans engagement, en 3 minutes</span>
-
-</div>
-                      <p className="text-xs text-white/60 mt-4">En continuant, vous acceptez notre politique de confidentialité. Désinscription en 1 clic.</p>
-                  </div>
-              </section>
-          </div>
-      );
-
-   const PageMethod = ({ navigate }) => (
-  <div className="fade-in">
-    {/* HERO */}
-    <section className="bg-gradient-to-b from-[#F8F9FA] to-white py-16 md:py-20 px-4">
-      <div className="max-w-5xl mx-auto text-center">
-        <div className="inline-flex items-center gap-2 bg-[#EEF2FF] text-[#1E3A5F] px-3 py-1 rounded-full text-xs font-semibold mb-4">
-          <Icon icon="solar:shield-check-linear" /> Notre approche
-        </div>
-        <h1 className="text-3xl md:text-4xl tracking-tight font-semibold text-[#1E3A5F] mb-4">
-          Une estimation utile pour décider
-        </h1>
-        <p className="text-[#6B7280] max-w-3xl mx-auto leading-relaxed">
-          DiagTertiaire n’est pas un audit réglementaire. C’est un outil de cadrage rapide pour les bâtiments tertiaires :
-          il vous aide à comprendre si votre consommation est cohérente, où se trouvent les principaux leviers,
-          et si un audit complet vaut la peine d’être lancé maintenant.
+             {/* SECTION 11 - CTA FINAL */}
+<section className="bg-white py-16">
+  <div className="max-w-5xl mx-auto px-4">
+    <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-[#1E3A5F] to-[#162B47] p-6 md:p-8 text-white shadow-lg">
+      <div className="text-center">
+        <p className="text-xs font-semibold uppercase tracking-wide text-white/70 mb-2">
+          Pré-diagnostic tertiaire
         </p>
-        <div className="mt-5 grid md:grid-cols-2 gap-4">
-  <div className="bg-[#F8FAFC] border border-slate-200 rounded-2xl p-5">
-    <h4 className="text-sm font-semibold text-[#1E3A5F] mb-3 flex items-center gap-2">
-      <Icon icon="solar:check-circle-linear" className="text-base text-[#2ECC71]" />
-      Ce que DiagTertiaire fait
-    </h4>
-    <ul className="space-y-2 text-sm text-slate-600">
-      <li className="flex items-start gap-2">
-        <Icon icon="solar:arrow-right-linear" className="text-sm mt-0.5 text-[#1E3A5F]" />
-        Estimation directionnelle des consommations et de l’écart à une référence tertiaire
-      </li>
-      <li className="flex items-start gap-2">
-        <Icon icon="solar:arrow-right-linear" className="text-sm mt-0.5 text-[#1E3A5F]" />
-        Priorisation des postes (chauffage, ECS, éclairage, auxiliaires, usages spécifiques)
-      </li>
-      <li className="flex items-start gap-2">
-        <Icon icon="solar:arrow-right-linear" className="text-sm mt-0.5 text-[#1E3A5F]" />
-        Ordres de grandeur coûts, aides et ROI brut / net
-      </li>
-      <li className="flex items-start gap-2">
-        <Icon icon="solar:arrow-right-linear" className="text-sm mt-0.5 text-[#1E3A5F]" />
-        Base de discussion pour décider d’un audit ou d’un plan d’action
-      </li>
-    </ul>
-  </div>
 
-  <div className="bg-[#FFF7ED] border border-orange-200 rounded-2xl p-5">
-    <h4 className="text-sm font-semibold text-[#9A3412] mb-3 flex items-center gap-2">
-      <Icon icon="solar:shield-warning-linear" className="text-base text-[#F39C12]" />
-      Ce que DiagTertiaire ne fait pas
-    </h4>
-    <ul className="space-y-2 text-sm text-slate-700">
-      <li className="flex items-start gap-2">
-        <Icon icon="solar:close-circle-linear" className="text-sm mt-0.5 text-[#D97706]" />
-        Ce n’est pas un audit réglementaire ni un DPE opposable
-      </li>
-      <li className="flex items-start gap-2">
-        <Icon icon="solar:close-circle-linear" className="text-sm mt-0.5 text-[#D97706]" />
-        Ce n’est pas une promesse contractuelle d’économies
-      </li>
-      <li className="flex items-start gap-2">
-        <Icon icon="solar:close-circle-linear" className="text-sm mt-0.5 text-[#D97706]" />
-        Les aides indiquées sont estimatives et à confirmer selon le dossier réel
-      </li>
-      <li className="flex items-start gap-2">
-        <Icon icon="solar:close-circle-linear" className="text-sm mt-0.5 text-[#D97706]" />
-        Une visite technique reste nécessaire avant engagement travaux
-      </li>
-    </ul>
-  </div>
-</div>
-<div className="mt-6 bg-white border border-slate-200 rounded-2xl p-5">
-  <div className="flex items-center gap-2 mb-3 text-[#1E3A5F]">
-    <Icon icon="solar:document-text-linear" className="text-lg" />
-    <h3 className="text-base font-semibold">Pourquoi ce pré-diagnostic existe</h3>
-  </div>
+        <h2 className="text-2xl md:text-3xl tracking-tight font-semibold leading-tight mb-3">
+          Lancez votre diagnostic en quelques minutes
+        </h2>
 
-  <p className="text-sm text-slate-600 leading-relaxed mb-3">
-    Un audit énergétique complet est souvent la bonne étape, mais il mobilise du temps, des données
-    (factures, plans, équipements) et un budget. DiagTertiaire sert à <strong>pré-cadrer la décision</strong>
-    avant d’engager cette démarche.
-  </p>
+        <p className="text-sm md:text-base text-white/85 max-w-2xl mx-auto leading-relaxed">
+          Obtenez une estimation claire, des économies potentielles et un rapport PDF exportable pour décider plus vite.
+        </p>
 
-  <div className="grid md:grid-cols-3 gap-3 mb-3">
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-      <div className="flex items-center gap-2 mb-1 text-[#1E3A5F]">
-        <Icon icon="solar:clock-circle-linear" className="text-base" />
-        <span className="text-xs font-semibold">Temps</span>
-      </div>
-      <p className="text-xs text-slate-600 leading-relaxed">
-        Lecture rapide pour objectiver la situation sans lancer immédiatement une mission complète.
-      </p>
-    </div>
-
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-      <div className="flex items-center gap-2 mb-1 text-[#1E3A5F]">
-        <Icon icon="solar:wallet-money-linear" className="text-base" />
-        <span className="text-xs font-semibold">Budget</span>
-      </div>
-      <p className="text-xs text-slate-600 leading-relaxed">
-        Un pré-diagnostic aide à prioriser les postes avant de financer un audit détaillé ou des études.
-      </p>
-    </div>
-
-    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-      <div className="flex items-center gap-2 mb-1 text-[#1E3A5F]">
-        <Icon icon="solar:chart-square-linear" className="text-base" />
-        <span className="text-xs font-semibold">Décision</span>
-      </div>
-      <p className="text-xs text-slate-600 leading-relaxed">
-        Le rapport structure une discussion bailleur, locataire, direction ou bureau d’études.
-      </p>
-    </div>
-  </div>
-
- <p className="text-sm text-slate-600 leading-relaxed">
-  Le rapport fournit des <strong>estimations directionnelles non contractuelles</strong> (consommations, gains, coûts,
-  aides indicatives, ROI brut/net) pour cadrer le besoin. Si l’enjeu est confirmé (écart important, arbitrage CAPEX,
-  obligation réglementaire, négociation bailleur/locataire), la suite logique est un audit complet ou une visite
-  technique pour confirmer les hypothèses et les devis.
-</p>
-</div>
-        <div className="mt-8 flex flex-wrap justify-center gap-3">
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-6">
           <button
             type="button"
             onClick={() => navigate('diagnostic')}
-            className="bg-[#1E3A5F] text-white px-6 py-3 rounded-xl text-sm font-semibold hover:bg-[#162B47] shadow-sm inline-flex items-center gap-2"
+            className="w-full sm:w-auto bg-white text-[#1E3A5F] px-6 py-3 rounded-lg text-sm font-semibold hover:bg-slate-100 transition-colors"
           >
-            Lancer mon diagnostic <Icon icon="solar:arrow-right-linear" className="text-base" />
+            Lancer le diagnostic
           </button>
+
           <button
             type="button"
             onClick={() => navigate('exemple')}
-            className="bg-white border border-slate-300 text-slate-700 px-6 py-3 rounded-xl text-sm font-semibold hover:bg-slate-50"
+            className="w-full sm:w-auto border border-white/30 text-white px-6 py-3 rounded-lg text-sm font-semibold hover:bg-white/10 transition-colors"
           >
             Voir un exemple de rapport
           </button>
         </div>
-      </div>
-    </section>
 
-    {/* POUR QUI / POUR QUOI */}
-    <section className="bg-white py-14 px-4 border-y border-slate-100">
-      <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-6">
-        <div className="bg-slate-50 rounded-2xl border border-slate-200 p-6">
-          <div className="flex items-center gap-2 mb-3 text-[#1E3A5F]">
-            <Icon icon="solar:target-linear" className="text-xl" />
-            <h2 className="text-lg font-semibold">Ce que l’outil permet</h2>
-          </div>
-          <ul className="space-y-2 text-sm text-slate-600">
-            <li className="flex items-start gap-2">
-              <Icon icon="solar:check-circle-bold" className="text-[#2ECC71] text-base mt-0.5 shrink-0" />
-              <span>Comparer votre bâtiment à une <strong>référence tertiaire adaptée</strong> à votre activité</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Icon icon="solar:check-circle-bold" className="text-[#2ECC71] text-base mt-0.5 shrink-0" />
-              <span>Obtenir un <strong>ordre de grandeur crédible</strong> de votre consommation, de votre coût annuel et de votre classe énergétique estimée</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Icon icon="solar:check-circle-bold" className="text-[#2ECC71] text-base mt-0.5 shrink-0" />
-              <span>Identifier 3 actions prioritaires avec <strong>gains, coûts, ROI et aides indicatives</strong></span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Icon icon="solar:check-circle-bold" className="text-[#2ECC71] text-base mt-0.5 shrink-0" />
-              <span>Préparer une discussion avec un bureau d’études, un propriétaire, ou un décideur interne</span>
-            </li>
-          </ul>
-        </div>
-
-        <div className="bg-rose-50 rounded-2xl border border-rose-200 p-6">
-          <div className="flex items-center gap-2 mb-3 text-rose-700">
-            <Icon icon="solar:danger-triangle-linear" className="text-xl" />
-            <h2 className="text-lg font-semibold">Ce que l’outil ne remplace pas</h2>
-          </div>
-          <ul className="space-y-2 text-sm text-slate-700">
-            <li className="flex items-start gap-2">
-              <Icon icon="solar:close-circle-bold" className="text-[#E74C3C] text-base mt-0.5 shrink-0" />
-              <span>Un audit énergétique réglementaire ou une mission de maîtrise d’œuvre</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Icon icon="solar:close-circle-bold" className="text-[#E74C3C] text-base mt-0.5 shrink-0" />
-              <span>Un dimensionnement technique (CVC, ECS, ventilation, GTB, etc.)</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Icon icon="solar:close-circle-bold" className="text-[#E74C3C] text-base mt-0.5 shrink-0" />
-              <span>Un engagement contractuel sur les économies réelles, les devis entreprise ou les aides effectivement obtenues</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <Icon icon="solar:close-circle-bold" className="text-[#E74C3C] text-base mt-0.5 shrink-0" />
-              <span>Une analyse complète de conformité (Décret Tertiaire, obligations réglementaires, etc.)</span>
-            </li>
-          </ul>
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-white/75 mt-4">
+          <span className="inline-flex items-center gap-1">
+            <Icon icon="solar:check-read-linear" className="text-sm" />
+            Gratuit
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Icon icon="solar:check-read-linear" className="text-sm" />
+            Sans engagement
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Icon icon="solar:check-read-linear" className="text-sm" />
+            Rapport PDF exportable
+          </span>
         </div>
       </div>
-    </section>
-
-    {/* COMMENT ON CALCULE */}
-    <section className="bg-[#F8F9FA] py-16 px-4">
-      <div className="max-w-6xl mx-auto">
-        <SectionTitle sub="Une logique simple, transparente et orientée décision">
-          Comment l’estimation est construite
-        </SectionTitle>
-
-        <div className="grid md:grid-cols-4 gap-5">
-          {[
-            {
-              icon: 'solar:buildings-2-linear',
-              color: '#1E3A5F',
-              title: '1. Référence sectorielle',
-              desc: "Chaque activité tertiaire a une consommation 'normale' différente. Un hôtel, un bureau et un commerce ne se comparent pas de la même manière."
-            },
-            {
-              icon: 'solar:calendar-linear',
-              color: '#F39C12',
-              title: '2. Ajustement bâtiment',
-              desc: "La période de construction et l'âge du chauffage ajustent l'estimation pour refléter les écarts de performance les plus courants."
-            },
-            {
-              icon: 'solar:wallet-money-linear',
-              color: '#2ECC71',
-              title: '3. Conversion en coût',
-              desc: "Les consommations sont valorisées avec des prix unitaires indicatifs pour donner une lecture économique immédiate."
-            },
-            {
-              icon: 'solar:chart-2-linear',
-              color: '#7B3F9E',
-              title: '4. Priorisation des actions',
-              desc: "Le rapport propose des postes d'amélioration type (enveloppe, pilotage, chauffage, LED) avec gains, coûts et ROI indicatifs."
-            }
-          ].map((item, i) => (
-            <div key={i} className="bg-white rounded-xl border border-slate-200 p-5">
-              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3" style={{backgroundColor:item.color + '15'}}>
-                <Icon icon={item.icon} className="text-2xl" style={{ color: item.color }} />
-              </div>
-              <h3 className="text-sm font-semibold text-slate-900 mb-2">{item.title}</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
-            </div>
-          ))}
-        </div>
-
-      
-
-{/* QUAND PASSER A UN AUDIT COMPLET */}
-
-<div className="mt-6 bg-white rounded-xl border border-slate-200 p-5">
-  <div className="flex items-center gap-2 mb-3 text-[#1E3A5F]">
-    <Icon icon="solar:document-add-linear" className="text-lg" />
-    <h3 className="text-sm font-semibold">Quand passer à un audit complet</h3>
+    </div>
   </div>
-
-  <div className="grid md:grid-cols-2 gap-4">
-    <ul className="space-y-2 text-sm text-slate-600">
-      <li className="flex items-start gap-2">
-        <Icon icon="solar:check-circle-bold" className="text-base mt-0.5 text-[#2ECC71]" />
-        <span>Écart important à la référence (ex: +20% à +30% et plus)</span>
-      </li>
-      <li className="flex items-start gap-2">
-        <Icon icon="solar:check-circle-bold" className="text-base mt-0.5 text-[#2ECC71]" />
-        <span>Projet d’investissement ou arbitrage CAPEX à préparer</span>
-      </li>
-      <li className="flex items-start gap-2">
-        <Icon icon="solar:check-circle-bold" className="text-base mt-0.5 text-[#2ECC71]" />
-        <span>Besoin de négociation bailleur / locataire sur des bases chiffrées</span>
-      </li>
-    </ul>
-
-    <ul className="space-y-2 text-sm text-slate-600">
-      <li className="flex items-start gap-2">
-        <Icon icon="solar:check-circle-bold" className="text-base mt-0.5 text-[#2ECC71]" />
-        <span>Préparation d’un plan pluriannuel de travaux</span>
-      </li>
-      <li className="flex items-start gap-2">
-        <Icon icon="solar:check-circle-bold" className="text-base mt-0.5 text-[#2ECC71]" />
-        <span>Contrainte réglementaire ou exigence interne de conformité</span>
-      </li>
-      <li className="flex items-start gap-2">
-        <Icon icon="solar:check-circle-bold" className="text-base mt-0.5 text-[#2ECC71]" />
-        <span>Besoin d’un dimensionnement technique réel (CVC, ECS, GTB, ventilation)</span>
-      </li>
-    </ul>
-  </div>
-</div>
-      </div>
-    </section>
-
-    {/* SOURCES / HYPOTHESES */}
-    <section className="bg-white py-16 px-4">
-      <div className="max-w-6xl mx-auto">
-        <SectionTitle sub="Pour rester crédible, l’outil doit aussi expliciter ses limites">
-          Sources, hypothèses et limites
-        </SectionTitle>
-
-        <div className="grid md:grid-cols-3 gap-5">
-          <div className="rounded-xl border border-slate-200 p-5 bg-slate-50">
-            <div className="flex items-center gap-2 mb-2 text-[#1E3A5F]">
-              <Icon icon="solar:database-linear" className="text-lg" />
-              <h3 className="text-sm font-semibold">Références utilisées</h3>
-            </div>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Références tertiaires issues de bases publiques et de retours terrain, structurées par typologie d’activité
-              (bureaux, commerce, hôtellerie, santé, enseignement, etc.).
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-slate-200 p-5 bg-slate-50">
-            <div className="flex items-center gap-2 mb-2 text-[#1E3A5F]">
-              <Icon icon="solar:calculator-linear" className="text-lg" />
-              <h3 className="text-sm font-semibold">Hypothèses de calcul</h3>
-            </div>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Les coûts travaux, gains potentiels et aides sont des fourchettes indicatives. Ils varient selon l’état réel du bâtiment,
-              l’exploitation, les devis et les dispositifs disponibles au moment du projet.
-            </p>
-          </div>
-
-          <div className="rounded-xl border border-slate-200 p-5 bg-slate-50">
-            <div className="flex items-center gap-2 mb-2 text-[#1E3A5F]">
-              <Icon icon="solar:scale-linear" className="text-lg" />
-              <h3 className="text-sm font-semibold">Niveau de précision</h3>
-            </div>
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Le rapport est une <strong>estimation directionnelle</strong> (ordre de grandeur). Il sert à prioriser et cadrer.
-              Pour engager des budgets, un audit ou une visite technique reste indispensable.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-8 bg-amber-50 border border-amber-200 rounded-xl p-5">
-          <div className="flex items-start gap-3">
-            <Icon icon="solar:info-circle-linear" className="text-[20px] text-amber-600 mt-0.5 shrink-0" />
-            <div>
-              <p className="text-sm font-semibold text-amber-900 mb-1">Point important</p>
-              <p className="text-xs text-amber-800 leading-relaxed">
-  Les prix de l’énergie, aides et coûts d’intervention évoluent. Le rapport a vocation à vous orienter rapidement et à valider un besoin,
-  pas à se substituer à un audit complet ni à un chiffrage d'entreprises.
-</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    {/* POUR QUI */}
-    <section className="bg-[#F8F9FA] py-16 px-4">
-      <div className="max-w-6xl mx-auto">
-        <SectionTitle sub="Différents profils, même besoin : décider plus vite avec de meilleurs repères">
-          À qui s’adresse DiagTertiaire
-        </SectionTitle>
-        <div className="mb-8 bg-[#1E3A5F] text-white rounded-2xl p-6 md:p-7 shadow-sm">
-          <div className="grid md:grid-cols-[1.2fr_0.8fr] gap-6 items-start">
-            <div>
-              <h3 className="text-base md:text-lg font-semibold mb-2">Pourquoi un pré-diagnostic plutôt qu’un audit complet directement ?</h3>
-              <p className="text-sm text-slate-100 leading-relaxed mb-3">
-                Un audit complet est souvent la bonne étape… mais il a un coût, prend du temps, et n’est pas toujours
-                justifié au départ pour un petit site tertiaire.
-              </p>
-              <p className="text-sm text-slate-100 leading-relaxed">
-                DiagTertiaire sert à <strong>valider rapidement le besoin</strong>, objectiver un écart de performance,
-                estimer un ordre de grandeur des gains, puis décider s’il faut lancer un audit, demander des devis,
-                ou prioriser des actions simples.
-              </p>
-            </div>
-
-            <div className="bg-white/10 border border-white/20 rounded-xl p-4">
-              <div className="flex items-start gap-2 mb-2">
-                <Icon icon="solar:shield-check-linear" className="text-lg mt-0.5" />
-                <p className="text-sm font-semibold">Positionnement clair</p>
-              </div>
-              <ul className="space-y-2 text-xs text-slate-100">
-                <li className="flex items-start gap-2">
-                  <Icon icon="solar:check-circle-linear" className="text-sm mt-0.5 shrink-0" />
-                  Outil de pré-cadrage et d’aide à la décision
-                </li>
-                <li className="flex items-start gap-2">
-                  <Icon icon="solar:check-circle-linear" className="text-sm mt-0.5 shrink-0" />
-                  Rapport orienté budget, priorités et timing
-                </li>
-                <li className="flex items-start gap-2">
-                  <Icon icon="solar:close-circle-linear" className="text-sm mt-0.5 shrink-0" />
-                  Ne remplace pas un audit technique réglementaire
-                </li>
-              </ul>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
-          {[
-            {
-              icon:'solar:buildings-linear',
-              title:'Propriétaires',
-              desc:'Évaluer rapidement un actif, arbitrer entre attente, audit ou travaux.'
-            },
-            {
-              icon:'solar:briefcase-linear',
-              title:'Locataires exploitants',
-              desc:'Objectiver une demande de travaux et sortir du simple ressenti.'
-            },
-            {
-              icon:'solar:case-round-minimalistic-linear',
-              title:'Gestionnaires',
-              desc:'Prioriser les sites à traiter dans un parc limité en budget.'
-            },
-            {
-              icon:'solar:calculator-linear',
-              title:'Prescripteurs',
-              desc:'Experts-comptables, assureurs, agents : un outil utile pour qualifier un besoin.'
-            }
-          ].map((p, i) => (
-            <div key={i} className="bg-white rounded-xl border border-slate-200 p-5">
-              <div className="w-10 h-10 rounded-lg bg-[#1E3A5F]/10 flex items-center justify-center mb-3">
-                <Icon icon={p.icon} className="text-[20px] text-[#1E3A5F]" />
-              </div>
-              <h3 className="text-sm font-semibold text-slate-900 mb-2">{p.title}</h3>
-              <p className="text-xs text-slate-600 leading-relaxed">{p.desc}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-
+</section>
     {/* CTA FINAL */}
     <section className="bg-white py-16 px-4 border-t border-slate-100">
       <div className="max-w-4xl mx-auto">
