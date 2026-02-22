@@ -3749,9 +3749,39 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
     </div>
   </div>
 </section>
+       
             </div>
       );
+      const RestoreBanner = ({ onDismiss, onRestart }) => (
+        <div className="bg-amber-50 border-b border-amber-200">
+          <div className="max-w-5xl mx-auto px-4 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+            <div className="flex items-start gap-2 text-sm text-amber-900">
+              <Icon icon="solar:info-circle-linear" className="text-base mt-0.5 shrink-0" />
+              <span>
+                Une saisie précédente a été retrouvée. Vous pouvez reprendre où vous en étiez ou repartir de zéro.
+              </span>
+            </div>
 
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={onDismiss}
+                className="px-3 py-1.5 text-xs font-semibold rounded-md border border-amber-300 text-amber-900 hover:bg-amber-100 transition-colors"
+              >
+                Reprendre
+              </button>
+              <button
+                type="button"
+                onClick={onRestart}
+                className="px-3 py-1.5 text-xs font-semibold rounded-md bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors"
+              >
+                Recommencer
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+      
       /* --- APP ROOT --- */
       const App = () => {
           const [currentPage, setCurrentPage] = useState('home');
