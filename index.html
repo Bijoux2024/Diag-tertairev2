@@ -3002,20 +3002,20 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
                               <div key={i} className="relative">
                                   {i < 3 && (
                                       <div className="hidden md:block absolute top-8 -right-4 z-0">
-                                          <iconify-icon icon="solar:arrow-right-linear" style={{fontSize:'24px', color:'#CBD5E1'}}></iconify-icon>
+                                          <Icon icon="solar:arrow-right-linear" className="text-2xl" style={{ color:'#CBD5E1' }} />
                                       </div>
                                   )}
                                   <div className="relative z-10">
-                                      <div className="text-5xl font-semibold text-slate-100 mb-3">{s.n}</div>
+                                      <div className="text-5xl font-bold text-slate-300 mb-3 tracking-tight">{s.n}</div>
                                       <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3" style={{backgroundColor:s.color+'15'}}>
-                                          <iconify-icon icon={s.icon} style={{fontSize:'24px', color:s.color}}></iconify-icon>
+                                          <Icon icon={s.icon} className="text-2xl" style={{ color:s.color }} />
                                       </div>
                                       <div className="inline-block bg-white border border-slate-200 rounded-full px-3 py-1 text-xs font-semibold text-slate-600 mb-3">{s.time}</div>
                                       <h3 className="text-sm font-semibold text-slate-900 mb-2">{s.title}</h3>
                                       <ul className="space-y-1">
                                           {s.items.map((item, j) => (
                                               <li key={j} className="text-xs text-slate-600 flex items-start gap-1.5">
-                                                  <iconify-icon icon="solar:arrow-right-linear" style={{fontSize:'14px', color:s.color, flexShrink:0, marginTop:'2px'}}></iconify-icon>
+                                                  <Icon icon="solar:arrow-right-linear" className="text-sm shrink-0 mt-0.5" style={{ color:s.color }} />
                                                   {item}
                                               </li>
                                           ))}
@@ -3308,26 +3308,69 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
 
         <div className="mt-8 grid md:grid-cols-2 gap-5">
           <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <h3 className="text-sm font-semibold text-[#1E3A5F] mb-3">Exemple concret de logique</h3>
-            <p className="text-sm text-slate-600 leading-relaxed mb-3">
-              Un bureau à 180 kWh/m²/an peut être cohérent selon son âge et ses équipements.
-              Le même niveau sur un bâtiment récent peut signaler une marge de progrès.
-            </p>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              L’objectif n’est pas de “coller une note”, mais de vous donner une base de décision :
-              <strong> faut-il investiguer, prioriser, ou agir maintenant ?</strong>
-            </p>
-          </div>
+  <h3 className="text-sm font-semibold text-[#1E3A5F] mb-3">Pourquoi ce pré-diagnostic existe</h3>
+  <p className="text-sm text-slate-600 leading-relaxed mb-3">
+    Un audit complet est utile, mais il représente un coût et demande du temps (visite, relevés, devis, échanges).
+    Beaucoup d’exploitants et propriétaires hésitent à se lancer sans première lecture claire.
+  </p>
+  <p className="text-sm text-slate-600 leading-relaxed">
+    DiagTertiaire sert à <strong>valider rapidement s’il y a un vrai sujet</strong>, estimer l’ordre de grandeur,
+    et identifier les postes à regarder en priorité avant de passer à un audit technique complet.
+  </p>
+</div>
 
           <div className="bg-white rounded-xl border border-slate-200 p-5">
-            <h3 className="text-sm font-semibold text-[#1E3A5F] mb-3">Si vous n’avez pas vos factures</h3>
-            <p className="text-sm text-slate-600 leading-relaxed mb-2">
-              L’outil peut générer une estimation par défaut à partir de votre activité, surface et période de construction.
-            </p>
-            <p className="text-sm text-slate-600 leading-relaxed">
-              C’est utile pour un premier tri, mais la précision s’améliore fortement dès que vous renseignez vos consommations réelles.
-            </p>
-          </div>
+  <h3 className="text-sm font-semibold text-[#1E3A5F] mb-3">Ce que l’outil fait (et ne fait pas)</h3>
+
+  <div className="mb-3">
+    <p className="text-xs font-semibold text-emerald-700 mb-1">✅ Ce que DiagTertiaire fait</p>
+    <ul className="space-y-1">
+      <li className="text-xs text-slate-600 flex items-start gap-1.5">
+        <Icon icon="solar:check-circle-linear" className="text-sm shrink-0 mt-0.5 text-emerald-600" />
+        Donner un ordre de grandeur de consommation et de coût
+      </li>
+      <li className="text-xs text-slate-600 flex items-start gap-1.5">
+        <Icon icon="solar:check-circle-linear" className="text-sm shrink-0 mt-0.5 text-emerald-600" />
+        Comparer votre niveau à une référence tertiaire adaptée
+      </li>
+      <li className="text-xs text-slate-600 flex items-start gap-1.5">
+        <Icon icon="solar:check-circle-linear" className="text-sm shrink-0 mt-0.5 text-emerald-600" />
+        Prioriser les premiers postes à analyser / traiter
+      </li>
+    </ul>
+  </div>
+
+  <div>
+    <p className="text-xs font-semibold text-amber-700 mb-1">⚠️ Ce que DiagTertiaire ne remplace pas</p>
+    <ul className="space-y-1">
+      <li className="text-xs text-slate-600 flex items-start gap-1.5">
+        <Icon icon="solar:danger-triangle-linear" className="text-sm shrink-0 mt-0.5 text-amber-600" />
+        Un audit réglementaire ou une étude d’exécution
+      </li>
+      <li className="text-xs text-slate-600 flex items-start gap-1.5">
+        <Icon icon="solar:danger-triangle-linear" className="text-sm shrink-0 mt-0.5 text-amber-600" />
+        Un devis entreprise ou une promesse contractuelle d’économies
+      </li>
+      <li className="text-xs text-slate-600 flex items-start gap-1.5">
+        <Icon icon="solar:danger-triangle-linear" className="text-sm shrink-0 mt-0.5 text-amber-600" />
+        Une analyse fine sans données réelles (factures / équipements)
+      </li>
+    </ul>
+  </div>
+</div>
+<div className="mt-5 bg-blue-50 border border-blue-200 rounded-xl p-4">
+  <div className="flex items-start gap-2">
+    <Icon icon="solar:info-circle-linear" className="text-lg text-blue-700 mt-0.5 shrink-0" />
+    <div>
+      <p className="text-sm font-semibold text-blue-900 mb-1">Pas de factures sous la main ?</p>
+      <p className="text-xs text-blue-800 leading-relaxed">
+        L’outil peut produire une estimation par défaut à partir de votre activité, surface et période de construction.
+        C’est utile pour un premier tri, mais la qualité du diagnostic augmente nettement dès que vous renseignez vos consommations réelles.
+      </p>
+    </div>
+  </div>
+</div>
+
         </div>
       </div>
     </section>
