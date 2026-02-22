@@ -3752,37 +3752,208 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
        
             </div>
       );
-      const RestoreBanner = ({ onDismiss, onRestart }) => (
-        <div className="bg-amber-50 border-b border-amber-200">
-          <div className="max-w-5xl mx-auto px-4 py-2.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div className="flex items-start gap-2 text-sm text-amber-900">
-              <Icon icon="solar:info-circle-linear" className="text-base mt-0.5 shrink-0" />
-              <span>
-                Une saisie précédente a été retrouvée. Vous pouvez reprendre où vous en étiez ou repartir de zéro.
-              </span>
-            </div>
+      const PageMethod = ({ navigate }) => (
+        <div className="fade-in bg-[#F8FAFC]">
+          <section className="py-14 md:py-18 px-4 bg-gradient-to-b from-white to-[#F3F7FB] border-b border-slate-100">
+            <div className="max-w-6xl mx-auto">
+              <div className="max-w-3xl">
+                <div className="inline-flex items-center gap-2 bg-[#EEF2FF] text-[#1E3A5F] px-3 py-1 rounded-full text-xs font-semibold mb-4">
+                  <Icon icon="solar:shield-check-linear" className="text-sm" />
+                  Notre approche
+                </div>
 
-            <div className="flex items-center gap-2 shrink-0">
-              <button
-                type="button"
-                onClick={onDismiss}
-                className="px-3 py-1.5 text-xs font-semibold rounded-md border border-amber-300 text-amber-900 hover:bg-amber-100 transition-colors"
-              >
-                Reprendre
-              </button>
-              <button
-                type="button"
-                onClick={onRestart}
-                className="px-3 py-1.5 text-xs font-semibold rounded-md bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors"
-              >
-                Recommencer
-              </button>
+                <h1 className="text-3xl md:text-4xl tracking-tight font-semibold text-[#1E3A5F] mb-4 leading-tight">
+                  Une estimation utile pour décider
+                </h1>
+
+                <p className="text-slate-600 leading-relaxed text-sm md:text-base">
+                  DiagTertiaire est un <strong>pré-diagnostic</strong> : un outil de cadrage rapide pour comprendre
+                  si la consommation d’un bâtiment tertiaire est cohérente, identifier les leviers les plus probables
+                  et décider s’il faut lancer un audit complet.
+                </p>
+              </div>
+
+              <div className="mt-8 grid md:grid-cols-2 gap-5">
+                <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm">
+                  <h3 className="text-sm font-semibold text-[#1E3A5F] mb-3 flex items-center gap-2">
+                    <Icon icon="solar:check-circle-linear" className="text-base text-emerald-600" />
+                    Ce que DiagTertiaire fait
+                  </h3>
+                  <ul className="space-y-2 text-sm text-slate-600">
+                    <li className="flex items-start gap-2"><Icon icon="solar:arrow-right-linear" className="text-sm mt-0.5 text-[#1E3A5F] shrink-0" /><span>Estime la performance et l’écart à une référence sectorielle</span></li>
+                    <li className="flex items-start gap-2"><Icon icon="solar:arrow-right-linear" className="text-sm mt-0.5 text-[#1E3A5F] shrink-0" /><span>Priorise les postes d’action (chauffage, éclairage, pilotage…)</span></li>
+                    <li className="flex items-start gap-2"><Icon icon="solar:arrow-right-linear" className="text-sm mt-0.5 text-[#1E3A5F] shrink-0" /><span>Donne des ordres de grandeur coûts / gains / ROI</span></li>
+                    <li className="flex items-start gap-2"><Icon icon="solar:arrow-right-linear" className="text-sm mt-0.5 text-[#1E3A5F] shrink-0" /><span>Fournit une base de discussion avant audit ou devis</span></li>
+                  </ul>
+                </div>
+
+                <div className="bg-[#FFF8EE] rounded-2xl border border-amber-200 p-5 shadow-sm">
+                  <h3 className="text-sm font-semibold text-amber-800 mb-3 flex items-center gap-2">
+                    <Icon icon="solar:shield-warning-linear" className="text-base text-amber-600" />
+                    Ce que DiagTertiaire ne remplace pas
+                  </h3>
+                  <ul className="space-y-2 text-sm text-slate-700">
+                    <li className="flex items-start gap-2"><Icon icon="solar:close-circle-linear" className="text-sm mt-0.5 text-amber-600 shrink-0" /><span>Un audit réglementaire ou une visite technique terrain</span></li>
+                    <li className="flex items-start gap-2"><Icon icon="solar:close-circle-linear" className="text-sm mt-0.5 text-amber-600 shrink-0" /><span>Un devis entreprise ou un dimensionnement CVC détaillé</span></li>
+                    <li className="flex items-start gap-2"><Icon icon="solar:close-circle-linear" className="text-sm mt-0.5 text-amber-600 shrink-0" /><span>Une promesse contractuelle d’économies</span></li>
+                    <li className="flex items-start gap-2"><Icon icon="solar:close-circle-linear" className="text-sm mt-0.5 text-amber-600 shrink-0" /><span>Une validation définitive des aides disponibles</span></li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="mt-5 bg-white rounded-2xl border border-slate-200 p-5">
+                <h3 className="text-sm font-semibold text-[#1E3A5F] mb-2">Pourquoi ce pré-diagnostic existe</h3>
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  L’objectif est de vous donner un <strong>premier niveau de lecture fiable</strong> avant d’engager du temps,
+                  un budget d’audit ou des travaux. Vous obtenez un cadrage rapide pour décider plus sereinement.
+                </p>
+              </div>
             </div>
+          </section>
+
+          <section className="py-14 px-4 bg-white border-b border-slate-100">
+            <div className="max-w-6xl mx-auto">
+              <SectionTitle sub="Une logique simple, transparente et orientée décision">
+                Comment l’estimation est construite
+              </SectionTitle>
+
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  { icon: 'solar:buildings-2-linear', color: '#1E3A5F', title: 'Référence sectorielle', desc: "Chaque activité tertiaire a sa consommation de référence (bureaux, commerce, santé...)."},
+                  { icon: 'solar:calendar-linear', color: '#F39C12', title: 'Ajustement bâtiment', desc: "L’âge du bâtiment et des équipements affine l’ordre de grandeur estimé."},
+                  { icon: 'solar:wallet-money-linear', color: '#10B981', title: 'Lecture économique', desc: "L’estimation est convertie en coût annuel pour une lecture décisionnelle immédiate."},
+                  { icon: 'solar:chart-2-linear', color: '#7C3AED', title: 'Priorisation', desc: "Le rapport propose des actions types avec gains, coûts et ROI indicatifs."},
+                ].map((item, i) => (
+                  <div key={i} className="bg-slate-50 rounded-xl border border-slate-200 p-4 hover:shadow-sm transition-shadow">
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style={{ backgroundColor: `${item.color}15` }}>
+                      <Icon icon={item.icon} className="text-lg" style={{ color: item.color }} />
+                    </div>
+                    <h3 className="text-sm font-semibold text-slate-900 mb-1">{item.title}</h3>
+                    <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        </div>
+      );
+
+      const PageExample = ({ navigate }) => {
+        const FAKE_DATA = {
+          activity: 'office',
+          activityMixPct: 0,
+          year: 'pre1975',
+          surface: 450,
+          levels: 2,
+          heating: 'gas',
+          heatingAge: '> 15 ans',
+          occupation: 'semaine',
+          consumptionMode: 'kwh',
+          elecKwh: 45000,
+          gasKwh: 146700,
+          noData: false,
+          works: [],
+          hasWorks: 'no',
+          ecsSystem: '',
+          firstName: 'Jean',
+          email: 'jean@exemple.com',
+          consent: true
+        };
+
+        return (
+          <div className="fade-in bg-[#F8FAFC] min-h-screen">
+            <section className="py-12 px-4 border-b border-slate-100 bg-white">
+              <div className="max-w-5xl mx-auto text-center">
+                <div className="inline-flex items-center gap-2 bg-[#FFF8EE] text-amber-800 px-3 py-1 rounded-full text-xs font-semibold mb-4">
+                  <Icon icon="solar:document-text-linear" className="text-sm" />
+                  Exemple de rapport
+                </div>
+                <h1 className="text-3xl tracking-tight font-semibold text-[#1E3A5F] mb-2">
+                  À quoi ressemble votre rapport
+                </h1>
+                <p className="text-slate-600 text-sm md:text-base">
+                  Exemple simulé pour un bureau de 450 m² construit avant 1975.
+                </p>
+                <div className="mt-5 flex flex-wrap justify-center gap-3">
+                  <button type="button" onClick={() => navigate('diagnostic')} className="bg-[#1E3A5F] text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#162B47] transition-colors">
+                    Lancer le diagnostic
+                  </button>
+                  <button type="button" onClick={() => navigate('methode')} className="bg-white border border-slate-300 text-slate-700 px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors">
+                    Voir l’approche
+                  </button>
+                </div>
+              </div>
+            </section>
+
+            <div className="max-w-4xl mx-auto px-4 py-10">
+              <StepReport data={FAKE_DATA} />
+            </div>
+          </div>
+        );
+      };
+
+      const PagePro = ({ navigate }) => (
+        <div className="fade-in bg-[#F8FAFC] min-h-screen">
+          <section className="bg-gradient-to-b from-[#1E3A5F] to-[#233E64] py-16 md:py-20 text-center text-white px-4">
+            <div className="max-w-4xl mx-auto">
+              <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 px-3 py-1 rounded-full text-xs font-semibold mb-4">
+                <Icon icon="solar:case-round-minimalistic-linear" className="text-sm" />
+                Espace pro
+              </div>
+
+              <h1 className="text-3xl md:text-4xl tracking-tight font-semibold mb-4">
+                Une offre dédiée aux professionnels
+              </h1>
+
+              <p className="text-sm md:text-base text-blue-100 max-w-2xl mx-auto leading-relaxed">
+                Proposez un pré-diagnostic énergétique clair à vos clients tertiaires :
+                qualification rapide, rapport PDF, base de discussion avant audit ou mission.
+              </p>
+
+              <div className="mt-8 grid md:grid-cols-3 gap-4 text-left">
+                {[
+                  { icon: 'solar:documents-linear', title: 'Multi-dossiers', desc: 'Traitez plusieurs clients avec une trame homogène.' },
+                  { icon: 'solar:document-text-linear', title: 'Rapport partageable', desc: 'Un livrable clair à transmettre au client.' },
+                  { icon: 'solar:palette-linear', title: 'Marque blanche', desc: 'Option de personnalisation pour votre structure.' },
+                ].map((item, i) => (
+                  <div key={i} className="bg-white/10 border border-white/15 rounded-xl p-4">
+                    <Icon icon={item.icon} className="text-lg mb-2" />
+                    <h3 className="text-sm font-semibold mb-1">{item.title}</h3>
+                    <p className="text-xs text-blue-100 leading-relaxed">{item.desc}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
+                <a href={CTA_CALENDLY_URL} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-2 bg-white text-[#1E3A5F] px-5 py-3 rounded-lg text-sm font-semibold hover:bg-slate-100 transition-colors">
+                  <Icon icon="solar:calendar-linear" className="text-base" />
+                  Découvrir l’espace pro
+                </a>
+                <button type="button" onClick={() => navigate('home')} className="inline-flex items-center justify-center gap-2 bg-transparent border border-white/30 text-white px-5 py-3 rounded-lg text-sm font-semibold hover:bg-white/10 transition-colors">
+                  Retour à l’accueil
+                </button>
+              </div>
+            </div>
+          </section>
+        </div>
+      );
+
+      const RestoreBanner = ({ onDismiss, onRestart }) => (
+        <div className="w-full bg-[#EEF2FF] border-b border-[#1E3A5F]/20 px-4 py-2.5 flex items-center justify-between gap-4 no-print">
+          <div className="flex items-center gap-2 text-[#1E3A5F] text-sm">
+            <Icon icon="solar:history-linear" className="shrink-0 text-base" />
+            <span className="font-medium">Reprendre votre estimation en cours ?</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={onRestart} className="text-xs font-semibold text-red-600 hover:text-red-800 underline">
+              Effacer
+            </button>
+            <button type="button" onClick={onDismiss} className="text-slate-400 hover:text-slate-600">
+              <Icon icon="solar:close-circle-linear" className="text-base" />
+            </button>
           </div>
         </div>
       );
-  
-
       
       /* --- APP ROOT --- */
       const App = () => {
@@ -3980,4 +4151,3 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
     </script>
   
 </body></html>
-  
