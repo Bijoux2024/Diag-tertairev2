@@ -1,7 +1,7 @@
 <html lang="fr"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DiagTertiaire - Performance Énergétique Tertiaire</title> test10
+    <title>DiagTertiaire - Performance Énergétique Tertiaire</title> test101
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1427,21 +1427,38 @@ const buildReportData = (data) => {
   };
 };
 
-    const StepReport = ({ data }) => {
+ const StepReport = ({ data }) => {
   const [rechartsReady, setRechartsReady] = useState(false);
 
- const report = buildReportData(data);
+  // ===== SOURCE UNIQUE DE DONNEES RAPPORT =====
+  const report = buildReportData(data);
 
   const {
     activityRef,
     yearRef,
+    heatingLabel,
+    occupationLabel,
+    surface,
     refBase,
+    refTotal,
+    consumptionTotalKwh,
     kwhPerM2,
     dpe,
+    avgPrice,
+    totalCost,
+    diffPct,
+    wasteKwh,
+    wasteEuro,
     isDecretEligible,
-    priorities
+    priorities,
+    annualSavingsIfTop3,
+    projection5Y,
+    projection10Y,
+    timeline,
+    disclaimer
   } = report;
 
+  // ===== CHARGEMENT RECHARTS =====
   useEffect(() => {
     const checkRecharts = () => {
       if (window.Recharts && window.Recharts.BarChart) setRechartsReady(true);
@@ -1450,11 +1467,15 @@ const buildReportData = (data) => {
     checkRecharts();
   }, []);
 
+  // ===== FORMATTERS LOCAUX =====
+  const euro = (v) => `${Math.round(Number(v || 0)).toLocaleString('fr-FR')} €`;
+  const intFmt = (v) => Math.round(Number(v || 0)).toLocaleString('fr-FR');
+
   const targetVal = isDecretEligible ? Math.round(refBase * 0.6) : Math.round(refBase * 0.8);
 
   const chartData = [
     { name: 'Votre bâtiment', val: kwhPerM2, fill: '#1E3A5F' },
-    { name: `Référence ${activityRef.label}`, val: refBase, fill: '#95A5A6' },
+    { name: `Référence ${activityRef?.label || 'secteur'}`, val: refBase, fill: '#95A5A6' },
     { name: isDecretEligible ? 'Objectif 2030' : 'Objectif perf.', val: targetVal, fill: '#2ECC71' },
   ];
 
@@ -1463,200 +1484,572 @@ const buildReportData = (data) => {
     exportPDF(data, report);
   };
 
-  return (
-    <div className="fade-in pb-20 max-w-4xl mx-auto w-full">
-      <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-3 flex gap-2 items-start text-amber-800 text-xs">
-        <Icon icon="solar:info-circle-linear" className="shrink-0 mt-0.5 text-amber-600" />
-        <span><strong>Estimation directionnelle</strong> : ce rapport est un ordre de grandeur basé sur des valeurs sectorielles. Il ne remplace pas un audit réglementaire.</span>
-      </div>
+  // ===== INTERPRETATION RAPIDE (DYNAMIQUE) =====
+  const getPerformanceMessage = () => {
+    if (diffPct <= -10) {
+      return {
+        tone: 'good',
+        title: 'Performance plutôt favorable',
+        line1: `Votre bâtiment est environ ${Math.abs(diffPct)}% en dessous de la référence sectorielle, ce qui est plutôt bon.`,
+        line2: `Le potentiel principal se situe souvent dans l'optimisation fine (pilotage, réglages, maintenance, usages).`,
+        line3: `Prochaine étape recommandée : confirmer les gains rapides avant d'engager des travaux lourds.`
+      };
+    }
+    if (diffPct > -10 && diffPct <= 15) {
+      return {
+        tone: 'mid',
+        title: 'Performance dans la moyenne',
+        line1: `Votre bâtiment est proche de la référence sectorielle (${diffPct > 0 ? '+' : ''}${diffPct}%).`,
+        line2: `Il y a généralement un potentiel d'économie intéressant avec des actions ciblées et bien priorisées.`,
+        line3: `Prochaine étape recommandée : valider les hypothèses avec vos factures et un chiffrage rapide.`
+      };
+    }
+    return {
+      tone: 'alert',
+      title: 'Performance à améliorer en priorité',
+      line1: `Votre bâtiment est au-dessus de la référence sectorielle (${diffPct > 0 ? '+' : ''}${diffPct}%).`,
+      line2: `Cela suggère un surcoût potentiel significatif et justifie une priorisation des actions à ROI rapide.`,
+      line3: `Prochaine étape recommandée : audit ciblé ou visite technique pour confirmer les postes les plus rentables.`
+    };
+  };
 
-      <div className="bg-[#1E3A5F] rounded-t-xl p-6 text-white flex flex-col md:flex-row justify-between items-center gap-4 shadow-lg">
-        <div className="flex items-center gap-2">
-          <Icon icon="solar:buildings-2-linear" className="text-2xl" />
-          <span className="font-semibold text-lg">DiagTertiaire</span>
+  const perfMsg = getPerformanceMessage();
+
+  const perfStyles = {
+    good: {
+      box: 'bg-emerald-50 border-emerald-200',
+      title: 'text-emerald-900',
+      text: 'text-emerald-800',
+      iconBg: 'bg-emerald-100',
+      icon: 'text-emerald-600'
+    },
+    mid: {
+      box: 'bg-blue-50 border-blue-200',
+      title: 'text-blue-900',
+      text: 'text-blue-800',
+      iconBg: 'bg-blue-100',
+      icon: 'text-blue-600'
+    },
+    alert: {
+      box: 'bg-amber-50 border-amber-200',
+      title: 'text-amber-900',
+      text: 'text-amber-800',
+      iconBg: 'bg-amber-100',
+      icon: 'text-amber-600'
+    }
+  }[perfMsg.tone];
+
+  // ===== PROJECTIONS =====
+  const statusQuo5Y = totalCost * 5;
+  const statusQuo10Y = totalCost * 10;
+  const optimized5Y = Math.max(0, statusQuo5Y - projection5Y);
+  const optimized10Y = Math.max(0, statusQuo10Y - projection10Y);
+
+  // ===== PETIT HELPER POUR KPI CARD =====
+  const KpiCard = ({ icon, label, value, sub, accent = 'text-[#1E3A5F]', iconBg = 'bg-slate-100' }) => (
+    <div className="bg-white rounded-xl border border-slate-200 p-4 shadow-sm">
+      <div className="flex items-start justify-between gap-3">
+        <div className={`w-10 h-10 rounded-lg ${iconBg} flex items-center justify-center`}>
+          <Icon icon={icon} className="text-lg" />
         </div>
-        <div className="text-xs opacity-80">Rapport généré le {new Date().toLocaleDateString()}</div>
+        <span className="text-[11px] text-slate-400 italic">ordre de grandeur</span>
       </div>
+      <p className="text-xs text-slate-500 mt-3">{label}</p>
+      <p className={`text-xl tracking-tight font-semibold mt-1 ${accent}`}>{value}</p>
+      {sub && <p className="text-xs text-slate-400 mt-1">{sub}</p>}
+    </div>
+  );
 
-      <div className="bg-white p-4 rounded-b-xl shadow-md mb-8 flex flex-wrap justify-center gap-3 border border-t-0 border-slate-200">
-        <span className="px-3 py-1 bg-slate-100 rounded-full text-xs font-semibold text-slate-600">{activityRef.label}</span>
-        <span className="px-3 py-1 bg-slate-100 rounded-full text-xs font-semibold text-slate-600">{data.surface} m²</span>
-        <span className="px-3 py-1 bg-slate-100 rounded-full text-xs font-semibold text-slate-600">{yearRef.label}</span>
-      </div>
+  return (
+    <div className="fade-in pb-20 max-w-5xl mx-auto w-full">
+      {/* ===== A. HERO / SYNTHÈSE ===== */}
+      <div className="mb-6 bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
+        <div className="bg-[#1E3A5F] p-5 md:p-6 text-white">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-3 py-1 text-xs font-semibold mb-3">
+                <Icon icon="solar:shield-check-linear" className="text-sm" />
+                Estimation indicative
+              </div>
+              <h1 className="text-2xl md:text-3xl tracking-tight font-semibold">
+                Votre pré-diagnostic énergétique tertiaire
+              </h1>
+              <p className="text-blue-100 text-sm mt-2">
+                Estimation directionnelle pour aider à prioriser les prochaines décisions
+              </p>
+            </div>
 
-      <SectionCard className="mb-8">
-        <h2 className="text-xl tracking-tight font-semibold text-[#1E3A5F] mb-6">Performance énergétique estimée</h2>
-
-        <div className="flex flex-col gap-1 mb-4 relative">
-          {['A','B','C','D','E','F','G'].map((l, i) => {
-            const info = getDPE(i === 0 ? 0 : i === 1 ? 71 : i === 2 ? 111 : i === 3 ? 181 : i === 4 ? 251 : i === 5 ? 331 : 421);
-            return (
-              <div
-                key={l}
-                className="relative h-8 flex items-center rounded-r-md transition-all"
-                style={{ width: info.w, backgroundColor: info.c }}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <button
+                type="button"
+                onClick={handleExportPDF}
+                className="bg-white text-[#1E3A5F] px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-100 transition-colors flex items-center justify-center gap-2"
               >
-                <div className="w-8 flex justify-center font-semibold text-white pl-2 drop-shadow-md">{l}</div>
+                <Icon icon="solar:file-download-linear" className="text-base" />
+                Exporter PDF
+              </button>
 
-                {dpe.l === l && (
-                  <div className="hidden md:flex absolute top-0 right-0 h-full items-center translate-x-full pl-2 z-10">
-                    <div className="w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] border-r-[#1E3A5F] mr-2 rotate-180"></div>
-                    <span className="text-lg tracking-tight font-semibold text-[#1E3A5F] whitespace-nowrap">
-                      {kwhPerM2} kWh/m²/an
+              <a
+                href={CTA_CALENDLY_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="bg-[#2ECC71] text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#27AE60] transition-colors flex items-center justify-center gap-2"
+              >
+                <Icon icon="solar:calendar-linear" className="text-base" />
+                Prendre rendez-vous
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-5 py-4 border-t border-slate-100 bg-slate-50 text-xs text-slate-500 flex flex-wrap items-center gap-4">
+          <span className="inline-flex items-center gap-1">
+            <Icon icon="solar:calendar-mark-linear" className="text-sm" />
+            Généré le {new Date().toLocaleDateString('fr-FR')}
+          </span>
+          <span className="inline-flex items-center gap-1">
+            <Icon icon="solar:info-circle-linear" className="text-sm" />
+            {disclaimer?.precision || 'Ordre de grandeur (±30%)'}
+          </span>
+        </div>
+      </div>
+
+      {/* ===== B. KPI CARDS ===== */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <KpiCard
+          icon="solar:bolt-linear"
+          label="Consommation estimée"
+          value={`${intFmt(kwhPerM2)} kWh/m²/an`}
+          sub={`${intFmt(consumptionTotalKwh)} kWh/an au total`}
+          iconBg="bg-blue-50"
+          accent="text-[#1E3A5F]"
+        />
+        <KpiCard
+          icon="solar:wallet-money-linear"
+          label="Coût énergétique annuel"
+          value={euro(totalCost)}
+          sub={`Base prix énergie: ${avgPrice?.toFixed(2)?.replace('.', ',') || '0,00'} €/kWh`}
+          iconBg="bg-emerald-50"
+          accent="text-emerald-700"
+        />
+        <KpiCard
+          icon="solar:chart-square-linear"
+          label="Classe énergétique estimée"
+          value={dpe?.l || 'N/A'}
+          sub={`${intFmt(refBase)} kWh/m²/an de référence`}
+          iconBg="bg-amber-50"
+          accent="text-amber-700"
+        />
+        <KpiCard
+          icon="solar:piggy-bank-linear"
+          label="Potentiel d'économie annuel"
+          value={euro(annualSavingsIfTop3)}
+          sub={`Top 3 actions prioritaires`}
+          iconBg="bg-purple-50"
+          accent="text-purple-700"
+        />
+      </div>
+
+      {/* ===== JAUGE DPE + COMPARAISON ===== */}
+      <div className="grid lg:grid-cols-2 gap-6 mb-8">
+        <SectionCard>
+          <h2 className="text-lg tracking-tight font-semibold text-[#1E3A5F] mb-4">
+            Positionnement énergétique estimé
+          </h2>
+
+          <div className="flex flex-col gap-1 mb-4 relative">
+            {['A','B','C','D','E','F','G'].map((l, i) => {
+              const info = getDPE(
+                i === 0 ? 0 :
+                i === 1 ? 71 :
+                i === 2 ? 111 :
+                i === 3 ? 181 :
+                i === 4 ? 251 :
+                i === 5 ? 331 : 421
+              );
+
+              return (
+                <div
+                  key={l}
+                  className="relative h-8 flex items-center rounded-r-md transition-all"
+                  style={{ width: info.w, backgroundColor: info.c }}
+                >
+                  <div className="w-8 flex justify-center font-semibold text-white pl-2 drop-shadow-md">{l}</div>
+
+                  {dpe?.l === l && (
+                    <div className="hidden md:flex absolute top-0 right-0 h-full items-center translate-x-full pl-2 z-10">
+                      <div className="w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] border-r-[#1E3A5F] mr-2 rotate-180"></div>
+                      <span className="text-base tracking-tight font-semibold text-[#1E3A5F] whitespace-nowrap">
+                        {intFmt(kwhPerM2)} kWh/m²/an
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          <p className="text-xs text-slate-500">
+            Lecture simplifiée pour tertiaire. La classe est indicative et doit être confirmée par un audit si décision de travaux.
+          </p>
+        </SectionCard>
+
+        <SectionCard>
+          <h2 className="text-lg tracking-tight font-semibold text-[#1E3A5F] mb-1">
+            Consommation vs référence
+          </h2>
+          <p className="text-xs text-slate-400 italic mb-4">
+            Valeurs indicatives basées sur des moyennes sectorielles
+          </p>
+
+          <ChartErrorBoundary fallbackData={chartData}>
+            <div className="h-64 w-full">
+              {rechartsReady ? (
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart layout="vertical" data={chartData} margin={{ top: 0, right: 70, left: 0, bottom: 0 }}>
+                    <XAxis type="number" hide />
+                    <YAxis
+                      dataKey="name"
+                      type="category"
+                      width={150}
+                      tick={{ fontSize: 12, fill: '#374151', fontWeight: 500 }}
+                    />
+                    <Tooltip cursor={{ fill: 'transparent' }} />
+                    <Bar dataKey="val" radius={[0, 4, 4, 0]} barSize={24}>
+                      {chartData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.fill} />
+                      ))}
+                      <LabelList
+                        dataKey="val"
+                        position="right"
+                        fill="#374151"
+                        fontSize={12}
+                        fontWeight="600"
+                        formatter={(val) => `${val} kWh/m²`}
+                      />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-slate-400">Chargement...</div>
+              )}
+            </div>
+          </ChartErrorBoundary>
+        </SectionCard>
+      </div>
+
+      {/* ===== C. LECTURE RAPIDE ===== */}
+      <div className={`mb-8 rounded-xl border p-5 ${perfStyles.box}`}>
+        <div className="flex items-start gap-3">
+          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${perfStyles.iconBg}`}>
+            <Icon icon="solar:notes-linear" className={`text-lg ${perfStyles.icon}`} />
+          </div>
+          <div className="flex-1">
+            <h3 className={`text-sm font-semibold mb-2 ${perfStyles.title}`}>{perfMsg.title}</h3>
+            <div className={`text-sm leading-relaxed space-y-1 ${perfStyles.text}`}>
+              <p>{perfMsg.line1}</p>
+              <p>{perfMsg.line2}</p>
+              <p>{perfMsg.line3}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ===== D. PROFIL BATIMENT ===== */}
+      <SectionCard className="mb-8">
+        <h2 className="text-lg tracking-tight font-semibold text-[#1E3A5F] mb-4">Profil du bâtiment</h2>
+
+        <div className="grid md:grid-cols-2 gap-3">
+          {[
+            { label: 'Activité', value: activityRef?.label || 'Non renseigné', icon: 'solar:buildings-2-linear' },
+            { label: 'Surface', value: `${intFmt(surface)} m²`, icon: 'solar:ruler-cross-pen-linear' },
+            { label: 'Période de construction', value: yearRef?.label || 'Non renseigné', icon: 'solar:calendar-linear' },
+            { label: 'Chauffage principal', value: heatingLabel || 'Non renseigné', icon: 'solar:flame-linear' },
+            { label: 'Occupation', value: occupationLabel || 'Non renseigné', icon: 'solar:users-group-rounded-linear' },
+            {
+              label: 'Mode de donnée',
+              value: data?.noData ? 'Estimation automatique' : (data?.consumptionMode === 'euro' ? 'Factures en €' : 'Consommations en kWh'),
+              icon: 'solar:database-linear'
+            },
+          ].map((row, i) => (
+            <div key={i} className="bg-slate-50 border border-slate-200 rounded-lg p-3 flex items-start gap-3">
+              <div className="w-8 h-8 rounded-md bg-white border border-slate-200 flex items-center justify-center">
+                <Icon icon={row.icon} className="text-sm" />
+              </div>
+              <div>
+                <p className="text-xs text-slate-500">{row.label}</p>
+                <p className="text-sm font-semibold text-slate-800">{row.value}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-4 grid md:grid-cols-3 gap-3">
+          <div className="border border-slate-200 rounded-lg p-3">
+            <p className="text-xs text-slate-500">Référence sectorielle</p>
+            <p className="text-sm font-semibold text-[#1E3A5F]">{intFmt(refBase)} kWh/m²/an</p>
+          </div>
+          <div className="border border-slate-200 rounded-lg p-3">
+            <p className="text-xs text-slate-500">Écart estimé</p>
+            <p className={`text-sm font-semibold ${diffPct > 0 ? 'text-amber-700' : 'text-emerald-700'}`}>
+              {diffPct > 0 ? '+' : ''}{diffPct}% vs référence
+            </p>
+          </div>
+          <div className="border border-slate-200 rounded-lg p-3">
+            <p className="text-xs text-slate-500">Surcoût potentiel</p>
+            <p className="text-sm font-semibold text-slate-800">{euro(wasteEuro)}</p>
+          </div>
+        </div>
+      </SectionCard>
+
+      {/* ===== E. ACTIONS PRIORITAIRES ===== */}
+      <div className="mb-8">
+        <h2 className="text-xl tracking-tight font-semibold text-[#1E3A5F] mb-2">Actions prioritaires</h2>
+        <p className="text-sm text-slate-500 mb-4">
+          Priorisation indicative à confirmer par visite technique et devis
+        </p>
+
+        {priorities.length === 0 ? (
+          <div className="bg-white rounded-xl border border-slate-200 p-4 text-sm text-slate-600">
+            Vous avez déjà réalisé plusieurs actions pertinentes. Les gains restants se situent souvent dans les réglages,
+            la maintenance, le pilotage et l'ajustement des usages.
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {priorities.map((p, i) => {
+              const roiMin = p.gainEuro > 0 ? (p.costMin / p.gainEuro) : null;
+              const roiMax = p.gainEuro > 0 ? (p.costMax / p.gainEuro) : null;
+
+              const avgCost = (p.costMin + p.costMax) / 2;
+              const effort =
+                avgCost < 7000 ? 'Faible' :
+                avgCost < 18000 ? 'Moyen' : 'Élevé';
+
+              const effortStyle =
+                effort === 'Faible' ? 'bg-emerald-100 text-emerald-700' :
+                effort === 'Moyen' ? 'bg-amber-100 text-amber-700' :
+                'bg-rose-100 text-rose-700';
+
+              return (
+                <div key={i} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                  <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 flex flex-col md:flex-row md:items-center md:justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-slate-400">PRIORITÉ #{i + 1}</span>
+                      <span className="text-xs font-semibold px-2 py-1 rounded bg-white border border-slate-200 text-[#1E3A5F]">
+                        {p.tag}
+                      </span>
+                    </div>
+                    <span className={`text-xs font-semibold px-2 py-1 rounded ${effortStyle}`}>
+                      Effort {effort}
                     </span>
                   </div>
-                )}
+
+                  <div className="p-4">
+                    <h3 className="text-base md:text-lg font-semibold text-[#1E3A5F] mb-4">{p.title}</h3>
+
+                    <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                      <div className="border border-slate-200 rounded-lg p-3">
+                        <p className="text-[11px] text-slate-500">Gain énergie</p>
+                        <p className="text-sm font-semibold text-slate-800">{intFmt(p.gainKwhVal)} kWh/an</p>
+                      </div>
+
+                      <div className="border border-slate-200 rounded-lg p-3">
+                        <p className="text-[11px] text-slate-500">Gain financier</p>
+                        <p className="text-sm font-semibold text-emerald-700">{euro(p.gainEuro)}/an</p>
+                      </div>
+
+                      <div className="border border-slate-200 rounded-lg p-3">
+                        <p className="text-[11px] text-slate-500">Coût estimatif</p>
+                        <p className="text-sm font-semibold text-slate-800">
+                          {intFmt(p.costMin)} à {intFmt(p.costMax)} €
+                        </p>
+                      </div>
+
+                      <div className="border border-slate-200 rounded-lg p-3">
+                        <p className="text-[11px] text-slate-500">ROI estimatif</p>
+                        <p className="text-sm font-semibold text-[#1E3A5F]">
+                          {roiMin && roiMax
+                            ? `${roiMin.toFixed(1).replace('.', ',')} à ${roiMax.toFixed(1).replace('.', ',')} ans`
+                            : 'À estimer'}
+                        </p>
+                      </div>
+
+                      <div className="border border-slate-200 rounded-lg p-3">
+                        <p className="text-[11px] text-slate-500">Aides</p>
+                        <p className="text-sm font-semibold text-slate-800">
+                          {(p.aids?.cee || p.aids?.mpr) ? 'Possibles' : 'À vérifier'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 rounded-lg bg-amber-50 border border-amber-200 p-3">
+                      <p className="text-xs font-semibold text-amber-900 mb-1">Aides indicatives (à confirmer)</p>
+                      <div className="space-y-1">
+                        {p.aids?.cee?.label && <p className="text-xs text-amber-800">• {p.aids.cee.label}</p>}
+                        {p.aids?.mpr?.label && <p className="text-xs text-amber-800">• {p.aids.mpr.label}</p>}
+                        {p.aids?.decret?.label && <p className="text-xs text-amber-800">• {p.aids.decret.label}</p>}
+                        {!p.aids?.cee?.label && !p.aids?.mpr?.label && !p.aids?.decret?.label && (
+                          <p className="text-xs text-amber-800">• Éligibilité à vérifier selon votre situation</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* ===== F. PROJECTIONS 5 ANS / 10 ANS ===== */}
+      <div className="mb-8">
+        <h2 className="text-xl tracking-tight font-semibold text-[#1E3A5F] mb-2">Projection financière</h2>
+        <p className="text-sm text-slate-500 mb-4">
+          Simulation simple à partir des économies annuelles estimées (hors inflation et évolution des prix énergie)
+        </p>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base font-semibold text-[#1E3A5F]">Projection à 5 ans</h3>
+              <span className="text-xs font-semibold px-2 py-1 rounded bg-slate-100 text-slate-600">5 ans</span>
+            </div>
+
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between gap-3">
+                <span className="text-slate-500">Statu quo (sans optimisation)</span>
+                <span className="font-semibold text-slate-800">{euro(statusQuo5Y)}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-slate-500">Avec optimisations (estim.)</span>
+                <span className="font-semibold text-slate-800">{euro(optimized5Y)}</span>
+              </div>
+              <div className="pt-2 mt-2 border-t border-slate-100 flex justify-between gap-3">
+                <span className="text-slate-700 font-medium">Économie potentielle cumulée</span>
+                <span className="font-semibold text-emerald-700">{euro(projection5Y)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-base font-semibold text-[#1E3A5F]">Projection à 10 ans</h3>
+              <span className="text-xs font-semibold px-2 py-1 rounded bg-slate-100 text-slate-600">10 ans</span>
+            </div>
+
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between gap-3">
+                <span className="text-slate-500">Statu quo (sans optimisation)</span>
+                <span className="font-semibold text-slate-800">{euro(statusQuo10Y)}</span>
+              </div>
+              <div className="flex justify-between gap-3">
+                <span className="text-slate-500">Avec optimisations (estim.)</span>
+                <span className="font-semibold text-slate-800">{euro(optimized10Y)}</span>
+              </div>
+              <div className="pt-2 mt-2 border-t border-slate-100 flex justify-between gap-3">
+                <span className="text-slate-700 font-medium">Économie potentielle cumulée</span>
+                <span className="font-semibold text-emerald-700">{euro(projection10Y)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ===== G. TIMELINE 3 MOIS ===== */}
+      <SectionCard className="mb-8">
+        <h2 className="text-xl tracking-tight font-semibold text-[#1E3A5F] mb-2">Plan d'action sur 3 mois</h2>
+        <p className="text-sm text-slate-500 mb-5">
+          Objectif : passer d'une estimation à une décision chiffrée
+        </p>
+
+        <div className="space-y-4">
+          {(timeline || []).map((t, i) => {
+            const periodLabel =
+              i === 0 ? 'Semaine 1 à 2' :
+              i === 1 ? 'Semaine 2 à 4' :
+              i === 2 ? 'Mois 2' : 'Mois 2 à 3';
+
+            return (
+              <div key={i} className="flex items-start gap-3">
+                <div className="flex flex-col items-center">
+                  <div className="w-9 h-9 rounded-full bg-[#EEF2FF] border border-[#1E3A5F]/20 flex items-center justify-center text-[#1E3A5F] font-semibold text-sm">
+                    {t.step}
+                  </div>
+                  {i < (timeline.length - 1) && <div className="w-px h-10 bg-slate-200 mt-2"></div>}
+                </div>
+
+                <div className="flex-1 bg-slate-50 border border-slate-200 rounded-lg p-3">
+                  <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-1">
+                    <p className="text-sm font-semibold text-slate-800">{t.title}</p>
+                    <span className="text-xs text-slate-500">{periodLabel}</span>
+                  </div>
+                  <p className="text-sm text-slate-600 mt-1">{t.desc}</p>
+                </div>
               </div>
             );
           })}
         </div>
       </SectionCard>
 
-      <SectionCard className="mb-8">
-        <h2 className="text-xl tracking-tight font-semibold text-[#1E3A5F] mb-1">Consommation vs Référence</h2>
-        <p className="text-xs text-slate-400 italic mb-4">Valeurs indicatives basées sur des moyennes sectorielles</p>
-
-        <ChartErrorBoundary fallbackData={chartData}>
-          <div className="h-64 w-full">
-            {rechartsReady ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart layout="vertical" data={chartData} margin={{ top: 0, right: 60, left: 0, bottom: 0 }}>
-                  <XAxis type="number" hide />
-                  <YAxis dataKey="name" type="category" width={140} tick={{ fontSize: 12, fill: '#374151', fontWeight: 500 }} />
-                  <Tooltip cursor={{ fill: 'transparent' }} />
-                  <Bar dataKey="val" radius={[0, 4, 4, 0]} barSize={24}>
-                    {chartData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.fill} />
-                    ))}
-                    <LabelList
-                      dataKey="val"
-                      position="right"
-                      fill="#374151"
-                      fontSize={12}
-                      fontWeight="600"
-                      formatter={(val) => `${val} kWh/m²`}
-                    />
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-slate-400">Chargement...</div>
-            )}
+      {/* ===== H. HYPOTHESES & LIMITES ===== */}
+      <div className="mb-8 bg-amber-50 border border-amber-200 rounded-xl p-4">
+        <div className="flex items-start gap-3">
+          <div className="w-9 h-9 rounded-lg bg-amber-100 flex items-center justify-center">
+            <Icon icon="solar:danger-triangle-linear" className="text-amber-600 text-base" />
           </div>
-        </ChartErrorBoundary>
-      </SectionCard>
-
-      {priorities.length === 0 && (
-        <div className="bg-white rounded-xl border border-slate-200 p-4 text-sm text-slate-600 mb-4">
-          Vous avez déjà réalisé plusieurs actions pertinentes. Le rapport complet peut être affiné avec un audit pour identifier les optimisations restantes (réglages, pilotage, maintenance, usages).
-        </div>
-      )}
-
-      <div className="mb-8">
-        <h2 className="text-xl tracking-tight font-semibold text-[#1E3A5F] mb-4">Vos 3 priorités d'action</h2>
-
-        <div className="grid md:grid-cols-3 gap-6">
-          {priorities.map((p, i) => (
-            <div key={i} className="bg-white rounded-xl shadow-md border border-slate-100 overflow-hidden flex flex-col h-full">
-              <div className="p-4 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center">
-                <span className="text-xs font-semibold text-slate-400">PRIORITÉ #{i + 1}</span>
-                <span className="text-xs font-semibold px-2 py-1 rounded bg-white shadow-sm text-[#1E3A5F]">{p.tag}</span>
-              </div>
-
-              <div className="p-5 flex-1 flex flex-col">
-                <h3 className="font-semibold text-[#1E3A5F] text-lg mb-4 leading-tight">{p.title}</h3>
-
-                <div className="space-y-3 text-sm flex-1">
-                  <div className="flex items-start gap-2 text-slate-600">
-                    <Icon icon="solar:bolt-linear" className="text-base" />
-                    <span>{p.gainKwhVal.toLocaleString('fr-FR')} kWh/an</span>
-                  </div>
-
-                  <div className="flex items-start gap-2 text-[#2ECC71]">
-                    <Icon icon="solar:wallet-money-linear" className="text-base" />
-                    <span className="font-semibold">Gain est. : {p.gainEuro.toLocaleString('fr-FR')} €/an</span>
-                  </div>
-
-                <div className="flex items-start gap-2 text-slate-600">
-  <Icon icon="solar:hammer-linear" className="text-base" />
-  <span>Coût : {p.costMin.toLocaleString('fr-FR')} à {p.costMax.toLocaleString('fr-FR')} €</span>
-</div>
-
-                  <div className="mt-3 pt-3 border-t border-slate-100 space-y-1">
-                    <p className="text-[11px] font-semibold text-slate-500 uppercase tracking-wide">Aides indicatives</p>
-
-                    {p.aids?.cee?.label && <p className="text-xs text-slate-600">• {p.aids.cee.label}</p>}
-                    {p.aids?.mpr?.label && <p className="text-xs text-slate-600">• {p.aids.mpr.label}</p>}
-                    {p.aids?.decret?.label && <p className="text-xs text-slate-600">• {p.aids.decret.label}</p>}
-                  </div>
-                </div>
-
-                <div className="mt-6 pt-4 border-t border-slate-100 flex justify-between items-center">
-  <span className="text-xs text-slate-500">ROI indicatif</span>
-  <span className="font-semibold text-[#1E3A5F] text-xs">
-    {(() => {
-      const gain = p.gainEuro || 0;
-      if (!gain || gain <= 0) return "À estimer";
-      const roiMin = Math.round((p.costMin / gain) * 10) / 10;
-      const roiMax = Math.round((p.costMax / gain) * 10) / 10;
-      return `${roiMin.toLocaleString('fr-FR')} à ${roiMax.toLocaleString('fr-FR')} ans`;
-    })()}
-  </span>
-</div>
-              </div>
-            </div>
-          ))}
+          <div>
+            <h3 className="text-sm font-semibold text-amber-900 mb-2">Hypothèses et limites</h3>
+            <ul className="text-sm text-amber-800 space-y-1">
+              <li>• Rapport indicatif basé sur des données déclaratives et des références sectorielles.</li>
+              <li>• Ne remplace pas un audit réglementaire ou un audit d'exécution.</li>
+              <li>• Prix énergie, aides et devis peuvent varier selon votre situation réelle.</li>
+              <li>• Validation terrain recommandée avant engagement de travaux.</li>
+              {isDecretEligible && <li>• Votre surface suggère un sujet potentiel Décret Tertiaire à vérifier.</li>}
+            </ul>
+          </div>
         </div>
       </div>
 
-      <div className="bg-[#1E3A5F] rounded-2xl p-8 shadow-xl text-white mb-8 break-inside-avoid">
-        <div className="grid md:grid-cols-2 gap-8 items-center">
-          <div className="bg-slate-700 aspect-video rounded-lg flex flex-col items-center justify-center relative cursor-pointer group border border-white/10">
-            <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform">
-              <Icon icon="solar:play-linear" className="text-white text-2xl" />
-            </div>
-            <div className="absolute bottom-3 left-0 w-full text-center text-xs font-medium text-slate-300">
-              Yannis • Consultant Énergie
-              <br />
-              <span className="opacity-70">⏱ 2 minutes</span>
+      {/* ===== I. CTA FINAL SOBRE ===== */}
+      <div className="bg-[#1E3A5F] rounded-2xl p-6 md:p-8 shadow-xl text-white">
+        <div className="grid md:grid-cols-2 gap-6 items-center">
+          <div>
+            <h3 className="text-xl tracking-tight font-semibold mb-2">
+              Besoin d'un cadrage plus fiable pour passer à l'action ?
+            </h3>
+            <p className="text-sm text-blue-100 leading-relaxed">
+              Ce pré-diagnostic est utile pour prioriser. La suite logique est de valider les hypothèses, chiffrer correctement
+              les postes et sécuriser les aides mobilisables.
+            </p>
+
+            <div className="mt-4 flex flex-wrap gap-2 text-xs">
+              <span className="px-2 py-1 rounded bg-white/10 border border-white/10">Validation des priorités</span>
+              <span className="px-2 py-1 rounded bg-white/10 border border-white/10">Aides et ROI</span>
+              <span className="px-2 py-1 rounded bg-white/10 border border-white/10">Plan d'action concret</span>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <h3 className="text-xl tracking-tight font-semibold">Votre rapport soulève des points importants</h3>
-            <p className="text-slate-300 text-sm leading-relaxed">
-              15 minutes pour analyser ensemble vos options et identifier les interlocuteurs qualifiés pour votre projet.
-            </p>
+          <div className="space-y-3">
+            <button
+              type="button"
+              onClick={handleExportPDF}
+              className="w-full bg-white text-[#1E3A5F] py-3 rounded-lg font-semibold hover:bg-slate-100 transition-colors flex items-center justify-center gap-2"
+            >
+              <Icon icon="solar:file-download-linear" className="text-base" />
+              Télécharger le rapport PDF
+            </button>
 
             <a
               href={CTA_CALENDLY_URL}
               target="_blank"
               rel="noopener noreferrer"
-              className="block w-full bg-white text-[#1E3A5F] font-semibold text-center py-3 rounded-lg hover:bg-slate-100 transition-colors"
+              className="w-full bg-[#2ECC71] text-white py-3 rounded-lg font-semibold hover:bg-[#27AE60] transition-colors flex items-center justify-center gap-2"
             >
-              📅 Réserver mon rendez-vous →
+              <Icon icon="solar:calendar-linear" className="text-base" />
+              Réserver un échange
             </a>
           </div>
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <button
-          type="button"
-          onClick={handleExportPDF}
-          className="bg-white border border-[#1E3A5F] text-[#1E3A5F] py-3 rounded-lg font-semibold hover:bg-slate-50 transition-colors flex items-center justify-center gap-2"
-        >
-          <Icon icon="solar:file-download-linear" /> Télécharger en PDF
-        </button>
-
-        <a
-          href={CTA_CALENDLY_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="bg-[#1E3A5F] text-white py-3 rounded-lg font-semibold hover:bg-[#162B47] transition-colors flex items-center justify-center gap-2"
-        >
-          <Icon icon="solar:calendar-linear" /> Réserver mon rendez-vous
-        </a>
       </div>
     </div>
   );
