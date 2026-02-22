@@ -2018,6 +2018,20 @@ const buildActionCatalog = ({ data, surface, postes, avgPrice, isDecretEligible 
 // priorités, ROI, projections 5/10 ans, timeline.
 // [CRITIQUE] Toute modification ici impacte l'écran ET le PDF.
 
+
+/* ─────────────────────────────────────────────────────────────────────
+   getDefaultConsumption : Estimation consommation si pas de données
+   
+   Calcule une estimation basée sur activité + surface
+   ───────────────────────────────────────────────────────────────────── */
+const getDefaultConsumption = (activityId, surface) => {
+  const activity = ACTIVITIES.find(a => a.id === activityId);
+  const refKwh = activity ? activity.refKwh : 220;
+  const yearCoef = 1.2;  // Bâtiment ancien-moyen
+  const sysCoef = 1.1;   // Système vieillissant
+  return Math.round(refKwh * surface * yearCoef * sysCoef);
+};
+
 const buildReportData = (data) => {
   const activityId = normalizeActivityId(data.activity);
   const yearRef = YEARS.find(y => y.id === data.year) || YEARS[0];
@@ -2972,17 +2986,6 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
           <div>
             <h3 className="text-xl tracking-tight font-semibold mb-2">
 
-
-         SECTION 7: PAGES
-         
-         → PageHome      : Landing page avec sections marketing + CTA
-         → PageMethod    : Explication de la méthodologie
-         → PageExample   : Exemple de rapport (avec fake data)
-         → PagePro       : Offre pour les professionnels
-         → RestoreBanner : Bannière de reprise de session
-         
-         Toutes les pages reçoivent navigate() pour le routing.
-
               Besoin d'un cadrage plus fiable pour passer à l'action ?
             </h3>
             <p className="text-sm text-blue-100 leading-relaxed">
@@ -3022,6 +3025,19 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
   );
 };
       /* --- PAGES --- */
+
+      /* ═══════════════════════════════════════════════════════════════════════════
+         SECTION 7: PAGES
+         
+         → PageHome      : Landing page avec sections marketing + CTA
+         → PageMethod    : Explication de la méthodologie
+         → PageExample   : Exemple de rapport (avec fake data)
+         → PagePro       : Offre pour les professionnels
+         → RestoreBanner : Bannière de reprise de session
+         
+         Toutes les pages reçoivent navigate() pour le routing.
+         ═══════════════════════════════════════════════════════════════════════════ */
+
       const PageHome = ({ navigate }) => (
           <div className="fade-in">
               {/* SECTION 1 - HERO */}
@@ -4023,20 +4039,6 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
                 ].map((item, i) => (
                   <div key={i} className="bg-white/10 border border-white/15 rounded-xl p-4">
 
-      
-         SECTION 8: APP ROOT - NAVIGATION & ÉTAT GLOBAL
-         
-         Composant principal qui gère :
-         - Routing client-side (currentPage: home/diagnostic/methode/exemple/pro)
-         - État du formulaire (formData)
-         - Étape courante du diagnostic (diagStep: 1-4)
-         - Sauvegarde auto dans localStorage
-         - Restauration de session
-         
-         Navigation :
-         - navigate(page) change currentPage et scroll to top
-         - Dans diagnostic : setDiagStep(1-4) pour les étapes
-        
                     <Icon icon={item.icon} className="text-lg mb-2" />
                     <h3 className="text-sm font-semibold mb-1">{item.title}</h3>
                     <p className="text-xs text-blue-100 leading-relaxed">{item.desc}</p>
@@ -4076,6 +4078,22 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
       );
       
       /* --- APP ROOT --- */
+
+      /* ═══════════════════════════════════════════════════════════════════════════
+         SECTION 8: APP ROOT - NAVIGATION & ÉTAT GLOBAL
+         
+         Composant principal qui gère :
+         - Routing client-side (currentPage: home/diagnostic/methode/exemple/pro)
+         - État du formulaire (formData)
+         - Étape courante du diagnostic (diagStep: 1-4)
+         - Sauvegarde auto dans localStorage
+         - Restauration de session
+         
+         Navigation :
+         - navigate(page) change currentPage et scroll to top
+         - Dans diagnostic : setDiagStep(1-4) pour les étapes
+         ═══════════════════════════════════════════════════════════════════════════ */
+
       const App = () => {
           const [currentPage, setCurrentPage] = useState('home');
           const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
