@@ -13,7 +13,7 @@
     <script crossorigin="" src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin="" src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/prop-types/prop-types.min.js"></script>
-    <script src="https://unpkg.com/recharts/umd/Recharts.js"></script>
+<script src="https://unpkg.com/recharts@2.12.7/umd/Recharts.js"></script>
     <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -1663,20 +1663,6 @@ function normalizeActivityId(activity) {
   return validIds.has(normalized) ? normalized : 'mixed';
 }
 
-function normalizeActivityId(activity) {
-  const raw = String(activity || 'mixed').toLowerCase().trim();
-
-  const aliases = {
-    healthcare: 'health',
-    healthc: 'health',
-    sante: 'health'
-  };
-
-  const normalized = aliases[raw] || raw;
-
-  const validIds = new Set(ACTIVITIES.map(a => a.id));
-  return validIds.has(normalized) ? normalized : 'mixed';
-}
 
 function getActionImpactsByContext(actionKey, data) {
   const base = ACTION_POSTE_IMPACTS[actionKey] || {};
