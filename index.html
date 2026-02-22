@@ -1648,6 +1648,20 @@ function clamp01(v) {
 function round1(v) {
   return Math.round(Number(v || 0) * 10) / 10;
 }
+function normalizeActivityId(activity) {
+  const raw = String(activity || 'mixed').toLowerCase().trim();
+
+  const aliases = {
+    healthcare: 'health',
+    healthc: 'health',
+    sante: 'health'
+  };
+
+  const normalized = aliases[raw] || raw;
+  const validIds = new Set(ACTIVITIES.map(a => a.id));
+
+  return validIds.has(normalized) ? normalized : 'mixed';
+}
 
 function normalizeActivityId(activity) {
   const raw = String(activity || 'mixed').toLowerCase().trim();
@@ -1761,6 +1775,7 @@ function computeRoiMetrics(costMin, costMax, subsidyMin, subsidyMax, annualSavin
     roiNetYears: round1(roiNetYears)
   };
 }
+
 function computeRoiFromCostsAndSavings({ costMin, costMax, annualSavingsEuro, aids }) {
   const ceeMin = Number(aids?.cee?.min || 0);
   const ceeMax = Number(aids?.cee?.max || 0);
