@@ -2913,80 +2913,120 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
       const PageHome = ({ navigate }) => (
           <div className="fade-in">
               {/* SECTION 1 - HERO */}
-              <section className="bg-gradient-to-b from-[#F8F9FA] to-white py-16 lg:py-24">
-                  <div className="max-w-6xl mx-auto px-4 grid md:grid-cols-2 gap-12 items-center">
-                      <div>
-                          <div className="inline-flex items-center gap-2 bg-[#2ECC71]/10 border border-[#2ECC71]/30 rounded-full px-4 py-1.5 text-sm font-semibold text-[#2ECC71] mb-6">
-                              <Icon icon="solar:clock-circle-bold" className="text-base" />
-                              Gratuit • 3 minutes • Résultat immédiat
-                          </div>
-                          <h1 className="text-4xl lg:text-5xl tracking-tight font-semibold text-slate-900 leading-[1.1] mb-6">
-                              Votre bâtiment tertiaire vous coûte-t-il trop cher en énergie ? test 200
-                          </h1>
-                          <p className="text-lg text-[#6B7280] leading-relaxed mb-8">
-                              Le premier diagnostic gratuit conçu pour les bâtiments tertiaires. Comparez-vous aux bonnes références sectorielles, pas au logement.
-                          </p>
+              <section className="bg-gradient-to-b from-[#F8F9FA] to-white py-16 lg:py-20">
+    <div className="max-w-6xl mx-auto px-4 grid md:grid-cols-2 gap-10 items-center">
+        <div>
+            <div className="inline-flex items-center gap-2 bg-[#2ECC71]/10 border border-[#2ECC71]/25 rounded-full px-4 py-1.5 text-xs font-semibold text-[#1E3A5F] mb-5">
+                <Icon icon="solar:bolt-circle-linear" className="text-sm text-[#2ECC71]" />
+                Pré-diagnostic tertiaire gratuit
+            </div>
 
-                          <div className="grid sm:grid-cols-2 gap-6 mb-8">
-                              <div className="space-y-3">
-                                  <p className="text-sm font-semibold text-[#1E3A5F] uppercase tracking-wide">Propriétaires</p>
-                                  {['Évaluez la performance de votre patrimoine','Identifiez les postes les plus coûteux','Estimez le ROI de vos travaux'].map((t, i) => (
-                                      <div key={i} className="flex items-start gap-2">
-                                          <iconify-icon icon="solar:check-circle-bold" style={{color:'#2ECC71', fontSize:'18px', flexShrink:0, marginTop:'2px'}}></iconify-icon>
-                                          <span className="text-sm text-slate-600">{t}</span>
-                                      </div>
-                                  ))}
-                              </div>
-                              <div className="space-y-3">
-                                  <p className="text-sm font-semibold text-[#1E3A5F] uppercase tracking-wide">Locataires</p>
-                                  {['Objectivez vos demandes de rénovation','Négociez avec des chiffres concrets','Anticipez vos futures factures'].map((t, i) => (
-                                      <div key={i} className="flex items-start gap-2">
-                                          <iconify-icon icon="solar:check-circle-bold" style={{color:'#2ECC71', fontSize:'18px', flexShrink:0, marginTop:'2px'}}></iconify-icon>
-                                          <span className="text-sm text-slate-600">{t}</span>
-                                      </div>
-                                  ))}
-                              </div>
-                          </div>
+            <h1 className="text-3xl lg:text-5xl tracking-tight font-semibold text-slate-900 leading-[1.08] mb-4">
+                Estimez rapidement la performance énergétique de votre bâtiment tertiaire
+            </h1>
 
-                          <button type="button" onClick={() => navigate('diagnostic')} className="bg-[#1E3A5F] text-white px-8 py-4 rounded-xl text-base font-semibold hover:bg-[#162B47] shadow-lg transition-all flex items-center gap-2">
-                              Obtenir mon diagnostic gratuit (3 min) <Icon icon="solar:arrow-right-linear" className="text-base" />
-                          </button>
-                          <div className="flex items-center gap-4 text-xs text-slate-500 mt-4">
-                              <span className="flex items-center gap-1"><iconify-icon icon="solar:check-read-linear" style={{fontSize:'14px', color:'#2ECC71'}}></iconify-icon> Aucune expertise requise</span>
-                              <span className="flex items-center gap-1"><iconify-icon icon="solar:check-read-linear" style={{fontSize:'14px', color:'#2ECC71'}}></iconify-icon> Résultat immédiat</span>
-                              <span className="flex items-center gap-1"><iconify-icon icon="solar:check-read-linear" style={{fontSize:'14px', color:'#2ECC71'}}></iconify-icon> Aucun engagement</span>
-                          </div>
-                      </div>
+            <p className="text-base lg:text-lg text-slate-600 leading-relaxed mb-6">
+                Obtenez une estimation claire, des économies potentielles et des actions prioritaires en quelques minutes.
+            </p>
 
-                      <div className="hidden md:block">
-                          <div className="bg-white rounded-2xl shadow-2xl p-6 border border-slate-100 relative">
-                              <div className="flex items-center gap-3 mb-4">
-                                  <div className="w-16 h-16 rounded-xl flex items-center justify-center text-3xl font-semibold" style={{backgroundColor:'#FFCC00'}}>
-                                      <span style={{color:'#1E3A5F'}}>D</span>
-                                  </div>
-                                  <div>
-                                      <div className="text-sm font-semibold text-slate-900">Classe estimée : D</div>
-                                      <div className="text-xs text-slate-400">245 kWh/m²/an</div>
-                                  </div>
-                              </div>
-                              <div className="space-y-2 mb-4">
-                                  {[{l:'Isolation toiture', c:'#F39C12', g:'2 100 €/an'},{l:'Régulation / GTB', c:'#0891B2', g:'1 500 €/an'}].map((p, i) => (
-                                      <div key={i} className="bg-slate-50 rounded-lg p-3">
-                                          <div className="flex items-center gap-2 mb-1">
-                                              <div className="w-2 h-2 rounded-full" style={{backgroundColor:p.c}} />
-                                              <span className="text-xs font-medium text-slate-700">{p.l}</span>
-                                          </div>
-                                          <span className="text-xs font-semibold text-[#2ECC71]">Économie : {p.g}</span>
-                                      </div>
-                                  ))}
-                              </div>
-                              <div className="absolute -top-3 -right-3 bg-[#2ECC71] text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1">
-                                  <iconify-icon icon="solar:bolt-linear" style={{fontSize:'14px'}}></iconify-icon> Rapport en 3 min
-                              </div>
-                          </div>
-                      </div>
-                  </div>
-              </section>
+            <ul className="space-y-2.5 mb-7">
+                {[
+                    "Classe énergétique estimée adaptée au tertiaire",
+                    "Économies potentielles et priorités de travaux",
+                    "Rapport PDF exportable pour décider plus vite"
+                ].map((item, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
+                        <Icon icon="solar:check-circle-bold" className="text-base text-[#2ECC71] mt-0.5 shrink-0" />
+                        <span>{item}</span>
+                    </li>
+                ))}
+            </ul>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+                <button
+                    type="button"
+                    onClick={() => navigate('diagnostic')}
+                    className="bg-[#1E3A5F] text-white px-6 py-3.5 rounded-xl text-sm font-semibold hover:bg-[#162B47] shadow-sm transition-colors inline-flex items-center justify-center gap-2"
+                >
+                    Lancer le diagnostic
+                    <Icon icon="solar:arrow-right-linear" className="text-base" />
+                </button>
+
+                <button
+                    type="button"
+                    onClick={() => navigate('exemple')}
+                    className="bg-white border border-slate-300 text-slate-700 px-6 py-3.5 rounded-xl text-sm font-semibold hover:bg-slate-50 transition-colors"
+                >
+                    Voir un exemple de rapport
+                </button>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500 mt-4">
+                <span className="flex items-center gap-1">
+                    <Icon icon="solar:check-read-linear" className="text-sm text-[#2ECC71]" />
+                    Gratuit
+                </span>
+                <span className="flex items-center gap-1">
+                    <Icon icon="solar:check-read-linear" className="text-sm text-[#2ECC71]" />
+                    Sans engagement
+                </span>
+                <span className="flex items-center gap-1">
+                    <Icon icon="solar:check-read-linear" className="text-sm text-[#2ECC71]" />
+                    Rapport PDF
+                </span>
+            </div>
+        </div>
+
+        <div className="md:block">
+            <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-5 relative">
+                <div className="flex items-start justify-between gap-3 mb-4">
+                    <div>
+                        <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Synthèse estimée</p>
+                        <p className="text-sm font-semibold text-slate-900">Bureau • 450 m²</p>
+                    </div>
+                    <div className="rounded-full bg-[#2ECC71]/10 text-[#1E3A5F] text-xs font-semibold px-3 py-1 border border-[#2ECC71]/20">
+                        Rapport
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-[auto_1fr] gap-3 items-center mb-4">
+                    <div className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-semibold border border-slate-200" style={{ backgroundColor: '#FFCC00' }}>
+                        <span style={{ color: '#1E3A5F' }}>D</span>
+                    </div>
+                    <div>
+                        <p className="text-sm font-semibold text-slate-900">Classe estimée : D</p>
+                        <p className="text-xs text-slate-500">245 kWh/m²/an • ordre de grandeur</p>
+                    </div>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 p-3 mb-3 bg-slate-50">
+                    <p className="text-xs text-slate-500 mb-1">Économies potentielles</p>
+                    <p className="text-sm font-semibold text-[#2ECC71]">≈ 3 600 € / an</p>
+                </div>
+
+                <div className="space-y-2">
+                    {[
+                        { label: "Régulation / pilotage", value: "ROI estimé 2 à 4 ans", dot: "#0891B2" },
+                        { label: "Isolation toiture", value: "Priorité forte", dot: "#F39C12" },
+                        { label: "Relamping LED", value: "Gain rapide", dot: "#2ECC71" }
+                    ].map((row, i) => (
+                        <div key={i} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: row.dot }} />
+                                <span className="text-xs font-medium text-slate-700 truncate">{row.label}</span>
+                            </div>
+                            <span className="text-[11px] text-slate-500 whitespace-nowrap">{row.value}</span>
+                        </div>
+                    ))}
+                </div>
+
+                <div className="absolute -top-2 -right-2 bg-[#1E3A5F] text-white text-[11px] font-semibold px-2.5 py-1 rounded-full shadow">
+                    En quelques minutes
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
 
               {/* SECTION 2 - SEGMENTATION PROFILS + PREUVES */}
 <section className="bg-white py-10 border-y border-slate-100">
@@ -3899,10 +3939,14 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
                           </div>
 
                           <div className="hidden md:block">
-                              <button type="button" onClick={() => navigate('diagnostic')} className="bg-[#1E3A5F] text-white px-4 py-2 rounded-lg text-xs font-semibold hover:bg-[#162B47]">
-                                  Démarrer →
-                              </button>
-                          </div>
+    <button
+        type="button"
+        onClick={() => navigate('diagnostic')}
+        className="bg-[#1E3A5F] text-white px-4 py-2 rounded-lg text-xs font-semibold hover:bg-[#162B47] transition-colors"
+    >
+        Lancer le diagnostic
+    </button>
+</div>
 
                           <button type="button" className="md:hidden text-[#1E3A5F]" onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}>
                               <Icon icon={isMobileMenuOpen ? "solar:close-square-linear" : "solar:hamburger-menu-linear"} />
@@ -3910,13 +3954,24 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
                       </div>
 
                       {isMobileMenuOpen && (
-                          <div className="md:hidden bg-white border-t border-slate-100 p-4 flex flex-col gap-4">
-                              <NavLink page="home" label="Accueil" />
-                              <NavLink page="methode" label="Notre approche" />
-                              <NavLink page="exemple" label="Exemple de rapport" />
-                              <NavLink page="pro" label="Espace Pro" />
-                          </div>
-                      )}
+    <div className="md:hidden bg-white border-t border-slate-100 p-4 flex flex-col gap-4">
+        <NavLink page="home" label="Accueil" />
+        <NavLink page="methode" label="Approche" />
+        <NavLink page="exemple" label="Rapport" />
+        <NavLink page="pro" label="Espace Pro" />
+
+        <button
+            type="button"
+            onClick={() => {
+                navigate('diagnostic');
+                setIsMobileMenuOpen(false);
+            }}
+            className="mt-1 w-full bg-[#1E3A5F] text-white py-2.5 rounded-lg text-sm font-semibold hover:bg-[#162B47] transition-colors"
+        >
+            Lancer le diagnostic
+        </button>
+    </div>
+)}
                   </nav>
 
                   <main className="flex-1">
