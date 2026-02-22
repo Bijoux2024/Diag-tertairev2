@@ -2122,9 +2122,24 @@ roiNetYears: roi.roiNetYears,
 // Projection basée sur les 3 actions prioritaires (ordre de grandeur, sans inflation énergie).
 // [TODO] Ajouter scénario +10% / +20% prix énergie.
 
-const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.gainEuro || 0), 0);
-  const projection5Y = annualSavingsIfTop3 * 5;
-  const projection10Y = annualSavingsIfTop3 * 10;
+const top3Priorities = priorities.slice(0, 3);
+
+const annualSavingsIfTop3Raw = top3Priorities.reduce((sum, p) => sum + (Number(p.gainEuro || 0)), 0);
+
+// Garde-fou métier : on ne peut pas économiser plus que la facture annuelle actuelle
+const annualSavingsIfTop3 = Math.min(Math.max(0, annualSavingsIfTop3Raw), Math.max(0, totalCost));
+
+const top3GrossCostMin = top3Priorities.reduce((sum, p) => sum + Number(p.costMin || 0), 0);
+const top3GrossCostMax = top3Priorities.reduce((sum, p) => sum + Number(p.costMax || 0), 0);
+
+const top3SubsidyMin = top3Priorities.reduce((sum, p) => sum + Number(p.subsidyMin || 0), 0);
+const top3SubsidyMax = top3Priorities.reduce((sum, p) => sum + Number(p.subsidyMax || 0), 0);
+
+const top3NetCostMin = Math.max(0, top3GrossCostMin - top3SubsidyMin);
+const top3NetCostMax = Math.max(0, top3GrossCostMax - top3SubsidyMax);
+
+const projection5Y = annualSavingsIfTop3 * 5;
+const projection10Y = annualSavingsIfTop3 * 10;
 
   // --- Plan d'action recommandé (post-diagnostic) ---
 // Timeline réaliste orientée décision : audit / chiffrage / arbitrage / suivi.
@@ -2161,10 +2176,16 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
     wasteEuro,
     isDecretEligible,
     priorities,
-    annualSavingsIfTop3,
-    projection5Y,
-    projection10Y,
-    timeline,
+   annualSavingsIfTop3,
+top3GrossCostMin,
+top3GrossCostMax,
+top3SubsidyMin,
+top3SubsidyMax,
+top3NetCostMin,
+top3NetCostMax,
+projection5Y,
+projection10Y,
+timeline,
     disclaimer: {
       precision: "Ordre de grandeur (±30%)",
       legalShort: "Estimation directionnelle basée sur données déclaratives et références sectorielles. Non contractuel."
@@ -2223,6 +2244,45 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
     { name: `Référence ${activityRef?.label || 'secteur'}`, val: refBase, fill: '#95A5A6' },
     { name: isDecretEligible ? 'Objectif 2030' : 'Objectif perf.', val: targetVal, fill: '#2ECC71' },
   ];
+  const chartMaxVal = Math.max(...chartData.map(d => Number(d.val || 0)), 1);
+
+const ChartFallbackBars = ({ items }) => (
+  <div className="h-full w-full rounded-xl border border-slate-200 bg-slate-50 p-3">
+    <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center gap-2 text-slate-600">
+        <Icon icon="solar:chart-2-linear" className="text-base" />
+        <span className="text-xs font-medium">Graphique simplifié</span>
+      </div>
+      <span className="text-[11px] text-slate-400">fallback</span>
+    </div>
+
+    <div className="space-y-3">
+      {items.map((d, i) => {
+        const widthPct = Math.max(8, Math.round((Number(d.val || 0) / chartMaxVal) * 100));
+        return (
+          <div key={i}>
+            <div className="flex items-center justify-between gap-2 mb-1">
+              <span className="text-xs text-slate-600 truncate">{d.name}</span>
+              <span className="text-xs font-semibold text-[#1E3A5F] whitespace-nowrap">
+                {intFmt(d.val)} kWh/m²
+              </span>
+            </div>
+            <div className="h-2.5 bg-white border border-slate-200 rounded-full overflow-hidden">
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{ width: `${widthPct}%`, backgroundColor: d.fill }}
+              />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+
+    <p className="mt-3 text-[11px] text-slate-400">
+      Affichage de secours. Les valeurs restent identiques au rapport.
+    </p>
+  </div>
+);
 
   const handleExportPDF = (e) => {
     e.preventDefault();
@@ -2286,9 +2346,15 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
 
   // ===== PROJECTIONS =====
   const statusQuo5Y = totalCost * 5;
-  const statusQuo10Y = totalCost * 10;
-  const optimized5Y = Math.max(0, statusQuo5Y - projection5Y);
-  const optimized10Y = Math.max(0, statusQuo10Y - projection10Y);
+const statusQuo10Y = totalCost * 10;
+
+const optimized5Y = Math.max(0, statusQuo5Y - projection5Y);
+const optimized10Y = Math.max(0, statusQuo10Y - projection10Y);
+
+// Lecture "business" : économies cumulées moins investissement net indicatif (top 3)
+const top3NetCostMid = Math.round((Number(top3NetCostMin || 0) + Number(top3NetCostMax || 0)) / 2);
+const netGainAfterInvestment5Y = projection5Y - top3NetCostMid;
+const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
 
   // ===== PETIT HELPER POUR KPI CARD =====
   const KpiCard = ({ icon, label, value, sub, accent = 'text-[#1E3A5F]', iconBg = 'bg-slate-100' }) => (
@@ -2422,18 +2488,33 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
                   <div className="w-8 flex justify-center font-semibold text-white pl-2 drop-shadow-md">{l}</div>
 
                   {dpe?.l === l && (
-                    <div className="hidden md:flex absolute top-0 right-0 h-full items-center translate-x-full pl-2 z-10">
-                      <div className="w-0 h-0 border-y-[6px] border-y-transparent border-r-[8px] border-r-[#1E3A5F] mr-2 rotate-180"></div>
-                      <span className="text-base tracking-tight font-semibold text-[#1E3A5F] whitespace-nowrap">
-                        {intFmt(kwhPerM2)} kWh/m²/an
-                      </span>
-                    </div>
-                  )}
+  <div className="absolute top-0 right-1 h-full flex items-center z-10">
+    <div className="w-2.5 h-2.5 rounded-full bg-white border-2 border-[#1E3A5F] shadow-sm"></div>
+  </div>
+)}
                 </div>
               );
             })}
           </div>
+<div className="mb-3 flex flex-wrap items-center gap-2">
+  <span className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-1.5">
+    <span className="text-xs text-slate-500">Classe estimée</span>
+    <span
+      className="inline-flex items-center justify-center w-6 h-6 rounded-md text-white text-xs font-bold"
+      style={{ backgroundColor: dpe?.c || '#64748B' }}
+    >
+      {dpe?.l || '-'}
+    </span>
+  </span>
 
+  <span className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5">
+    <Icon icon="solar:bolt-linear" className="text-sm" style={{ color: '#1E3A5F' }} />
+    <span className="text-xs text-slate-500">Consommation estimée</span>
+    <span className="text-sm font-semibold text-[#1E3A5F] whitespace-nowrap">
+      {intFmt(kwhPerM2)} kWh/m²/an
+    </span>
+  </span>
+</div>
           <p className="text-xs text-slate-500">
             Lecture simplifiée pour tertiaire. La classe est indicative et doit être confirmée par un audit si décision de travaux.
           </p>
@@ -2476,8 +2557,7 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
                   </BarChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-full flex items-center justify-center text-slate-400">Chargement...</div>
-              )}
+<ChartFallbackBars items={chartData} />              )}
             </div>
           </ChartErrorBoundary>
         </SectionCard>
@@ -2660,10 +2740,26 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
                 <span className="text-slate-500">Avec optimisations (estim.)</span>
                 <span className="font-semibold text-slate-800">{euro(optimized5Y)}</span>
               </div>
-              <div className="pt-2 mt-2 border-t border-slate-100 flex justify-between gap-3">
-                <span className="text-slate-700 font-medium">Économie potentielle cumulée</span>
-                <span className="font-semibold text-emerald-700">{euro(projection5Y)}</span>
-              </div>
+              <div className="pt-2 mt-2 border-t border-slate-100 space-y-2">
+  <div className="flex justify-between gap-3">
+    <span className="text-slate-700 font-medium">Économie potentielle cumulée</span>
+    <span className="font-semibold text-emerald-700">{euro(projection5Y)}</span>
+  </div>
+
+  <div className="flex justify-between gap-3">
+    <span className="text-slate-500">Investissement top 3 (net, indicatif)</span>
+    <span className="font-medium text-slate-700">
+      {intFmt(top3NetCostMin)} à {intFmt(top3NetCostMax)} €
+    </span>
+  </div>
+
+  <div className="flex justify-between gap-3">
+    <span className="text-slate-700 font-medium">Gain net cumulé (ordre de grandeur)</span>
+    <span className={`font-semibold ${netGainAfterInvestment5Y >= 0 ? 'text-emerald-700' : 'text-amber-700'}`}>
+      {euro(netGainAfterInvestment5Y)}
+    </span>
+  </div>
+</div>
             </div>
           </div>
 
@@ -2682,10 +2778,26 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
                 <span className="text-slate-500">Avec optimisations (estim.)</span>
                 <span className="font-semibold text-slate-800">{euro(optimized10Y)}</span>
               </div>
-              <div className="pt-2 mt-2 border-t border-slate-100 flex justify-between gap-3">
-                <span className="text-slate-700 font-medium">Économie potentielle cumulée</span>
-                <span className="font-semibold text-emerald-700">{euro(projection10Y)}</span>
-              </div>
+              <div className="pt-2 mt-2 border-t border-slate-100 space-y-2">
+  <div className="flex justify-between gap-3">
+    <span className="text-slate-700 font-medium">Économie potentielle cumulée</span>
+    <span className="font-semibold text-emerald-700">{euro(projection10Y)}</span>
+  </div>
+
+  <div className="flex justify-between gap-3">
+    <span className="text-slate-500">Investissement top 3 (net, indicatif)</span>
+    <span className="font-medium text-slate-700">
+      {intFmt(top3NetCostMin)} à {intFmt(top3NetCostMax)} €
+    </span>
+  </div>
+
+  <div className="flex justify-between gap-3">
+    <span className="text-slate-700 font-medium">Gain net cumulé (ordre de grandeur)</span>
+    <span className={`font-semibold ${netGainAfterInvestment10Y >= 0 ? 'text-emerald-700' : 'text-amber-700'}`}>
+      {euro(netGainAfterInvestment10Y)}
+    </span>
+  </div>
+</div>
             </div>
           </div>
         </div>
@@ -2735,13 +2847,14 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
           </div>
           <div>
             <h3 className="text-sm font-semibold text-amber-900 mb-2">Hypothèses et limites</h3>
-            <ul className="text-sm text-amber-800 space-y-1">
-              <li>• Rapport indicatif basé sur des données déclaratives et des références sectorielles.</li>
-              <li>• Ne remplace pas un audit réglementaire ou un audit d'exécution.</li>
-              <li>• Prix énergie, aides et devis peuvent varier selon votre situation réelle.</li>
-              <li>• Validation terrain recommandée avant engagement de travaux.</li>
-              {isDecretEligible && <li>• Votre surface suggère un sujet potentiel Décret Tertiaire à vérifier.</li>}
-            </ul>
+           <ul className="text-sm text-amber-800 space-y-1">
+  <li>• Rapport indicatif basé sur des données déclaratives et des références sectorielles.</li>
+  <li>• Estimations directionnelles non contractuelles (consommations, gains, coûts, ROI).</li>
+  <li>• Ne remplace ni un audit réglementaire, ni une visite technique, ni un devis d’entreprise.</li>
+  <li>• Aides affichées à titre indicatif, à confirmer selon éligibilité réelle et devis.</li>
+  <li>• Validation terrain recommandée avant tout engagement de travaux ou de budget.</li>
+  {isDecretEligible && <li>• Votre surface suggère un sujet potentiel Décret Tertiaire à vérifier.</li>}
+</ul>
           </div>
         </div>
       </div>
@@ -2754,8 +2867,7 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
               Besoin d'un cadrage plus fiable pour passer à l'action ?
             </h3>
             <p className="text-sm text-blue-100 leading-relaxed">
-              Ce pré-diagnostic est utile pour prioriser. La suite logique est de valider les hypothèses, chiffrer correctement
-              les postes et sécuriser les aides mobilisables.
+              Ce pré-diagnostic est utile pour prioriser. La suite logique est de valider les hypothèses, chiffrer correctement les postes et vérifier les aides mobilisables selon votre situation réelle.
             </p>
 
             <div className="mt-4 flex flex-wrap gap-2 text-xs">
@@ -3026,7 +3138,7 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
                           {[
                               {n:'01', icon:'solar:buildings-2-linear', color:'#1E3A5F', time:'30 sec', title:'Votre bâtiment', items:['Activité (bureau/commerce/hôtel)','Surface et année de construction']},
                               {n:'02', icon:'solar:bolt-linear', color:'#2ECC71', time:'1 min', title:'Vos équipements', items:['Chauffage et consommation','Travaux déjà réalisés']},
-                              {n:'03', icon:'solar:inbox-linear', color:'#F39C12', time:'15 sec', title:'Votre email', items:['Pour recevoir le rapport complet','Données protégées, jamais revendues']},
+{n:'03', icon:'solar:inbox-linear', color:'#F39C12', time:'15 sec', title:'Votre email', items:['Pour recevoir le rapport complet','Aucune revente de données • mise en relation uniquement avec accord']},
                               {n:'04', icon:'solar:document-text-linear', color:'#7B3F9E', time:'Instantané', title:'Votre diagnostic', items:['Classe énergétique estimée','3 priorités chiffrées','Aides mobilisables']},
                           ].map((s, i) => (
                               <div key={i} className="relative">
@@ -3139,7 +3251,7 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
                       <div className="space-y-3">
                           {[
   {q:'C\'est vraiment gratuit ?', r:'Oui. Le diagnostic est gratuit et sans engagement. Il sert à vous donner un premier niveau de lecture avant un éventuel audit complet.'},
-  {q:'Est-ce un audit réglementaire ?', r:'Non. C’est une estimation directionnelle basée sur vos données déclaratives et des références sectorielles tertiaires. Pour un audit réglementaire, un bureau d’études certifié reste nécessaire.'},
+{q:'Est-ce un audit réglementaire ?', r:'Non. C’est une estimation directionnelle basée sur vos données déclaratives et des références sectorielles tertiaires. Ce n’est ni un audit réglementaire, ni un devis, ni un DPE opposable. Pour engager des travaux ou répondre à une obligation réglementaire, un bureau d’études certifié reste nécessaire.'},
   {q:'Je n’ai pas mes factures, est-ce utile ?', r:'Oui. L’outil peut générer une estimation à partir de votre activité, de la surface et de la période de construction.'},
   {q:'Je suis locataire, à quoi ça me sert ?', r:'Le rapport vous aide à objectiver la discussion avec le propriétaire avec des ordres de grandeur sur les surcoûts, les priorités et le ROI des actions.'}
 ].map((faq, i) => (
@@ -3313,11 +3425,12 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
     </div>
   </div>
 
-  <p className="text-sm text-slate-600 leading-relaxed">
-    Le rapport fournit des <strong>estimations directionnelles non contractuelles</strong> (consommations, gains, coûts,
-    aides indicatives, ROI brut/net) pour cadrer le besoin. Si l’enjeu est confirmé, il faut ensuite passer
-    à un audit complet / étude technique pour sécuriser les décisions et les travaux.
-  </p>
+ <p className="text-sm text-slate-600 leading-relaxed">
+  Le rapport fournit des <strong>estimations directionnelles non contractuelles</strong> (consommations, gains, coûts,
+  aides indicatives, ROI brut/net) pour cadrer le besoin. Si l’enjeu est confirmé (écart important, arbitrage CAPEX,
+  obligation réglementaire, négociation bailleur/locataire), la suite logique est un audit complet ou une visite
+  technique pour confirmer les hypothèses et les devis.
+</p>
 </div>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <button
@@ -3439,8 +3552,9 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
 
       
 
-       {/* SOURCES / HYPOTHESES */}
-       <div className="mt-6 bg-white rounded-xl border border-slate-200 p-5">
+{/* QUAND PASSER A UN AUDIT COMPLET */}
+
+<div className="mt-6 bg-white rounded-xl border border-slate-200 p-5">
   <div className="flex items-center gap-2 mb-3 text-[#1E3A5F]">
     <Icon icon="solar:document-add-linear" className="text-lg" />
     <h3 className="text-sm font-semibold">Quand passer à un audit complet</h3>
