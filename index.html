@@ -3008,7 +3008,7 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
                                   <div className="relative z-10">
                                       <div className="text-5xl font-bold text-slate-300 mb-3 tracking-tight">{s.n}</div>
                                       <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3" style={{backgroundColor:s.color+'15'}}>
-                                         <Icon icon={s.icon} className="text-2xl" style={{ color: s.color 
+<Icon icon={s.icon} className="text-2xl" style={{ color: s.color }} />
                                       </div>
                                       <div className="inline-block bg-white border border-slate-200 rounded-full px-3 py-1 text-xs font-semibold text-slate-600 mb-3">{s.time}</div>
                                       <h3 className="text-sm font-semibold text-slate-900 mb-2">{s.title}</h3>
@@ -3138,7 +3138,7 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
                           {icon:'solar:database-linear', color:'#0891B2', title:'Basé sur données publiques', desc:'Sources ADEME et observatoires régionaux. Références sectorielles vérifiables et mises à jour régulièrement.'},
                           {icon:'solar:bolt-circle-linear', color:'#F39C12', title:'Résultat immédiat', desc:"Pas de rendez-vous. Pas d'attente. Rapport PDF téléchargeable en 3 minutes."},
                           {icon:'solar:hand-shake-linear', color:'#2ECC71', title:'Gratuit et sans engagement', desc:'Aucun paiement. Aucune obligation. Vous décidez si vous voulez aller plus loin.'},
-                          {icon:'solar:user-check-linear', color:'#1E3A5F', title:'Utilisation claire des données', desc:'Vos données peuvent être partagées avec des partenaires qualifiés si vous le souhaitez. Contrôle total sur vos choix.'}
+                          {icon:'solar:user-check-linear', color:'#1E3A5F', title:'Utilisation claire des données', desc:'Vos données ne sont pas revendues. Une mise en relation peut être proposée uniquement avec votre accord explicite.'},
                         ].map((g, i) => (
                               <div key={i} className="text-center p-5 rounded-xl border border-slate-100 hover:border-slate-200 transition-colors">
                                   <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3" style={{backgroundColor:g.color+'15'}}>
@@ -3161,18 +3161,10 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
                           Lancer mon diagnostic énergétique <Icon icon="solar:arrow-right-linear" className="text-sm" style={{color:s.color, flexShrink:0, marginTop:'2px'}} />
                       </button>
                       <div className="flex flex-wrap justify-center gap-6 text-sm text-white/80 mt-6">
-  <span className="flex items-center gap-1">
-    <iconify-icon icon="solar:check-circle-bold" style={{fontSize:'16px'}}></iconify-icon>
-    Références adaptées au tertiaire
-  </span>
-  <span className="flex items-center gap-1">
-    <iconify-icon icon="solar:check-circle-bold" style={{fontSize:'16px'}}></iconify-icon>
-    Rapport orienté décision
-  </span>
-  <span className="flex items-center gap-1">
-    <iconify-icon icon="solar:check-circle-bold" style={{fontSize:'16px'}}></iconify-icon>
-    Pré-audit en 3 minutes
-  </span>
+ <span className="flex items-center gap-1"><iconify-icon icon="solar:check-circle-bold" style={{fontSize:'16px'}}></iconify-icon> Références adaptées au tertiaire</span>
+<span className="flex items-center gap-1"><iconify-icon icon="solar:check-circle-bold" style={{fontSize:'16px'}}></iconify-icon> Rapport orienté décision</span>
+<span className="flex items-center gap-1"><iconify-icon icon="solar:check-circle-bold" style={{fontSize:'16px'}}></iconify-icon> Sans engagement, en 3 minutes</span>
+
 </div>
                       <p className="text-xs text-white/60 mt-4">En continuant, vous acceptez notre politique de confidentialité. Désinscription en 1 clic.</p>
                   </div>
@@ -3315,75 +3307,34 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
           ))}
         </div>
 
-        <div className="mt-8 grid md:grid-cols-2 gap-5">
-          <div className="bg-white rounded-xl border border-slate-200 p-5">
-  <h3 className="text-sm font-semibold text-[#1E3A5F] mb-3">Pourquoi ce pré-diagnostic existe</h3>
-  <p className="text-sm text-slate-600 leading-relaxed mb-3">
-    Un audit complet est utile, mais il représente un coût et demande du temps (visite, relevés, devis, échanges).
-    Beaucoup d’exploitants et propriétaires hésitent à se lancer sans première lecture claire.
-  </p>
- <p className="text-sm text-slate-600 leading-relaxed">
-  DiagTertiaire est un outil de <strong>pré-audit orienté décision</strong>. Il vous aide à estimer un niveau de consommation,
-  identifier les grands postes de gains, et décider s’il faut aller plus loin.
-  <strong> Un audit complet a un coût :</strong> notre objectif est donc de vous aider à valider d’abord le besoin,
-  puis à cadrer les bonnes priorités avant de passer à l’action.
-</p>
-</div>
+        <div className="bg-white rounded-xl border border-slate-200 p-5">
+  <h3 className="text-sm font-semibold text-[#1E3A5F] mb-3">Quand passer à un audit complet</h3>
 
+  <ul className="space-y-2 text-sm text-slate-600">
+    <li className="flex items-start gap-2">
+      <iconify-icon icon="solar:arrow-right-linear" style={{fontSize:'16px', color:'#1E3A5F', marginTop:'2px'}}></iconify-icon>
+      <span>Écart important à la référence sectorielle (ex : +25% à +30% et plus)</span>
+    </li>
+    <li className="flex items-start gap-2">
+      <iconify-icon icon="solar:arrow-right-linear" style={{fontSize:'16px', color:'#1E3A5F', marginTop:'2px'}}></iconify-icon>
+      <span>Projet de travaux ou arbitrage budgétaire à sécuriser</span>
+    </li>
+    <li className="flex items-start gap-2">
+      <iconify-icon icon="solar:arrow-right-linear" style={{fontSize:'16px', color:'#1E3A5F', marginTop:'2px'}}></iconify-icon>
+      <span>Négociation bailleur / locataire avec besoin d’un support technique plus solide</span>
+    </li>
+    <li className="flex items-start gap-2">
+      <iconify-icon icon="solar:arrow-right-linear" style={{fontSize:'16px', color:'#1E3A5F', marginTop:'2px'}}></iconify-icon>
+      <span>Obligations réglementaires (Décret Tertiaire, audit, stratégie patrimoniale)</span>
+    </li>
+  </ul>
 
-          <div className="bg-white rounded-xl border border-slate-200 p-5">
-  <h3 className="text-sm font-semibold text-[#1E3A5F] mb-3">Ce que l’outil fait (et ne fait pas)</h3>
-
-  <div className="mb-3">
-    <p className="text-xs font-semibold text-emerald-700 mb-1">✅ Ce que DiagTertiaire fait</p>
-    <ul className="space-y-1">
-      <li className="text-xs text-slate-600 flex items-start gap-1.5">
-        <Icon icon="solar:check-circle-linear" className="text-sm shrink-0 mt-0.5 text-emerald-600" />
-        Donner un ordre de grandeur de consommation et de coût
-      </li>
-      <li className="text-xs text-slate-600 flex items-start gap-1.5">
-        <Icon icon="solar:check-circle-linear" className="text-sm shrink-0 mt-0.5 text-emerald-600" />
-        Comparer votre niveau à une référence tertiaire adaptée
-      </li>
-      <li className="text-xs text-slate-600 flex items-start gap-1.5">
-        <Icon icon="solar:check-circle-linear" className="text-sm shrink-0 mt-0.5 text-emerald-600" />
-        Prioriser les premiers postes à analyser / traiter
-      </li>
-    </ul>
-  </div>
-
-  <div>
-    <p className="text-xs font-semibold text-amber-700 mb-1">⚠️ Ce que DiagTertiaire ne remplace pas</p>
-    <ul className="space-y-1">
-      <li className="text-xs text-slate-600 flex items-start gap-1.5">
-        <Icon icon="solar:danger-triangle-linear" className="text-sm shrink-0 mt-0.5 text-amber-600" />
-        Un audit réglementaire ou une étude d’exécution
-      </li>
-      <li className="text-xs text-slate-600 flex items-start gap-1.5">
-        <Icon icon="solar:danger-triangle-linear" className="text-sm shrink-0 mt-0.5 text-amber-600" />
-        Un devis entreprise ou une promesse contractuelle d’économies
-      </li>
-      <li className="text-xs text-slate-600 flex items-start gap-1.5">
-        <Icon icon="solar:danger-triangle-linear" className="text-sm shrink-0 mt-0.5 text-amber-600" />
-        Une analyse fine sans données réelles (factures / équipements)
-      </li>
-    </ul>
-  </div>
-</div>
-<div className="mt-5 bg-blue-50 border border-blue-200 rounded-xl p-4">
-  <div className="flex items-start gap-2">
-    <Icon icon="solar:info-circle-linear" className="text-lg text-blue-700 mt-0.5 shrink-0" />
-    <div>
-      <p className="text-sm font-semibold text-blue-900 mb-1">Pas de factures sous la main ?</p>
-      <p className="text-xs text-blue-800 leading-relaxed">
-        L’outil peut produire une estimation par défaut à partir de votre activité, surface et période de construction.
-        C’est utile pour un premier tri, mais la qualité du diagnostic augmente nettement dès que vous renseignez vos consommations réelles.
-      </p>
-    </div>
+  <div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+    Si vous n’avez pas vos factures, DiagTertiaire peut générer un ordre de grandeur.
+    <strong> La précision augmente nettement</strong> dès que vous saisissez vos consommations réelles.
   </div>
 </div>
 
-        </div>
        {/* SOURCES / HYPOTHESES */}
        <div className="mt-6 bg-white rounded-xl border border-slate-200 p-5">
   <div className="flex items-center gap-2 mb-3 text-[#1E3A5F]">
