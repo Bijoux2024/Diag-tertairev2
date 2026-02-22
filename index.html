@@ -1,7 +1,7 @@
 <html lang="fr"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DiagTertiaire - Performance Énergétique Tertiaire</title> test101
+    <title>DiagTertiaire - Performance Énergétique Tertiaire</title> 
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -54,6 +54,9 @@
       const RechartsObj = window.Recharts || {};
       const { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, LabelList } = RechartsObj;
 
+      /* ===== DONNEES METIER - FORMULAIRE & REFERENCES ===== */
+// [CRITIQUE] Les IDs d'activité (ex: office, retail, health...) sont utilisés partout
+// (formulaire, moteur multi-postes, priorités, rapport). Ne pas renommer sans propagations.
       /* --- CONSTANTS & DATA --- */
       const ACTIVITIES = [
           { id: 'office', label: 'Bureaux', icon: 'solar:buildings-2-linear', refKwh: 180 },
@@ -98,13 +101,18 @@
           { id: 'regulation', label: 'Régulation / programmation' },
       ];
 
-      const ECS_SYSTEMS = [
-          { id: 'elec_ecs', label: 'Chauffe-eau électrique', icon: 'solar:bolt-linear' },
-          { id: 'gas_ecs', label: 'Chaudière gaz', icon: 'solar:flame-linear' },
-          { id: 'pac_ecs', label: 'PAC eau chaude', icon: 'solar:water-drops-linear' },
-          { id: 'solar_ecs', label: 'Solaire thermique', icon: 'solar:sun-linear' },
-          { id: 'unknown_ecs', label: 'Je ne sais pas', icon: 'solar:question-circle-linear' },
-      ];
+      // --- ECS (eau chaude sanitaire) ---
+// Sert au moteur pré-audit pour pondérer le poste ECS selon le système déclaré.
+// [CRITIQUE] Les IDs (ex: elec_ecs, gas_ecs...) sont consommés par getEcsSystemFactor().
+
+     const ECS_SYSTEMS = [
+  { id: 'none_ecs', label: 'Non concerné / très faible', icon: 'solar:close-circle-linear' },
+  { id: 'elec_ecs', label: 'Chauffe-eau électrique', icon: 'solar:bolt-linear' },
+  { id: 'gas_ecs', label: 'Chaudière gaz', icon: 'solar:flame-linear' },
+  { id: 'pac_ecs', label: 'PAC eau chaude', icon: 'solar:water-drops-linear' },
+  { id: 'solar_ecs', label: 'Solaire thermique', icon: 'solar:sun-linear' },
+  { id: 'unknown_ecs', label: 'Je ne sais pas', icon: 'solar:question-circle-linear' },
+];
 
       const DEFAULT_FORM = {
           address: '',
@@ -461,17 +469,20 @@ const StepBuilding = ({ data, update, onNext }) => {
 
 const StepEnergy = ({ data, update, onNext, onBack }) => {
   const hasEnergyData =
+  
     data.noData ||
     (data.consumptionMode === 'kwh'
       ? (Number(data.elecKwh || 0) + Number(data.gasKwh || 0) > 0)
       : (Number(data.elecEuro || 0) + Number(data.gasEuro || 0) > 0));
-
-  const isValid =
+  const ecsRelevantActivities = ['restaurant', 'hotel', 'health', 'mixed'];
+  const showEcsBlock = ecsRelevantActivities.includes(data.activity);
+     const isValid =
     data.heating &&
     data.heatingAge &&
     data.occupation &&
     data.hasWorks &&
-    (data.noData || hasEnergyData);
+    (data.noData || hasEnergyData) &&
+    (!showEcsBlock || !!data.ecsSystem);
 
   const toggleWork = (workId) => {
     const current = Array.isArray(data.works) ? data.works : [];
@@ -505,6 +516,27 @@ const StepEnergy = ({ data, update, onNext, onBack }) => {
               ))}
             </div>
           </div>
+                    {showEcsBlock && (
+            <div>
+              <h3 className="text-sm font-semibold text-[#1E3A5F] mb-3">
+                Production d’eau chaude sanitaire (ECS)
+              </h3>
+              <p className="text-xs text-slate-500 mb-3">
+                Champ important pour les activités avec besoins d’eau chaude (restaurant, hôtel, santé).
+              </p>
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {ECS_SYSTEMS.map((ecs) => (
+                  <CardSelect
+                    key={ecs.id}
+                    selected={data.ecsSystem === ecs.id}
+                    onClick={() => update('ecsSystem', ecs.id)}
+                    icon={ecs.icon}
+                    label={ecs.label}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           <div>
             <h3 className="text-sm font-semibold text-[#1E3A5F] mb-3">Âge du système de chauffage</h3>
@@ -819,7 +851,130 @@ const getMixedRef = (pct = 50) => {
   // Conservé volontairement simple (bureaux + retail)
   return Math.round((180 * pct / 100) + (350 * (100 - pct) / 100));
 };
+function getActivityPosteShares(activity) {
+  const map = {
+    office:        { heating: 0.38, ecs: 0.05, lighting: 0.22, auxiliaries: 0.20, specific: 0.15 },
+    retail:        { heating: 0.30, ecs: 0.08, lighting: 0.30, auxiliaries: 0.15, specific: 0.17 },
+    restaurant:    { heating: 0.22, ecs: 0.22, lighting: 0.18, auxiliaries: 0.16, specific: 0.22 },
+    hotel:         { heating: 0.25, ecs: 0.28, lighting: 0.18, auxiliaries: 0.14, specific: 0.15 },
+    healthc:    { heating: 0.30, ecs: 0.20, lighting: 0.18, auxiliaries: 0.17, specific: 0.15 },
+    warehouse:     { heating: 0.42, ecs: 0.03, lighting: 0.22, auxiliaries: 0.18, specific: 0.15 },
+    mixed:         { heating: 0.33, ecs: 0.10, lighting: 0.22, auxiliaries: 0.18, specific: 0.17 }
+  };
+  return map[activity] || map.mixed;
+}
 
+function getEcsImpactFactor(form) {
+  const ecs = form.ecsSystem || 'unknown';
+  if (ecs === 'none') return 0.35;          // peu ou pas d'ECS
+  if (ecs === 'electric') return 1.15;      // souvent coûteux
+  if (ecs === 'gas') return 1.00;
+  if (ecs === 'heatpump') return 0.75;      // plus performant
+  if (ecs === 'solar') return 0.55;         // appoint réduit
+  return 1.00; // unknown
+}
+
+function computeConsumptionBreakdown(totalKwh, form) {
+  const shares = getActivityPosteShares(form.activity || 'mixed');
+  const ecsFactor = getEcsImpactFactor(form);
+
+  // Ajuste l'ECS puis renormalise pour rester à 100%
+  const raw = {
+    heating: shares.heating,
+    ecs: shares.ecs * ecsFactor,
+    lighting: shares.lighting,
+    auxiliaries: shares.auxiliaries,
+    specific: shares.specific
+  };
+
+  const sum = Object.values(raw).reduce((a, b) => a + b, 0) || 1;
+
+  const normalized = {
+    heating: raw.heating / sum,
+    ecs: raw.ecs / sum,
+    lighting: raw.lighting / sum,
+    auxiliaries: raw.auxiliaries / sum,
+    specific: raw.specific / sum
+  };
+
+  const breakdown = {
+    heating: Math.round(totalKwh * normalized.heating),
+    ecs: Math.round(totalKwh * normalized.ecs),
+    lighting: Math.round(totalKwh * normalized.lighting),
+    auxiliaries: Math.round(totalKwh * normalized.auxiliaries),
+    specific: Math.round(totalKwh * normalized.specific)
+  };
+
+  // petit correctif d'arrondi pour retomber exactement sur totalKwh
+  const currentSum = Object.values(breakdown).reduce((a, b) => a + b, 0);
+  const delta = Math.round(totalKwh - currentSum);
+  if (delta !== 0) breakdown.heating += delta;
+
+  return { shares: normalized, breakdown };
+}
+
+function getActionGainsByPoste(form) {
+  const activity = form.activity || 'mixed';
+  const buildingYear = Number(form.year) || 2005;
+  const heatingAge = Number(form.heatingAge) || 12;
+  const hasRecentWorks = !!form.recentWorks;
+  const ecsSystem = form.ecsSystem || 'unknown';
+
+  // coefficients simples mais crédibles
+  const oldBuildingBoost = buildingYear < 2000 ? 1.15 : 1.0;
+  const veryOldBuildingBoost = buildingYear < 1980 ? 1.25 : oldBuildingBoost;
+  const oldHeatingBoost = heatingAge >= 15 ? 1.15 : 1.0;
+  const recentWorksPenalty = hasRecentWorks ? 0.85 : 1.0;
+
+  const ledBoost = (activity === 'retail' || activity === 'office') ? 1.15 : 1.0;
+  const ecsBoost = (activity === 'hotel' || activity === 'restaurant' || activity === 'health') ? 1.20 : 0.80;
+  const ecsSystemBoost = ecsSystem === 'electric' ? 1.15 : (ecsSystem === 'heatpump' || ecsSystem === 'solar' ? 0.75 : 1.0);
+
+  return {
+    roof: {
+      heating: 0.16 * veryOldBuildingBoost * recentWorksPenalty,
+      ecs: 0,
+      lighting: 0,
+      auxiliaries: 0,
+      specific: 0
+    },
+    regulation: {
+      heating: 0.10 * oldHeatingBoost,
+      ecs: 0.03,
+      lighting: 0,
+      auxiliaries: 0.06,
+      specific: 0
+    },
+    windows: {
+      heating: 0.07 * oldBuildingBoost * recentWorksPenalty,
+      ecs: 0,
+      lighting: 0,
+      auxiliaries: 0,
+      specific: 0
+    },
+    heating: {
+      heating: 0.20 * oldHeatingBoost,
+      ecs: 0.04, // légère amélioration globale si système mieux piloté
+      lighting: 0,
+      auxiliaries: 0.03,
+      specific: 0
+    },
+    led: {
+      heating: 0,
+      ecs: 0,
+      lighting: 0.28 * ledBoost * recentWorksPenalty,
+      auxiliaries: 0.02,
+      specific: 0
+    },
+    ecs: {
+      heating: 0,
+      ecs: 0.22 * ecsBoost * ecsSystemBoost * recentWorksPenalty,
+      lighting: 0,
+      auxiliaries: 0,
+      specific: 0
+    }
+  };
+}
 const parseCostRange = (costStr) => {
   if (!costStr || typeof costStr !== 'string') return { min: 0, max: 0 };
 
@@ -856,6 +1011,9 @@ const parseCostRange = (costStr) => {
 
   return { min: values[0], max: values[0] };
 };
+
+// Estimation simple des aides (CEE / MaPrimeRénov' si applicable) par type d'action.
+// [IMPORTANT] Valeurs indicatives uniquement (pré-audit) -> à confirmer par audit/devis.
 
 const estimateAidRanges = (priorityId, surface, isDecretEligible) => {
   // Fourchettes prudentes et génériques (non contractuelles)
@@ -1236,7 +1394,7 @@ const buildPDFHtml = (data, analysis) => {
               <div class="action-grid">
                 <div class="action-metric">
                   <div class="action-label">Économies énergie</div>
-                  <div class="action-value">${p.gainKwhVal.toLocaleString('fr-FR')} kWh/an</div>
+                  <div class="action-value">${Number(p.gainKwh || 0).toLocaleString('fr-FR')} kWh/an</div>
                 </div>
                 <div class="action-metric">
                   <div class="action-label">Gain financier</div>
@@ -1250,20 +1408,22 @@ const buildPDFHtml = (data, analysis) => {
                   <div class="action-label">ROI (hors aides)</div>
                   <div class="action-value">
                     ${(() => {
-                      const gain = p.gainEuro || 0;
-                      if (!gain) return "À estimer";
-                      const roiMin = Math.round((p.costMin / gain) * 10) / 10;
-                      const roiMax = Math.round((p.costMax / gain) * 10) / 10;
-                      return roiMin.toLocaleString('fr-FR') + ' à ' + roiMax.toLocaleString('fr-FR') + ' ans';
-                    })()}
+  const gross = Number(p.roiGrossYears || 0);
+  const net = Number(p.roiNetYears || 0);
+  if (net > 0 && gross > 0) {
+    return `${net.toLocaleString('fr-FR')} ans (net) | ${gross.toLocaleString('fr-FR')} ans (brut)`;
+  }
+  if (gross > 0) return `${gross.toLocaleString('fr-FR')} ans (brut)`;
+  return "À estimer";
+})()}
                   </div>
                 </div>
               </div>
               
               <div class="aids-box">
                 <div class="aids-title">💸 Aides indicatives</div>
-                <div class="aids-item">• CEE : ${p.aids?.cee?.label?.replace(/^CEE\s*:\s*/i, "") || "À estimer"}</div>
-                <div class="aids-item">• MaPrimeRénov' : ${p.aids?.mpr?.label?.replace(/^MaPrimeRénov'\s*:\s*/i, "") || "À vérifier"}</div>
+                <div class="aids-item">• Aides estimées : ${(Number(p.subsidyMin || 0)).toLocaleString('fr-FR')} à ${(Number(p.subsidyMax || 0)).toLocaleString('fr-FR')} €</div>
+<div class="aids-item">• Montant à confirmer selon devis et éligibilité réelle</div>
               </div>
             </div>
           `).join('')}
@@ -1290,45 +1450,483 @@ const buildPDFHtml = (data, analysis) => {
     </html>
   `;
 };
+      /* ===== PHASE B - MOTEUR MULTI-POSTES (PRE-AUDIT CREDIBLE) ===== */
+// Objectif : produire une estimation directionnelle crédible (pas un audit réglementaire)
+// en répartissant la consommation totale sur 5 postes, puis en calculant les gains par action.
+// [DEPENDANCE] Utilisé par buildReportData() pour générer priorités, ROI, projections.
+
+      const POSTE_KEYS = ['heating', 'ecs', 'lighting', 'auxiliaries', 'specific'];
+
+// --- Profils de répartition par activité ---
+// Chaque profil représente une répartition "typique" des consommations (%)
+// entre chauffage, ECS, éclairage, auxiliaires, usages spécifiques.
+// [CRITIQUE] Clés d'activité alignées avec ACTIVITIES (ex: 'health' et non 'healthcare')
+
+      const ACTIVITY_POSTE_PROFILES = {
+          office:     { heating: 0.38, ecs: 0.03, lighting: 0.24, auxiliaries: 0.20, specific: 0.15 },
+          retail:     { heating: 0.30, ecs: 0.05, lighting: 0.30, auxiliaries: 0.15, specific: 0.20 },
+          hotel:      { heating: 0.28, ecs: 0.27, lighting: 0.16, auxiliaries: 0.14, specific: 0.15 },
+          health: { heating: 0.26, ecs: 0.18, lighting: 0.18, auxiliaries: 0.20, specific: 0.18 },
+          education:  { heating: 0.42, ecs: 0.05, lighting: 0.20, auxiliaries: 0.18, specific: 0.15 },
+          warehouse:  { heating: 0.32, ecs: 0.02, lighting: 0.22, auxiliaries: 0.16, specific: 0.28 },
+          mixed:      { heating: 0.33, ecs: 0.08, lighting: 0.22, auxiliaries: 0.17, specific: 0.20 },
+          default:    { heating: 0.34, ecs: 0.07, lighting: 0.22, auxiliaries: 0.18, specific: 0.19 },
+      };
+
+      // --- Sensibilité ECS par activité ---
+// Coefficient multiplicateur du poste ECS selon l'activité.
+// Exemple : hôtel / santé => ECS plus structurant ; bureau / entrepôt => ECS faible.
+
+      const ECS_ACTIVITY_WEIGHT = {
+          office: 0.4,
+          retail: 0.7,
+          hotel: 1.6,
+          health: 1.25,
+          education: 0.9,
+          warehouse: 0.2,
+          mixed: 1.0,
+      };
+
+      // --- Pondération ECS selon système déclaré ---
+// Permet d'ajuster le poids du poste ECS si l'utilisateur déclare un système pertinent.
+// 'none_ecs' réduit fortement le poste ECS ; PAC/solaire peuvent renforcer le poste ECS estimé.
+
+      const ECS_SYSTEM_FACTORS = {
+          none: 0.10,
+          low: 0.35,
+          elec: 1.15,
+          gas: 1.00,
+          pac: 0.75,
+          solar: 0.55,
+          unknown: 1.00
+      };
+      
+
+      function normalizePosteProfile(profile) {
+          const safe = { ...ACTIVITY_POSTE_PROFILES.default, ...(profile || {}) };
+          const sum = POSTE_KEYS.reduce((acc, k) => acc + (Number(safe[k]) || 0), 0) || 1;
+          const out = {};
+          POSTE_KEYS.forEach((k) => {
+              out[k] = (Number(safe[k]) || 0) / sum;
+          });
+          return out;
+      }
+
+      function buildPosteProfile(form) {
+          const activityId = normalizeActivityId(form?.activity || 'mixed');
+          const base = normalizePosteProfile(ACTIVITY_POSTE_PROFILES[activityId] || ACTIVITY_POSTE_PROFILES.default);
+
+          const profile = { ...base };
+
+          // Ajustement ECS selon activité + système ECS déclaré
+          const ecsSystem = form?.ecsSystem || 'unknown';
+          const ecsActivityWeight = ECS_ACTIVITY_WEIGHT[activityId] ?? 1.0;
+          const ecsSystemFactor = ECS_SYSTEM_FACTORS[ecsSystem] ?? 1.0;
+
+          let ecsBoost = ecsActivityWeight * ecsSystemFactor;
+
+          // Si l'utilisateur indique "peu ou pas d'ECS", on réduit nettement
+          if (ecsSystem === 'none' || ecsSystem === 'low') {
+              ecsBoost = Math.min(ecsBoost, 0.5);
+          }
+
+          // Applique un boost/nerf relatif sur le poste ECS
+          profile.ecs = Math.max(0.01, profile.ecs * ecsBoost);
+
+          // Ajustement léger chauffage selon âge du bâtiment
+          const yearBoostMap = {
+              pre1975: 1.10,
+              '1975-1990': 1.07,
+              '1990-2005': 1.03,
+              '2005-2012': 0.98,
+              post2012: 0.92
+          };
+          const yearBoost = yearBoostMap[form?.year] ?? 1.0;
+          profile.heating = Math.max(0.05, profile.heating * yearBoost);
+
+          // Ajustement éclairage / auxiliaires selon occupation
+          const occupationBoostMap = {
+              semaine: { lighting: 0.95, auxiliaries: 0.95, specific: 0.95 },
+              '6j':     { lighting: 1.00, auxiliaries: 1.00, specific: 1.00 },
+              '7j':     { lighting: 1.08, auxiliaries: 1.10, specific: 1.05 },
+              etendu:   { lighting: 1.12, auxiliaries: 1.08, specific: 1.08 }
+          };
+          const occ = occupationBoostMap[form?.occupation] || occupationBoostMap['6j'];
+          profile.lighting = Math.max(0.05, profile.lighting * occ.lighting);
+          profile.auxiliaries = Math.max(0.05, profile.auxiliaries * occ.auxiliaries);
+          profile.specific = Math.max(0.05, profile.specific * occ.specific);
+
+          return normalizePosteProfile(profile);
+      }
+
+      function splitConsumptionByPostes(totalKwh, posteProfile) {
+          const total = Math.max(0, Number(totalKwh) || 0);
+          const profile = normalizePosteProfile(posteProfile);
+          const out = {};
+
+          POSTE_KEYS.forEach((k) => {
+              out[k] = Math.round(total * profile[k]);
+          });
+
+          // correction d'arrondi pour retomber exactement sur le total
+          const currentSum = POSTE_KEYS.reduce((acc, k) => acc + out[k], 0);
+          const diff = total - currentSum;
+          out.heating += diff;
+
+          return out;
+      }
+
+      function getPosteLabels() {
+          return {
+              heating: 'Chauffage',
+              ecs: 'ECS',
+              lighting: 'Éclairage',
+              auxiliaries: 'Ventilation / auxiliaires',
+              specific: 'Usages spécifiques'
+          };
+      }
+
+      function estimateAidesRange(costMin, costMax, form) {
+          const activity = form?.activity || 'mixed';
+
+          // Taux indicatifs (pré-audit), volontairement prudents
+          let tauxMin = 0.10;
+          let tauxMax = 0.25;
+
+          if (['office', 'education'].includes(activity)) {
+              tauxMin = 0.12;
+              tauxMax = 0.28;
+          }
+
+          if (['hotel', 'health'].includes(activity)) {
+              tauxMin = 0.08;
+              tauxMax = 0.22;
+          }
+
+          const aideMin = Math.round(costMin * tauxMin);
+          const aideMax = Math.round(costMax * tauxMax);
+
+          return {
+              min: Math.max(0, aideMin),
+              max: Math.max(aideMin, aideMax),
+              rateMin: tauxMin,
+              rateMax: tauxMax
+          };
+      }
+
+      function roiYearsFrom(cost, annualGainEuro) {
+          if (!annualGainEuro || annualGainEuro <= 0) return null;
+          return +(cost / annualGainEuro).toFixed(1);
+      }
+      // ===== PHASE B - MOTEUR MULTI-POSTES (PRE-AUDIT) =====
+const ACTIVITY_POSTE_SHARES = {
+  office:     { heating: 0.38, ecs: 0.05, lighting: 0.27, auxiliaries: 0.20, specific: 0.10 },
+  retail:     { heating: 0.32, ecs: 0.06, lighting: 0.34, auxiliaries: 0.18, specific: 0.10 },
+  hotel:      { heating: 0.28, ecs: 0.26, lighting: 0.18, auxiliaries: 0.16, specific: 0.12 },
+  restaurant: { heating: 0.20, ecs: 0.28, lighting: 0.18, auxiliaries: 0.14, specific: 0.20 },
+  health:     { heating: 0.26, ecs: 0.22, lighting: 0.20, auxiliaries: 0.20, specific: 0.12 },
+  warehouse:  { heating: 0.42, ecs: 0.03, lighting: 0.22, auxiliaries: 0.23, specific: 0.10 },
+  mixed:      { heating: 0.34, ecs: 0.10, lighting: 0.24, auxiliaries: 0.20, specific: 0.12 }
+};
+
+const ACTION_POSTE_IMPACTS = {
+  led:        { lighting: 0.35 },
+  regulation: { heating: 0.12, auxiliaries: 0.08 },
+  heating:    { heating: 0.22 },
+  ecs:        { ecs: 0.20 },
+  insulation: { heating: 0.18 },
+  ventilation:{ auxiliaries: 0.16, heating: 0.04 }
+};
+
+function clamp01(v) {
+  return Math.max(0, Math.min(1, Number(v || 0)));
+}
+
+function round1(v) {
+  return Math.round(Number(v || 0) * 10) / 10;
+}
+
+function getActionImpactsByContext(actionKey, data) {
+  const base = ACTION_POSTE_IMPACTS[actionKey] || {};
+
+  // Modulateurs simples et crédibles (pré-audit)
+  const buildingYear = Number(data.buildingYear || 0);
+  const isOldBuilding = buildingYear > 0 && buildingYear < 2000;
+  const longHours = Number(data.openingHours || 0) >= 60;
+
+  const activity = data.activity || "mixed";
+  const isHotelLike = ["hotel", "health", "restaurant"].includes(activity);
+  const isOfficeLike = ["office"].includes(activity);
+  const isRetailLike = ["retail"].includes(activity);
+
+  const out = { ...base };
+
+  // LED plus pertinente sur retail / longues amplitudes
+  if (actionKey === "led") {
+    if (isRetailLike || longHours) {
+      out.lighting = clamp01((out.lighting || 0) * 1.15);
+    }
+    if (isOfficeLike && !longHours) {
+      out.lighting = clamp01((out.lighting || 0) * 0.95);
+    }
+  }
+
+  // ECS plus pertinente pour hôtel / santé / restauration
+  if (actionKey === "ecs") {
+    if (isHotelLike) {
+      out.ecs = clamp01((out.ecs || 0) * 1.2);
+    } else if (activity === "warehouse") {
+      out.ecs = clamp01((out.ecs || 0) * 0.6);
+    }
+  }
+
+  // Isolation / chauffage plus pertinents sur bâtiment ancien
+  if (actionKey === "insulation" && isOldBuilding) {
+    out.heating = clamp01((out.heating || 0) * 1.15);
+  }
+  if (actionKey === "heating" && isOldBuilding) {
+    out.heating = clamp01((out.heating || 0) * 1.1);
+  }
+
+  // Régulation plus utile si horaires étendus
+  if (actionKey === "regulation" && longHours) {
+    out.heating = clamp01((out.heating || 0) * 1.1);
+    out.auxiliaries = clamp01((out.auxiliaries || 0) * 1.1);
+  }
+
+  return out;
+}
+
+// Répartit la consommation totale (kWh/an) sur les 5 postes selon le profil calculé.
+// Retourne des kWh annuels par poste (heating, ecs, lighting, aux, specific).
+// [CRITIQUE] Le total retourné doit rester cohérent avec totalKwh (arrondis contrôlés).
+
+function computeSavingsFromPostes(postes, impacts, avgPrice) {
+  const heatingKwh = Math.round((postes.heating || 0) * (impacts.heating || 0));
+  const ecsKwh = Math.round((postes.ecs || 0) * (impacts.ecs || 0));
+  const lightingKwh = Math.round((postes.lighting || 0) * (impacts.lighting || 0));
+  const auxiliariesKwh = Math.round((postes.auxiliaries || 0) * (impacts.auxiliaries || 0));
+  const specificKwh = Math.round((postes.specific || 0) * (impacts.specific || 0));
+
+  const totalKwh = heatingKwh + ecsKwh + lightingKwh + auxiliariesKwh + specificKwh;
+  const totalEuro = Math.round(totalKwh * avgPrice);
+
+  return {
+    byPoste: {
+      heatingKwh,
+      ecsKwh,
+      lightingKwh,
+      auxiliariesKwh,
+      specificKwh
+    },
+    totalKwh,
+    totalEuro
+  };
+}
+
+function computeRoiMetrics(costMin, costMax, subsidyMin, subsidyMax, annualSavingsEuro) {
+  const safeSavings = Math.max(1, Number(annualSavingsEuro || 0));
+
+  const grossCostMid = (Number(costMin || 0) + Number(costMax || 0)) / 2;
+  const netCostMid = Math.max(
+    0,
+    grossCostMid - ((Number(subsidyMin || 0) + Number(subsidyMax || 0)) / 2)
+  );
+
+  const roiGrossYears = grossCostMid / safeSavings;
+  const roiNetYears = netCostMid / safeSavings;
+
+  return {
+    grossCostMid: Math.round(grossCostMid),
+    netCostMid: Math.round(netCostMid),
+    roiGrossYears: round1(roiGrossYears),
+    roiNetYears: round1(roiNetYears)
+  };
+}
+
+// Normalise un profil de postes pour garantir une somme = 1.0
+// [CRITIQUE] Evite les dérives après pondérations (occupation, ECS, etc.)
+
+const normalizePosteShares = (shares) => {
+  const total = Object.values(shares || {}).reduce((s, v) => s + Number(v || 0), 0) || 1;
+  const out = {};
+  Object.keys(shares || {}).forEach((k) => { out[k] = Number(shares[k] || 0) / total; });
+  return out;
+};
+
+const getEcsWeightFactor = (ecsSystem, activity) => {
+  const ecs = (ecsSystem || '').toLowerCase();
+  const a = (activity || '').toLowerCase();
+
+  // Activités où l'ECS est structurellement importante
+  const highEcsActivities = ['hotel', 'restaurant', 'health'];
+
+  if (ecs.includes('non') || ecs.includes('faible')) return 0.35;
+  if (ecs.includes('je ne sais pas')) return highEcsActivities.includes(a) ? 1.0 : 0.7;
+  if (ecs.includes('solaire')) return 0.75;
+  if (ecs.includes('pac')) return 0.85;
+  if (ecs.includes('gaz') || ecs.includes('élect') || ecs.includes('elect')) return 1.0;
+
+  return highEcsActivities.includes(a) ? 1.0 : 0.7;
+};
+
+// Génère le catalogue d'actions de travaux / optimisations avec :
+// - impacts par poste (ex: LED -> lighting, ECS -> ecs, régulation -> heating+aux)
+// - gains énergétiques estimés
+// - gains €
+// - aides estimées
+// - ROI brut / net
+// [DEPENDANCE] Les priorités du rapport sont construites à partir de ce catalogue.
+
+const buildActionCatalog = ({ data, surface, postes, avgPrice, isDecretEligible }) => {
+  const ecsFactor = getEcsWeightFactor(data.ecsSystem, data.activity);
+  const heatingAgeOld = data.heatingAge === '> 15 ans';
+  const oldBuilding = ['pre1975', '1975-1990'].includes(data.year);
+
+  // [METIER] Action ECS renforcée pour hôtel / restaurant / health (ECS souvent significative)
+  const actions = [
+    {
+      id: 'roof',
+      tag: 'Enveloppe',
+      title: "Isolation toiture / combles",
+      costMin: 6000,
+      costMax: 25000,
+      impacts: { heating: oldBuilding ? 0.22 : 0.16 },
+      relevanceBoost: oldBuilding ? 1.2 : 1.0
+    },
+    {
+      id: 'regulation',
+      tag: 'Pilotage',
+      title: "Régulation / programmation",
+      costMin: 1500,
+      costMax: 8000,
+      impacts: { heating: heatingAgeOld ? 0.12 : 0.09, auxiliaries: 0.08 },
+      relevanceBoost: heatingAgeOld ? 1.15 : 1.0
+    },
+    {
+      id: 'windows',
+      tag: 'Confort',
+      title: "Menuiseries / étanchéité",
+      costMin: 5000,
+      costMax: 30000,
+      impacts: { heating: oldBuilding ? 0.12 : 0.07 },
+      relevanceBoost: oldBuilding ? 1.1 : 0.95
+    },
+    {
+      id: 'heating',
+      tag: 'Performance',
+      title: "Remplacement chauffage",
+      costMin: 12000,
+      costMax: 30000,
+      impacts: { heating: heatingAgeOld ? 0.26 : 0.18 },
+      relevanceBoost: heatingAgeOld ? 1.25 : 0.9
+    },
+    {
+      id: 'led',
+      tag: 'ROI rapide',
+      title: "Relamping LED complet",
+      costMin: 3000,
+      costMax: 12000,
+      impacts: { lighting: data.activity === 'retail' ? 0.28 : 0.22 },
+      relevanceBoost: ['retail', 'office', 'health'].includes(data.activity) ? 1.1 : 1.0
+    },
+    {
+      id: 'ecs',
+      tag: 'Eau chaude',
+      title: "Optimisation production ECS",
+      costMin: 2500,
+      costMax: 18000,
+      impacts: { ecs: 0.18 * ecsFactor },
+      relevanceBoost: ['hotel', 'restaurant', 'health'].includes(data.activity) ? 1.25 : 0.8
+    }
+  ];
+
+  return actions.map((a) => {
+    const gainKwhVal = Math.round(
+      Object.entries(a.impacts || {}).reduce((sum, [poste, pct]) => {
+        const posteKwh = Number(postes[poste] || 0);
+        return sum + (posteKwh * Number(pct || 0));
+      }, 0)
+    );
+
+    const gainEuro = Math.round(gainKwhVal * avgPrice);
+    const gainPctTotal = Math.max(0, Math.round((gainKwhVal / Math.max(1, Object.values(postes).reduce((s, v) => s + v, 0))) * 100));
+    const aids = estimateAidRanges(a.id, surface, isDecretEligible);
+
+    const aidsMin = Math.max(0, Number(aids?.cee?.min || 0) + Number(aids?.mpr?.min || 0));
+    const aidsMax = Math.max(0, Number(aids?.cee?.max || 0) + Number(aids?.mpr?.max || 0));
+
+    const costMid = Math.round((a.costMin + a.costMax) / 2);
+    const aidsMid = Math.round((aidsMin + aidsMax) / 2);
+    const netMid = Math.max(0, costMid - aidsMid);
+
+    const roiBrutYears = gainEuro > 0 ? Math.round((costMid / gainEuro) * 10) / 10 : null;
+    const roiNetYears = gainEuro > 0 ? Math.round((netMid / gainEuro) * 10) / 10 : null;
+
+    // Score de priorité (simple mais crédible)
+    const roiScore = roiNetYears ? Math.max(0, 12 - roiNetYears) : 0;
+    const absoluteGainScore = gainEuro / 500; // normalisation grossière
+    const priorityScore = (roiScore * 1.2) + absoluteGainScore + (a.relevanceBoost || 1);
+
+    return {
+      ...a,
+      gainKwhVal,
+      gainKwhPct: `${gainPctTotal}%`,
+      gainEuro,
+      aids,
+      aidsMin,
+      aidsMax,
+      roiBrutYears,
+      roiNetYears,
+      priorityScore
+    };
+  });
+};
+/* ===== GENERATION DU RAPPORT (SOURCE UNIQUE ECRAN + PDF) ===== */
+// Cette fonction centralise tous les calculs du rapport :
+// consommation, DPE estimé, écart à la référence, répartition multi-postes,
+// priorités, ROI, projections 5/10 ans, timeline.
+// [CRITIQUE] Toute modification ici impacte l'écran ET le PDF.
+
 const buildReportData = (data) => {
-  const activityRef = ACTIVITIES.find(a => a.id === data.activity) || ACTIVITIES[0];
+  const activityId = normalizeActivityId(data.activity);
   const yearRef = YEARS.find(y => y.id === data.year) || YEARS[0];
 
-  const refBase = data.activity === 'mixed'
-    ? getMixedRef(data.activityMixPct || 50)
-    : activityRef.refKwh;
+  const refBase = activityId === 'mixed'
+  ? getMixedRef(data.activityMixPct || 50)
+  : activityRef.refKwh;
 
   const heatingLabel = getHeatingLabel(data.heating);
   const occupationLabel = getOccupationLabel(data.occupation);
+  const surface = Math.max(1, Number(data.surface || 1));
 
   // Prix énergie (corrigé)
   const avgPrice = getEnergyPrice(data.heating);
 
-  // Calcul consommation totale
-  let sysCoef = data.heatingAge === '> 15 ans' ? 1.15 : data.heatingAge === '5 à 15 ans' ? 1.05 : 1.0;
 
-  let consumptionTotalKwh = 0;
-  if (data.noData) {
-    consumptionTotalKwh = Math.round((refBase * yearRef.coef * sysCoef) * Number(data.surface || 0));
-  } else {
-    if (data.consumptionMode === 'euro') {
-      const elecEuro = Number(data.elecEuro || 0);
-      const gasEuro = Number(data.gasEuro || 0);
-      const elecKwhFromEuro = elecEuro / 0.25;
-      const gasKwhFromEuro = gasEuro / 0.12;
-      consumptionTotalKwh = elecKwhFromEuro + gasKwhFromEuro;
-    } else {
-      const elec = Number(data.elecKwh || 0);
-      const gas = Number(data.gasKwh || 0);
-      consumptionTotalKwh = elec + gas;
-    }
+ // --- Détermination de la consommation annuelle ---
+// Priorité : kWh déclarés > € déclarés (convertis) > estimation par défaut.
+// [IMPORTANT] On reste sur un modèle pré-audit (ordre de grandeur).
 
-    if (!consumptionTotalKwh || consumptionTotalKwh <= 0) {
-      consumptionTotalKwh = Math.round((refBase * yearRef.coef * sysCoef) * Number(data.surface || 0));
-    }
-  }
+let consumptionTotalKwh = 0;
+let consumptionSource = 'estimate'; // 'declared_kwh' | 'declared_euro' | 'estimate'
 
-  const surface = Math.max(1, Number(data.surface || 1));
+if (data.elecKwh || data.gasKwh) {
+  consumptionTotalKwh = (Number(data.elecKwh) || 0) + (Number(data.gasKwh) || 0);
+  consumptionSource = 'declared_kwh';
+} else if (data.elecEuro || data.gasEuro) {
+  const e = (Number(data.elecEuro) || 0) / ENERGY_PRICES.electricity;
+  const g = (Number(data.gasEuro) || 0) / ENERGY_PRICES.gas;
+  consumptionTotalKwh = Math.round(e + g);
+  consumptionSource = 'declared_euro';
+} else {
+  consumptionTotalKwh = getDefaultConsumption(data.activity, surface);
+  consumptionSource = 'estimate';
+}
+
+consumptionTotalKwh = Math.max(consumptionTotalKwh, 500);
+
+
   const kwhPerM2 = Math.round(consumptionTotalKwh / surface);
 
   const dpe = typeof getDPE === 'function' ? getDPE(kwhPerM2) : { l: 'D', c: '#F59E0B', w: '70%' };
@@ -1336,59 +1934,170 @@ const buildReportData = (data) => {
   const refTotal = refBase * surface;
   const diffPctRaw = ((kwhPerM2 - refBase) / refBase) * 100;
   const diffPct = Math.round(diffPctRaw);
-
   const totalCost = Math.round(consumptionTotalKwh * avgPrice);
-  const wasteKwh = Math.max(0, consumptionTotalKwh - refTotal);
-  const wasteEuro = Math.round(wasteKwh * avgPrice);
+const wasteKwh = Math.max(0, consumptionTotalKwh - refTotal);
+const wasteEuro = Math.round(wasteKwh * avgPrice);
+
 
   const isDecretEligible = surface >= 1000;
+ // ===== Répartition multi-postes (moteur pré-audit unifié) =====
 
-  // Priorités - NE PAS FORMATER LES COÛTS ICI (on le fera dans le PDF)
-  const potentialPriorities = [
-    { id: 'roof', tag: 'Enveloppe', title: "Isolation toiture / combles", gainPct: 0.18, costMin: 6000, costMax: 25000 },
-    { id: 'regulation', tag: 'Pilotage', title: "Régulation / programmation", gainPct: 0.10, costMin: 1500, costMax: 8000 },
-    { id: 'windows', tag: 'Confort', title: "Menuiseries / étanchéité", gainPct: 0.08, costMin: 5000, costMax: 30000 },
-    { id: 'heating', tag: 'Performance', title: "Remplacement chauffage", gainPct: 0.20, costMin: 12000, costMax: 30000 },
-    { id: 'led', tag: 'ROI rapide', title: "Relamping LED complet", gainPct: 0.12, costMin: 3000, costMax: 12000 }
-  ];
+ // Construit le profil final de répartition des postes à partir des données du formulaire.
+// Etapes typiques :
+// 1) Base par activité
+// 2) Ajustement occupation
+// 3) Ajustement ECS (activité + système déclaré)
+// 4) Normalisation
+// [DEPENDANCE] Appelé dans buildReportData() avant splitConsumptionByPostes()
 
-  let selectedIds = [];
+
+// --- Moteur multi-postes (coeur du pré-audit) ---
+// 1) Construction du profil de répartition
+// 2) Répartition des kWh par poste
+// 3) Calcul du catalogue d'actions et des priorités
+
+const posteProfile = buildPosteProfile(data);
+const postes = splitConsumptionByPostes(consumptionTotalKwh, posteProfile);
+  
+  // ===== Priorités multi-postes =====
+  const allActions = buildActionCatalog({
+    data,
+    surface,
+    postes,
+    avgPrice,
+    isDecretEligible
+  });
+
+  const doneWorks = rray(data.works) ? data.works : [];
+
+  let preferredOrder = [];
   if (data.year === 'pre1975' || data.year === '1975-1990') {
-    selectedIds = ['roof', 'regulation', 'windows'];
+    preferredOrder = ['roof', 'regulation', 'windows', 'heating', 'led', 'ecs'];
   } else {
-    selectedIds = ['regulation', 'led', 'roof'];
+    preferredOrder = ['regulation', 'led', 'roof', 'heating', 'ecs', 'windows'];
   }
 
   if (data.heatingAge === '> 15 ans') {
-    selectedIds[2] = 'heating';
+    preferredOrder = ['heating', ...preferredOrder.filter(id => id !== 'heating')];
   }
 
-  const doneWorks = Array.isArray(data.works) ? data.works : [];
-  const priorities = selectedIds
-    .filter(id => !doneWorks.includes(id))
-    .slice(0, 3)
-    .map((id) => {
-      const p = potentialPriorities.find(x => x.id === id);
-      if (!p) return null;
+  // Priorité renforcée ECS pour activités concernées
+ if (['hotel', 'restaurant', 'health'].includes(activityId)) {
+  preferredOrder = ['ecs', ...preferredOrder.filter(id => id !== 'ecs')];
+}
 
-      const gainKwhVal = Math.round(consumptionTotalKwh * p.gainPct);
-      const gainEuro = Math.round(gainKwhVal * avgPrice);
+  const orderMap = new Map(preferredOrder.map((id, idx) => [id, idx]));
 
-      const aids = estimateAidRanges(p.id, surface, isDecretEligible);
+  const posteLabelMap = {
+  heating: "Chauffage",
+  ecs: "ECS",
+  lighting: "Éclairage",
+  auxiliaries: "Ventilation / auxiliaires",
+  specific: "Usages spécifiques"
+};
 
-      return {
-        ...p,
-        gainKwhVal,        // NOMBRE PUR (pas de formatage)
-        gainKwhPct: `${Math.round(p.gainPct * 100)}%`,
-        gainEuro,          // NOMBRE PUR (pas de formatage)
-        aids
-      };
-    })
-    .filter(Boolean);
+// --- Priorisation des actions ---
+// Tri hybride : ordre métier (année / âge système / activité) + score économique.
+// Exclut les travaux déjà réalisés (doneWorks).
 
-  const annualSavingsIfTop3 = priorities.reduce((sum, p) => sum + p.gainEuro, 0);
+const priorities = allActions
+  .map((action) => {
+    const isDone = doneWorks.includes(action.id);
+    const orderRank = orderMap.has(action.id) ? orderMap.get(action.id) : 999;
+
+    // Poste principal = poste le plus impacté dans action.impacts
+    const primaryPoste = Object.entries(action.impacts || {})
+      .sort((a, b) => Number(b[1] || 0) - Number(a[1] || 0))[0]?.[0] || "heating";
+
+    // Détail gains par poste (pour affichage dans le rapport)
+    const savingsBreakdown = Object.entries(action.impacts || {})
+  .map(([posteKey, pct]) => {
+    const posteKwh = Number(postes?.[posteKey] || 0);
+    const kwh = Math.round(posteKwh * Number(pct || 0));
+    const euro = Math.round(kwh * avgPrice);
+    return {
+      poste: posteKey,
+      label: posteLabelMap[posteKey] || posteKey,
+      kwh,
+      euro
+    };
+  })
+  .filter((x) => x.kwh > 0);
+
+    const grossCostMid = Math.round((Number(action.costMin || 0) + Number(action.costMax || 0)) / 2);
+const netCostMid = Math.max(
+  0,
+  grossCostMid - Math.round((Number(action.aidsMin || 0) + Number(action.aidsMax || 0)) / 2)
+);
+
+
+
+const roi = computeRoiFromCostsAndSavings({
+  costMin: Number(action.costMin || 0),
+  costMax: Number(action.costMax || 0),
+  annualSavingsEuro: Number(action.gainEuro || 0),
+  aids: {
+    cee: { min: Number(action.aids?.cee?.min || 0), max: Number(action.aids?.cee?.max || 0) },
+    mpr: { min: Number(action.aids?.mpr?.min || 0), max: Number(action.aids?.mpr?.max || 0) }
+  }
+});
+
+// Score business simple + ordre métier
+const baseScore =
+  ((Number(action.gainEuro || 0)) * 1.2) +
+  ((Number(action.gainKwhVal || 0)) * 0.05) -
+  (netCostMid * 0.02);
+
+    const orderBonus = Math.max(0, 20 - orderRank);
+    const donePenalty = isDone ? 100000 : 0;
+
+    const priorityScore = baseScore + orderBonus - donePenalty;
+
+    return {
+      id: action.id,
+      title: action.title,
+     tag: action.tag,
+
+      // Gains consolidés (déjà calculés dans buildActionCatalog)
+      gainKwh: Math.round(Number(action.gainKwhVal || 0)),
+      gainEuro: Math.round(Number(action.gainEuro || 0)),
+      savingsByPoste: savingsBreakdown,
+
+      // Coûts / aides
+      costMin: Math.round(Number(action.costMin || 0)),
+      costMax: Math.round(Number(action.costMax || 0)),
+subsidyMin: Math.round(Number(action.aidsMin || 0)),
+subsidyMax: Math.round(Number(action.aidsMax || 0)),
+
+roiGrossYears: roi.roiGrossYears,
+roiNetYears: roi.roiNetYears,
+
+      // Champs de tri
+      netCostMid,
+      grossCostMid,
+      isDone,
+      orderRank,
+      priorityScore
+    };
+  })
+  .filter((item) => item.gainKwh > 0 && !item.isDone)
+  .sort((a, b) => {
+    if ((a.orderRank || 999) !== (b.orderRank || 999)) {
+      return (a.orderRank || 999) - (b.orderRank || 999);
+    }
+    return (b.priorityScore || 0) - (a.priorityScore || 0);
+  });
+
+  // --- Coût de l'inaction (projection simple) ---
+// Projection basée sur les 3 actions prioritaires (ordre de grandeur, sans inflation énergie).
+// [TODO] Ajouter scénario +10% / +20% prix énergie.
+
+const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.gainEuro || 0), 0);
   const projection5Y = annualSavingsIfTop3 * 5;
   const projection10Y = annualSavingsIfTop3 * 10;
+
+  // --- Plan d'action recommandé (post-diagnostic) ---
+// Timeline réaliste orientée décision : audit / chiffrage / arbitrage / suivi.
 
   const timeline = [
     { step: 1, title: "Audit / visite technique", desc: "Valider les postes prioritaires et les hypothèses de consommation." },
@@ -1396,6 +2105,10 @@ const buildReportData = (data) => {
     { step: 3, title: "Planification travaux", desc: "Prioriser les actions selon budget, usage et contraintes d'exploitation." },
     { step: 4, title: isDecretEligible ? "Suivi conformité Décret Tertiaire" : "Suivi des gains", desc: isDecretEligible ? "Structurer la trajectoire 2030/2040/2050." : "Vérifier les économies après travaux." }
   ];
+
+  // --- Payload final du rapport ---
+// [DEPENDANCE] Consommé par le rendu écran + export PDF.
+// Ajouter ici toute nouvelle donnée nécessaire au rapport, plutôt que recalculer dans le JSX.
 
   return {
     activityRef,
@@ -1406,6 +2119,8 @@ const buildReportData = (data) => {
     refBase,
     refTotal,
     consumptionTotalKwh,
+    consumptionSource,
+    postes,
     kwhPerM2,
     dpe,
     avgPrice,
@@ -1817,8 +2532,7 @@ const buildReportData = (data) => {
         ) : (
           <div className="space-y-4">
             {priorities.map((p, i) => {
-              const roiMin = p.gainEuro > 0 ? (p.costMin / p.gainEuro) : null;
-              const roiMax = p.gainEuro > 0 ? (p.costMax / p.gainEuro) : null;
+
 
               const avgCost = (p.costMin + p.costMax) / 2;
               const effort =
@@ -1848,51 +2562,43 @@ const buildReportData = (data) => {
                     <h3 className="text-base md:text-lg font-semibold text-[#1E3A5F] mb-4">{p.title}</h3>
 
                     <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                      <div className="border border-slate-200 rounded-lg p-3">
-                        <p className="text-[11px] text-slate-500">Gain énergie</p>
-                        <p className="text-sm font-semibold text-slate-800">{intFmt(p.gainKwhVal)} kWh/an</p>
-                      </div>
+  <div className="border border-slate-200 rounded-lg p-3">
+    <p className="text-[11px] text-slate-500">Gain énergie</p>
+    <p className="text-sm font-semibold text-slate-800">{intFmt(p.gainKwh)} kWh/an</p>
+  </div>
 
-                      <div className="border border-slate-200 rounded-lg p-3">
-                        <p className="text-[11px] text-slate-500">Gain financier</p>
-                        <p className="text-sm font-semibold text-emerald-700">{euro(p.gainEuro)}/an</p>
-                      </div>
+  <div className="border border-slate-200 rounded-lg p-3">
+    <p className="text-[11px] text-slate-500">Gain financier</p>
+    <p className="text-sm font-semibold text-emerald-700">{euro(p.gainEuro)}/an</p>
+  </div>
 
-                      <div className="border border-slate-200 rounded-lg p-3">
-                        <p className="text-[11px] text-slate-500">Coût estimatif</p>
-                        <p className="text-sm font-semibold text-slate-800">
-                          {intFmt(p.costMin)} à {intFmt(p.costMax)} €
-                        </p>
-                      </div>
+  <div className="border border-slate-200 rounded-lg p-3">
+    <p className="text-[11px] text-slate-500">Coût estimatif</p>
+    <p className="text-sm font-semibold text-slate-800">
+      {intFmt(p.costMin)} à {intFmt(p.costMax)} €
+    </p>
+  </div>
 
-                      <div className="border border-slate-200 rounded-lg p-3">
-                        <p className="text-[11px] text-slate-500">ROI estimatif</p>
-                        <p className="text-sm font-semibold text-[#1E3A5F]">
-                          {roiMin && roiMax
-                            ? `${roiMin.toFixed(1).replace('.', ',')} à ${roiMax.toFixed(1).replace('.', ',')} ans`
-                            : 'À estimer'}
-                        </p>
-                      </div>
+  <div className="border border-slate-200 rounded-lg p-3">
+    <p className="text-[11px] text-slate-500">ROI</p>
+    <p className="text-sm font-semibold text-[#1E3A5F]">
+      {p.roiNetYears ? `${String(p.roiNetYears).replace('.', ',')} ans net` : 'À estimer'}
+    </p>
+    <p className="text-[11px] text-slate-500 mt-1">
+      {p.roiGrossYears ? `${String(p.roiGrossYears).replace('.', ',')} ans brut` : ''}
+    </p>
+  </div>
 
-                      <div className="border border-slate-200 rounded-lg p-3">
-                        <p className="text-[11px] text-slate-500">Aides</p>
-                        <p className="text-sm font-semibold text-slate-800">
-                          {(p.aids?.cee || p.aids?.mpr) ? 'Possibles' : 'À vérifier'}
-                        </p>
-                      </div>
-                    </div>
+  <div className="border border-slate-200 rounded-lg p-3">
+    <p className="text-[11px] text-slate-500">Aides estimées</p>
+    <p className="text-sm font-semibold text-slate-800">
+      {(p.subsidyMin || p.subsidyMax)
+        ? `${intFmt(p.subsidyMin || 0)} à ${intFmt(p.subsidyMax || 0)} €`
+        : 'À vérifier'}
+    </p>
+  </div>
+</div>
 
-                    <div className="mt-3 rounded-lg bg-amber-50 border border-amber-200 p-3">
-                      <p className="text-xs font-semibold text-amber-900 mb-1">Aides indicatives (à confirmer)</p>
-                      <div className="space-y-1">
-                        {p.aids?.cee?.label && <p className="text-xs text-amber-800">• {p.aids.cee.label}</p>}
-                        {p.aids?.mpr?.label && <p className="text-xs text-amber-800">• {p.aids.mpr.label}</p>}
-                        {p.aids?.decret?.label && <p className="text-xs text-amber-800">• {p.aids.decret.label}</p>}
-                        {!p.aids?.cee?.label && !p.aids?.mpr?.label && !p.aids?.decret?.label && (
-                          <p className="text-xs text-amber-800">• Éligibilité à vérifier selon votre situation</p>
-                        )}
-                      </div>
-                    </div>
                   </div>
                 </div>
               );
@@ -2066,7 +2772,7 @@ const buildReportData = (data) => {
                               Gratuit • 3 minutes • Résultat immédiat
                           </div>
                           <h1 className="text-4xl lg:text-5xl tracking-tight font-semibold text-slate-900 leading-[1.1] mb-6">
-                              Votre bâtiment tertiaire vous coûte-t-il trop cher en énergie ? 
+                              Votre bâtiment tertiaire vous coûte-t-il trop cher en énergie ? test 100
                           </h1>
                           <p className="text-lg text-[#6B7280] leading-relaxed mb-8">
                               Le premier diagnostic gratuit conçu pour les bâtiments tertiaires. Comparez-vous aux bonnes références sectorielles, pas au logement.
