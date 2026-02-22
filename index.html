@@ -3153,116 +3153,321 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
   </div>
 </section>
 
-              {/* SECTION 3 - PROBLÈME */}
-              <section className="bg-[#F8F9FA] py-16">
-                  <div className="max-w-6xl mx-auto px-4">
-                      <SectionTitle sub="Sans diagnostic, vous perdez de l'argent chaque jour">Le coût caché de l'inaction</SectionTitle>
-                      <div className="grid md:grid-cols-3 gap-6">
-                          {[
-                              {icon:'solar:bill-list-linear', color:'#E74C3C', title:'Des factures qui explosent', desc:"En 3 ans, le prix de l'énergie a augmenté de 45% en moyenne. Sans diagnostic, impossible de savoir si vous payez 2 000 € ou 20 000 € de trop chaque année.", stat:'15 à 35% de surcoût énergétique sur les bâtiments non optimisés'},
-                              {icon:'solar:hourglass-linear', color:'#F39C12', title:'Aucun outil adapté', desc:"Les simulateurs en ligne sont conçus pour le logement. Un commerce qui consomme 350 kWh/m²/an y serait classé G — alors que c'est normal. Résultat : impossible de savoir si vous êtes bon ou mauvais.", stat:"Les références résidentielles faussent l'analyse de 40 à 60%"},
-                              {icon:'solar:wallet-linear', color:'#7B3F9E', title:'Des aides qui disparaissent', desc:"MaPrimeRénov', CEE, subventions ADEME : les enveloppes se vident. Les propriétaires qui attendent perdent jusqu'à 40% du budget travaux.", stat:'9 000 € en moyenne d\'aides non optimisées'},
-                          ].map((c, i) => (
-                              <div key={i} className="bg-white rounded-xl p-6 border border-slate-100 hover:shadow-lg transition-shadow">
-                                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-4" style={{backgroundColor:c.color+'15'}}>
-                                      <iconify-icon icon={c.icon} style={{fontSize:'24px', color:c.color}}></iconify-icon>
-                                  </div>
-                                  <h3 className="text-base font-semibold text-slate-900 mb-3">{c.title}</h3>
-                                  <p className="text-sm text-slate-600 leading-relaxed mb-4">{c.desc}</p>
-                                  <div className="bg-slate-50 rounded-lg p-3 border-l-4" style={{borderColor:c.color}}>
-                                      <p className="text-xs font-semibold text-slate-700">{c.stat}</p>
-                                  </div>
-                              </div>
-                          ))}
-                      </div>
-                  </div>
-              </section>
+              {/* SECTION 3 - POURQUOI C'EST CRÉDIBLE */}
+<section className="bg-[#F8F9FA] py-14">
+  <div className="max-w-6xl mx-auto px-4">
+    <div className="text-center mb-8">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
+        Pourquoi c’est crédible
+      </p>
+      <h2 className="text-2xl md:text-3xl tracking-tight font-semibold text-slate-900">
+        Un cadre clair pour une estimation utile
+      </h2>
+      <p className="text-sm text-slate-600 mt-2 max-w-3xl mx-auto">
+        DiagTertiaire fournit un pré-diagnostic orienté décision. Il aide à cadrer rapidement un sujet énergie avant audit, devis ou travaux.
+      </p>
+    </div>
+
+    <div className="grid lg:grid-cols-3 gap-4">
+      {[
+        {
+          icon: "solar:database-linear",
+          color: "#0891B2",
+          title: "Références",
+          bullets: [
+            "Basé sur des références sectorielles publiques",
+            "Benchmarks tertiaires et repères ADEME",
+            "Estimation construite pour orienter une décision"
+          ]
+        },
+        {
+          icon: "solar:shield-check-linear",
+          color: "#1E3A5F",
+          title: "Cadre de l’outil",
+          bullets: [
+            "Ce que c’est : un pré-diagnostic directionnel",
+            "Ce que ce n’est pas : audit réglementaire, devis ou DPE opposable",
+            "Étape suivante : validation technique terrain si vous passez à l’action"
+          ]
+        },
+        {
+          icon: "solar:case-round-minimalistic-linear",
+          color: "#2ECC71",
+          title: "Usage concret",
+          bullets: [
+            "Prioriser les actions à impact",
+            "Objectiver une discussion locataire / propriétaire",
+            "Préparer un audit, un devis ou un plan de travaux"
+          ]
+        }
+      ].map((card, i) => (
+        <div key={i} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div
+            className="w-11 h-11 rounded-xl flex items-center justify-center mb-3"
+            style={{ backgroundColor: `${card.color}15` }}
+          >
+            <Icon icon={card.icon} className="text-[20px]" style={{ color: card.color }} />
+          </div>
+
+          <h3 className="text-sm font-semibold text-slate-900 mb-3">{card.title}</h3>
+
+          <ul className="space-y-2">
+            {card.bullets.map((item, j) => (
+              <li key={j} className="flex items-start gap-2 text-xs text-slate-600 leading-relaxed">
+                <Icon icon="solar:check-circle-bold" className="text-sm mt-0.5 shrink-0" style={{ color: card.color }} />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
+    </div>
+
+    <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-7">
+      <button
+        type="button"
+        onClick={() => navigate('diagnostic')}
+        className="bg-[#1E3A5F] text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#162B47] transition-colors"
+      >
+        Lancer le diagnostic
+      </button>
+
+      <button
+        type="button"
+        onClick={() => navigate('methode')}
+        className="text-sm text-[#1E3A5F] font-semibold hover:underline inline-flex items-center gap-1"
+      >
+        Découvrir notre approche
+        <Icon icon="solar:arrow-right-linear" className="text-sm" />
+      </button>
+    </div>
+  </div>
+</section>
 
               {/* SECTION 4 - SOLUTION */}
-              <section className="bg-white py-16">
-                  <div className="max-w-6xl mx-auto px-4">
-                      <SectionTitle sub="Enfin un outil adapté au tertiaire">Un diagnostic en 3 minutes qui change tout</SectionTitle>
-                      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
-                          {[
-                              {icon:'solar:clock-circle-linear', color:'#2ECC71', title:'3 minutes top chrono', desc:'Quelques clics suffisent. Pas de rendez-vous, pas de visite, pas de paperasse.'},
-                              {icon:'solar:target-linear', color:'#0891B2', title:'Estimation sur-mesure', desc:'Algorithme basé sur 12 000+ bâtiments tertiaires. Prend en compte votre activité, surface, année.'},
-                              {icon:'solar:calculator-linear', color:'#F39C12', title:'Chiffrage immédiat', desc:'Classe énergétique + 3 priorités avec coûts, gains et ROI. Vous savez exactement où vous en êtes.'},
-                              {icon:'solar:shield-check-linear', color:'#1E3A5F', title:'100% gratuit et neutre', desc:"Aucun engagement. Aucune revente de données. Aucun démarchage commercial."},
-                          ].map((b, i) => (
-                              <div key={i} className="text-center">
-                                  <div className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-3" style={{backgroundColor:b.color+'15'}}>
-                                      <iconify-icon icon={b.icon} style={{fontSize:'28px', color:b.color}}></iconify-icon>
-                                  </div>
-                                  <h3 className="text-sm font-semibold text-slate-900 mb-2">{b.title}</h3>
-                                  <p className="text-xs text-slate-600 leading-relaxed">{b.desc}</p>
-                              </div>
-                          ))}
-                      </div>
+             {/* SECTION 4 - EXEMPLE DE RAPPORT */}
+<section className="bg-white py-16">
+  <div className="max-w-6xl mx-auto px-4">
+    <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-6">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
+          Exemple de rapport
+        </p>
+        <h2 className="text-2xl md:text-3xl tracking-tight font-semibold text-slate-900">
+          Voyez le livrable avant de lancer le diagnostic
+        </h2>
+        <p className="text-sm text-slate-600 mt-2 max-w-2xl">
+          Le rapport vous aide à comprendre rapidement où agir, combien vous pouvez économiser et comment prioriser.
+        </p>
+      </div>
 
-                      <div className="bg-gradient-to-br from-[#EEF2FF] to-[#E0F2FE] rounded-2xl p-6 border border-[#1E3A5F]/20">
-                          <div className="flex items-start gap-4">
-                              <iconify-icon icon="solar:chat-round-line-linear" style={{fontSize:'32px', color:'#1E3A5F', flexShrink:0}} />
-                              <div>
-                                  <p className="text-sm text-slate-700 italic leading-relaxed mb-2">
-                                      "Je pensais que mon hôtel était un gouffre énergétique. Les simulateurs classiques me mettaient en classe F. Avec DiagTertiaire, j'ai découvert que 280 kWh/m²/an, c'est la norme pour un hôtel. Ça m'a rassuré et permis de cibler les vrais problèmes : la régulation et l'ECS. J'ai économisé 3 200 €/an avec 5 000 € de travaux."
-                                  </p>
-                                  <p className="text-xs text-slate-500 font-medium">Sophie M., propriétaire hôtel 45 chambres</p>
-                              </div>
-                          </div>
-                      </div>
+      <div className="flex flex-col sm:flex-row gap-2">
+        <button
+          type="button"
+          onClick={() => navigate('exemple')}
+          className="bg-white border border-slate-300 text-slate-700 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors"
+        >
+          Voir un exemple de rapport
+        </button>
 
-                      <div className="text-center mt-8">
-                          <button type="button" onClick={() => navigate('exemple')} className="text-sm text-[#1E3A5F] hover:underline font-medium">
-                              → Voir un exemple de rapport complet
-                          </button>
-                      </div>
-                  </div>
-              </section>
-
-              {/* SECTION 5 - COMMENT ÇA MARCHE */}
-              <section className="bg-gradient-to-b from-[#F8F9FA] to-white py-16">
-                  <div className="max-w-6xl mx-auto px-4">
-                      <SectionTitle sub="Un processus simple et transparent">Comment ça marche ? Suivez le guide.</SectionTitle>
-                      <div className="grid md:grid-cols-4 gap-8 relative">
-                          {[
-                              {n:'01', icon:'solar:buildings-2-linear', color:'#1E3A5F', time:'30 sec', title:'Votre bâtiment', items:['Activité (bureau/commerce/hôtel)','Surface et année de construction']},
-                              {n:'02', icon:'solar:bolt-linear', color:'#2ECC71', time:'1 min', title:'Vos équipements', items:['Chauffage et consommation','Travaux déjà réalisés']},
-{n:'03', icon:'solar:inbox-linear', color:'#F39C12', time:'15 sec', title:'Votre email', items:['Pour recevoir le rapport complet','Aucune revente de données • mise en relation uniquement avec accord']},
-                              {n:'04', icon:'solar:document-text-linear', color:'#7B3F9E', time:'Instantané', title:'Votre diagnostic', items:['Classe énergétique estimée','3 priorités chiffrées','Aides mobilisables']},
-                          ].map((s, i) => (
-                              <div key={i} className="relative">
-                                  {i < 3 && (
-    <div className="hidden md:block absolute top-8 -right-4 z-0 text-slate-300">
-        <Icon icon="solar:arrow-right-linear" className="text-2xl" />
+        <button
+          type="button"
+          onClick={() => navigate('diagnostic')}
+          className="bg-[#1E3A5F] text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#162B47] transition-colors inline-flex items-center justify-center gap-2"
+        >
+          Lancer le diagnostic
+          <Icon icon="solar:arrow-right-linear" className="text-sm" />
+        </button>
+      </div>
     </div>
-)}
-                                  <div className="relative z-10">
-                                      <div className="text-5xl font-bold text-slate-300 mb-3 tracking-tight">{s.n}</div>
-                                      <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3" style={{backgroundColor:s.color+'15'}}>
-<Icon icon={s.icon} className="text-2xl" style={{ color: s.color }} />
-                                      </div>
-                                      <div className="inline-block bg-white border border-slate-200 rounded-full px-3 py-1 text-xs font-semibold text-slate-600 mb-3">{s.time}</div>
-                                      <h3 className="text-sm font-semibold text-slate-900 mb-2">{s.title}</h3>
-                                      <ul className="space-y-1">
-                                          {s.items.map((item, j) => (
-                                              <li key={j} className="text-xs text-slate-600 flex items-start gap-1.5">
-                                                  <Icon icon="solar:arrow-right-linear" className="text-sm shrink-0 mt-0.5" style={{ color:s.color }} />
-                                                  {item}
-                                              </li>
-                                          ))}
-                                      </ul>
-                                  </div>
-                              </div>
-                          ))}
-                      </div>
-                      <div className="text-center mt-10">
-                          <button type="button" onClick={() => navigate('diagnostic')} className="bg-[#1E3A5F] text-white px-8 py-4 rounded-xl text-base font-semibold hover:bg-[#162B47] shadow-lg transition-all inline-flex items-center gap-2">
-                              Lancer mon diagnostic (ça prend 3 min) <Icon icon="solar:arrow-right-linear" className="text-base" />
-                          </button>
-                      </div>
-                  </div>
-              </section>
 
+    <div className="grid lg:grid-cols-[1.15fr_0.85fr] gap-6 items-start">
+      {/* Aperçu visuel */}
+      <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-5 shadow-sm">
+        <div className="flex items-center justify-between gap-3 mb-4">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Aperçu du rapport PDF</p>
+            <p className="text-sm font-semibold text-slate-900">Synthèse énergétique • Version exemple</p>
+          </div>
+          <span className="text-[11px] font-semibold text-[#1E3A5F] bg-[#EEF2FF] border border-[#1E3A5F]/15 px-2.5 py-1 rounded-full">
+            Exportable
+          </span>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-white p-4 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-14 h-14 rounded-xl flex items-center justify-center border border-slate-200 bg-[#FFCC00]/30">
+              <span className="text-2xl font-semibold text-[#1E3A5F]">D</span>
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-slate-900">Classe énergétique estimée</p>
+              <p className="text-xs text-slate-500">245 kWh/m²/an • référence tertiaire</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-3 mb-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-3">
+            <p className="text-xs text-slate-500 mb-1">Économies potentielles</p>
+            <p className="text-sm font-semibold text-[#2ECC71]">≈ 3 600 € / an</p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-white p-3">
+            <p className="text-xs text-slate-500 mb-1">Temps de retour cible</p>
+            <p className="text-sm font-semibold text-slate-900">2 à 5 ans</p>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-white p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Actions prioritaires</p>
+          <div className="space-y-2">
+            {[
+              { label: "Régulation / pilotage", meta: "ROI rapide", color: "#0891B2" },
+              { label: "Relamping LED", meta: "Gain immédiat", color: "#2ECC71" },
+              { label: "Isolation toiture", meta: "Impact structurel", color: "#F39C12" }
+            ].map((row, i) => (
+              <div key={i} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: row.color }} />
+                  <span className="text-xs font-medium text-slate-700 truncate">{row.label}</span>
+                </div>
+                <span className="text-[11px] text-slate-500 whitespace-nowrap">{row.meta}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Bullet points de preuve */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-5">
+        <p className="text-sm font-semibold text-slate-900 mb-3">
+          Ce que contient le rapport
+        </p>
+
+        <ul className="space-y-2.5 mb-5">
+          {[
+            "Une estimation de performance adaptée au tertiaire",
+            "Des économies potentielles et ordres de grandeur de gains",
+            "Des priorités d'action pour cadrer un audit, un devis ou des travaux"
+          ].map((item, i) => (
+            <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
+              <Icon icon="solar:check-circle-bold" className="text-base text-[#2ECC71] mt-0.5 shrink-0" />
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 mb-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Usage concret</p>
+          <p className="text-sm text-slate-700 leading-relaxed">
+            Idéal pour objectiver une discussion entre locataire, propriétaire, expert-comptable, bureau d’études ou artisan.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <button
+            type="button"
+            onClick={() => navigate('exemple')}
+            className="w-full bg-white border border-slate-300 text-slate-700 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors"
+          >
+            Voir un exemple de rapport
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('diagnostic')}
+            className="w-full bg-[#1E3A5F] text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#162B47] transition-colors"
+          >
+            Lancer le diagnostic
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+              {/* SECTION 5 - COMMENT ÇA MARCHE */}
+              {/* SECTION 5 - COMMENT ÇA MARCHE */}
+<section className="bg-[#F8F9FA] py-14">
+  <div className="max-w-6xl mx-auto px-4">
+    <div className="text-center mb-8">
+      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
+        Comment ça marche
+      </p>
+      <h2 className="text-2xl md:text-3xl tracking-tight font-semibold text-slate-900">
+        Un parcours simple en 3 étapes
+      </h2>
+      <p className="text-sm text-slate-600 mt-2">
+        En quelques minutes • Sans engagement
+      </p>
+    </div>
+
+    <div className="grid md:grid-cols-3 gap-4">
+      {[
+        {
+          step: "01",
+          icon: "solar:buildings-2-linear",
+          title: "Je renseigne mon bâtiment",
+          desc: "Type de local, surface, usage, énergie, équipements."
+        },
+        {
+          step: "02",
+          icon: "solar:chart-square-linear",
+          title: "J’obtiens une estimation",
+          desc: "Classe estimée, économies potentielles et priorités."
+        },
+        {
+          step: "03",
+          icon: "solar:document-text-linear",
+          title: "Je reçois un rapport PDF",
+          desc: "Un livrable exportable et partageable pour décider."
+        }
+      ].map((item, i) => (
+        <div
+          key={i}
+          className="relative rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div
+              className="w-11 h-11 rounded-xl flex items-center justify-center"
+              style={{ backgroundColor: '#1E3A5F15' }}
+            >
+              <Icon icon={item.icon} className="text-[20px] text-[#1E3A5F]" />
+            </div>
+
+            <span className="text-xs font-semibold text-slate-400">
+              {item.step}
+            </span>
+          </div>
+
+          <h3 className="text-sm font-semibold text-slate-900 mb-1.5">
+            {item.title}
+          </h3>
+          <p className="text-xs text-slate-600 leading-relaxed">
+            {item.desc}
+          </p>
+        </div>
+      ))}
+    </div>
+
+    <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-7">
+      <button
+        type="button"
+        onClick={() => navigate('diagnostic')}
+        className="bg-[#1E3A5F] text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#162B47] transition-colors"
+      >
+        Lancer le diagnostic
+      </button>
+
+      <button
+        type="button"
+        onClick={() => navigate('exemple')}
+        className="text-sm text-[#1E3A5F] font-semibold hover:underline inline-flex items-center gap-1"
+      >
+        Voir un exemple de rapport
+        <Icon icon="solar:arrow-right-linear" className="text-sm" />
+      </button>
+    </div>
+  </div>
+</section>
               {/* SECTION 6 - CE QUE VOUS RECEVEZ */}
               <section className="bg-white py-16">
                   <div className="max-w-6xl mx-auto px-4">
@@ -3302,36 +3507,95 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
                   </div>
               </section>
 
-              {/* SECTION 7 - CAS D'USAGE */}
-              <section className="bg-[#F8F9FA] py-16">
-                  <div className="max-w-6xl mx-auto px-4">
-                      <SectionTitle sub="Des propriétaires et locataires comme vous">Qui utilise DiagTertiaire ?</SectionTitle>
+              {/* SECTION 7 - PROFESSIONNELS */}
+<section className="bg-white py-14">
+  <div className="max-w-6xl mx-auto px-4">
+    <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-6 md:p-7">
+      <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-6 items-start">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
+            Espace Pro
+          </p>
+          <h2 className="text-2xl md:text-3xl tracking-tight font-semibold text-slate-900 mb-2">
+            Vous êtes un professionnel ?
+          </h2>
+          <p className="text-sm text-slate-600 leading-relaxed max-w-xl">
+            Utilisez DiagTertiaire comme outil d’entrée de discussion pour cadrer un besoin client avant audit, devis ou accompagnement.
+          </p>
 
-                      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
-                          {[
-                              {profile:'Petit propriétaire tertiaire', icon:'solar:buildings-linear', color:'#E74C3C', quote:'J\'ai un local commercial de 180m². Tous les simulateurs en ligne m\'orientaient vers du résidentiel. Résultat : des recommandations absurdes. Ici, en 3 min, j\'ai eu une estimation cohérente avec mon activité.', usage:'Absence d\'outil adapté'},
-                              {profile:'Propriétaire exploitant', icon:'solar:user-linear', color:'#2ECC71', quote:'Je voulais savoir si mes factures étaient normales. En 3 min j\'ai su que mon bâtiment consommait 28% de plus que la référence. J\'ai lancé un audit complet et divisé ma facture par 2 en 18 mois.', usage:'Évaluation patrimoine'},
-                              {profile:'Gestionnaire de parc', icon:'solar:case-round-minimalistic-linear', color:'#0891B2', quote:'Je gère 12 bâtiments. Impossible de tout auditer. Ce diagnostic m\'a permis d\'identifier les 3 pires consommateurs et de prioriser mes budgets.', usage:'Priorisation investissements'},
-                              {profile:'Locataire bureau', icon:'solar:briefcase-linear', color:'#F39C12', quote:'Ma facture avait doublé en 2 ans. Grâce au rapport, j\'ai pu négocier avec mon propriétaire des travaux d\'isolation. Résultat : -40% sur ma facture.', usage:'Négociation bail vert'},
-                              {profile:'Expert-comptable', icon:'solar:calculator-linear', color:'#7B3F9E', quote:'Je conseille 40 PME. Quand un client me montre ses factures énergie, je peux maintenant lui proposer ce diagnostic en 2 clics. Ça positionne mon cabinet comme proactif et ça crée de la valeur ajoutée.', usage:'Service client additionnel'},
-                              {profile:'Agent immobilier', icon:'solar:home-smile-angle-linear', color:'#0891B2', quote:'Avant une mise en vente, je propose systématiquement ce diagnostic. Ça me permet d\'anticiper les objections sur la performance énergétique et de valoriser le bien si les résultats sont bons.', usage:'Valorisation avant cession'},
-                          ].map((c, i) => (
-                              <div key={i} className="bg-white rounded-xl p-6 border border-slate-100 hover:border-[#1E3A5F]/30 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 group">
-                                  <div className="flex items-center gap-3 mb-4">
-                                      <div className="w-12 h-12 rounded-full flex items-center justify-center transition-transform group-hover:scale-110" style={{backgroundColor:c.color+'15'}}>
-                                          <iconify-icon icon={c.icon} style={{fontSize:'24px', color:c.color}} />
-                                      </div>
-                                      <div>
-                                          <p className="text-sm font-bold text-slate-900">{c.profile}</p>
-                                          <p className="text-xs text-slate-500">{c.usage}</p>
-                                      </div>
-                                  </div>
-                                  <p className="text-sm text-slate-600 italic leading-relaxed">"{c.quote}"</p>
-                              </div>
-                          ))}
-                      </div>
-                  </div>
-              </section>
+          <div className="grid sm:grid-cols-3 gap-3 mt-5">
+            {[
+              {
+                icon: "solar:documents-linear",
+                title: "Multi-dossiers",
+                desc: "Traitez plusieurs clients rapidement."
+              },
+              {
+                icon: "solar:document-text-linear",
+                title: "PDF personnalisable",
+                desc: "Livrable prêt à partager."
+              },
+              {
+                icon: "solar:tag-price-linear",
+                title: "Usage marque blanche",
+                desc: "Version pro pour votre activité."
+              }
+            ].map((item, i) => (
+              <div key={i} className="rounded-xl border border-slate-200 bg-white p-4">
+                <div className="w-9 h-9 rounded-lg bg-[#1E3A5F]/10 flex items-center justify-center mb-2">
+                  <Icon icon={item.icon} className="text-[18px] text-[#1E3A5F]" />
+                </div>
+                <p className="text-sm font-semibold text-slate-900">{item.title}</p>
+                <p className="text-xs text-slate-600 mt-1 leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-white p-5">
+          <p className="text-sm font-semibold text-slate-900 mb-2">
+            Pour qui ?
+          </p>
+          <ul className="space-y-2 mb-4">
+            {[
+              "Experts-comptables",
+              "Bureaux d’études",
+              "Artisans et installateurs",
+              "Conseils en énergie / immobilier"
+            ].map((item, i) => (
+              <li key={i} className="flex items-center gap-2 text-sm text-slate-700">
+                <Icon icon="solar:check-circle-bold" className="text-sm text-[#2ECC71] shrink-0" />
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => navigate('pro')}
+              className="w-full bg-[#1E3A5F] text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#162B47] transition-colors"
+            >
+              Découvrir l’espace pro
+            </button>
+
+            <button
+              type="button"
+              onClick={() => navigate('diagnostic')}
+              className="w-full bg-white border border-slate-300 text-slate-700 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors"
+            >
+              Lancer le diagnostic
+            </button>
+          </div>
+
+          <p className="text-[11px] text-slate-500 mt-3 leading-relaxed">
+            Le flux principal reste le pré-diagnostic gratuit. L’espace pro permet d’aller plus loin côté usage métier.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
 
               {/* SECTION 8 - FAQ */}
               <section className="bg-white py-16">
@@ -3360,28 +3624,8 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
 
           
 
-              {/* SECTION 10 - GARANTIES */}
-              <section className="bg-white py-12">
-                  <div className="max-w-6xl mx-auto px-4">
-                      <h3 className="text-lg font-semibold text-center text-slate-900 mb-8">Nos engagements</h3>
-                      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                          {[
-                          {icon:'solar:database-linear', color:'#0891B2', title:'Basé sur données publiques', desc:'Sources ADEME et observatoires régionaux. Références sectorielles vérifiables et mises à jour régulièrement.'},
-                          {icon:'solar:bolt-circle-linear', color:'#F39C12', title:'Résultat immédiat', desc:"Pas de rendez-vous. Pas d'attente. Rapport PDF téléchargeable en 3 minutes."},
-                          {icon:'solar:hand-shake-linear', color:'#2ECC71', title:'Gratuit et sans engagement', desc:'Aucun paiement. Aucune obligation. Vous décidez si vous voulez aller plus loin.'},
-                          {icon:'solar:user-check-linear', color:'#1E3A5F', title:'Utilisation claire des données', desc:'Vos données ne sont pas revendues. Une mise en relation peut être proposée uniquement avec votre accord explicite.'},
-                        ].map((g, i) => (
-                              <div key={i} className="text-center p-5 rounded-xl border border-slate-100 hover:border-slate-200 transition-colors">
-                                  <div className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3" style={{backgroundColor:g.color+'15'}}>
-                                      <iconify-icon icon={g.icon} style={{fontSize:'24px', color:g.color}}></iconify-icon>
-                                  </div>
-                                  <h4 className="text-sm font-semibold text-slate-900 mb-1">{g.title}</h4>
-                                  <p className="text-xs text-slate-600 leading-relaxed">{g.desc}</p>
-                              </div>
-                          ))}
-                      </div>
-                  </div>
-              </section>
+             
+              {/* SECTION 10 - GARANTIES (fusionnée dans "Pourquoi c’est crédible") */}
 
               {/* SECTION 11 - CTA FINAL */}
               <section className="bg-gradient-to-br from-[#2ECC71] to-[#27AE60] py-16">
