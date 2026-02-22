@@ -1,7 +1,7 @@
 <html lang="fr"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DiagTertiaire - Performance Énergétique Tertiaire</title>
+    <title>DiagTertiaire - Performance Énergétique Tertiaire</title> test10
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -2072,19 +2072,298 @@ const buildReportData = (data) => {
           </div>
       );
 
-      const PageMethod = ({ navigate }) => (
-          <div className="fade-in">
-              <section className="bg-[#F8F9FA] py-16 text-center px-4">
-                  <div className="inline-flex items-center gap-2 bg-[#EEF2FF] text-[#1E3A5F] px-3 py-1 rounded-full text-xs font-semibold mb-4">
-                      <Icon icon="solar:shield-check-linear" /> Notre démarche
-                  </div>
-                  <h1 className="text-3xl md:text-4xl tracking-tight font-semibold text-[#1E3A5F] mb-4">Un constat de terrain.<br/>Une réponse accessible.</h1>
-                  <p className="text-[#6B7280] max-w-2xl mx-auto">
-                      DiagTertiaire aide les propriétaires de PME à cadrer leurs enjeux énergétiques avant d'investir dans un audit complet.
-                  </p>
-              </section>
+   const PageMethod = ({ navigate }) => (
+  <div className="fade-in">
+    {/* HERO */}
+    <section className="bg-gradient-to-b from-[#F8F9FA] to-white py-16 md:py-20 px-4">
+      <div className="max-w-5xl mx-auto text-center">
+        <div className="inline-flex items-center gap-2 bg-[#EEF2FF] text-[#1E3A5F] px-3 py-1 rounded-full text-xs font-semibold mb-4">
+          <Icon icon="solar:shield-check-linear" /> Notre approche
+        </div>
+        <h1 className="text-3xl md:text-4xl tracking-tight font-semibold text-[#1E3A5F] mb-4">
+          Une estimation utile pour décider
+        </h1>
+        <p className="text-[#6B7280] max-w-3xl mx-auto leading-relaxed">
+          DiagTertiaire n’est pas un audit réglementaire. C’est un outil de cadrage rapide pour les bâtiments tertiaires :
+          il vous aide à comprendre si votre consommation est cohérente, où se trouvent les principaux leviers,
+          et si un audit complet vaut la peine d’être lancé maintenant.
+        </p>
+
+        <div className="mt-8 flex flex-wrap justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => navigate('diagnostic')}
+            className="bg-[#1E3A5F] text-white px-6 py-3 rounded-xl text-sm font-semibold hover:bg-[#162B47] shadow-sm inline-flex items-center gap-2"
+          >
+            Lancer mon diagnostic <Icon icon="solar:arrow-right-linear" className="text-base" />
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('exemple')}
+            className="bg-white border border-slate-300 text-slate-700 px-6 py-3 rounded-xl text-sm font-semibold hover:bg-slate-50"
+          >
+            Voir un exemple de rapport
+          </button>
+        </div>
+      </div>
+    </section>
+
+    {/* POUR QUI / POUR QUOI */}
+    <section className="bg-white py-14 px-4 border-y border-slate-100">
+      <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-6">
+        <div className="bg-slate-50 rounded-2xl border border-slate-200 p-6">
+          <div className="flex items-center gap-2 mb-3 text-[#1E3A5F]">
+            <Icon icon="solar:target-linear" className="text-xl" />
+            <h2 className="text-lg font-semibold">Ce que l’outil permet</h2>
           </div>
-      );
+          <ul className="space-y-2 text-sm text-slate-600">
+            <li className="flex items-start gap-2">
+              <iconify-icon icon="solar:check-circle-bold" style={{color:'#2ECC71', fontSize:'16px', marginTop:'2px'}}></iconify-icon>
+              <span>Comparer votre bâtiment à une <strong>référence tertiaire adaptée</strong> à votre activité</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <iconify-icon icon="solar:check-circle-bold" style={{color:'#2ECC71', fontSize:'16px', marginTop:'2px'}}></iconify-icon>
+              <span>Obtenir un <strong>ordre de grandeur</strong> de votre consommation et de votre classe énergétique estimée</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <iconify-icon icon="solar:check-circle-bold" style={{color:'#2ECC71', fontSize:'16px', marginTop:'2px'}}></iconify-icon>
+              <span>Identifier 3 actions prioritaires avec <strong>gains, coûts, ROI et aides indicatives</strong></span>
+            </li>
+            <li className="flex items-start gap-2">
+              <iconify-icon icon="solar:check-circle-bold" style={{color:'#2ECC71', fontSize:'16px', marginTop:'2px'}}></iconify-icon>
+              <span>Préparer une discussion avec un bureau d’études, un propriétaire, ou un décideur interne</span>
+            </li>
+          </ul>
+        </div>
+
+        <div className="bg-rose-50 rounded-2xl border border-rose-200 p-6">
+          <div className="flex items-center gap-2 mb-3 text-rose-700">
+            <Icon icon="solar:danger-triangle-linear" className="text-xl" />
+            <h2 className="text-lg font-semibold">Ce que l’outil ne remplace pas</h2>
+          </div>
+          <ul className="space-y-2 text-sm text-slate-700">
+            <li className="flex items-start gap-2">
+              <iconify-icon icon="solar:close-circle-bold" style={{color:'#E74C3C', fontSize:'16px', marginTop:'2px'}}></iconify-icon>
+              <span>Un audit énergétique réglementaire ou une mission de maîtrise d’œuvre</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <iconify-icon icon="solar:close-circle-bold" style={{color:'#E74C3C', fontSize:'16px', marginTop:'2px'}}></iconify-icon>
+              <span>Un dimensionnement technique (CVC, ECS, ventilation, GTB, etc.)</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <iconify-icon icon="solar:close-circle-bold" style={{color:'#E74C3C', fontSize:'16px', marginTop:'2px'}}></iconify-icon>
+              <span>Un engagement contractuel sur les économies réelles ou les aides mobilisables</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <iconify-icon icon="solar:close-circle-bold" style={{color:'#E74C3C', fontSize:'16px', marginTop:'2px'}}></iconify-icon>
+              <span>Une analyse complète de conformité (Décret Tertiaire, obligations réglementaires, etc.)</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    {/* COMMENT ON CALCULE */}
+    <section className="bg-[#F8F9FA] py-16 px-4">
+      <div className="max-w-6xl mx-auto">
+        <SectionTitle sub="Une logique simple, transparente et orientée décision">
+          Comment l’estimation est construite
+        </SectionTitle>
+
+        <div className="grid md:grid-cols-4 gap-5">
+          {[
+            {
+              icon: 'solar:buildings-2-linear',
+              color: '#1E3A5F',
+              title: '1. Référence sectorielle',
+              desc: "Chaque activité tertiaire a une consommation 'normale' différente. Un hôtel, un bureau et un commerce ne se comparent pas de la même manière."
+            },
+            {
+              icon: 'solar:calendar-linear',
+              color: '#F39C12',
+              title: '2. Ajustement bâtiment',
+              desc: "La période de construction et l'âge du chauffage ajustent l'estimation pour refléter les écarts de performance les plus courants."
+            },
+            {
+              icon: 'solar:wallet-money-linear',
+              color: '#2ECC71',
+              title: '3. Conversion en coût',
+              desc: "Les consommations sont valorisées avec des prix unitaires indicatifs pour donner une lecture économique immédiate."
+            },
+            {
+              icon: 'solar:chart-2-linear',
+              color: '#7B3F9E',
+              title: '4. Priorisation des actions',
+              desc: "Le rapport propose des postes d'amélioration type (enveloppe, pilotage, chauffage, LED) avec gains, coûts et ROI indicatifs."
+            }
+          ].map((item, i) => (
+            <div key={i} className="bg-white rounded-xl border border-slate-200 p-5">
+              <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3" style={{backgroundColor:item.color + '15'}}>
+                <iconify-icon icon={item.icon} style={{fontSize:'24px', color:item.color}}></iconify-icon>
+              </div>
+              <h3 className="text-sm font-semibold text-slate-900 mb-2">{item.title}</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="mt-8 grid md:grid-cols-2 gap-5">
+          <div className="bg-white rounded-xl border border-slate-200 p-5">
+            <h3 className="text-sm font-semibold text-[#1E3A5F] mb-3">Exemple concret de logique</h3>
+            <p className="text-sm text-slate-600 leading-relaxed mb-3">
+              Un bureau à 180 kWh/m²/an peut être cohérent selon son âge et ses équipements.
+              Le même niveau sur un bâtiment récent peut signaler une marge de progrès.
+            </p>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              L’objectif n’est pas de “coller une note”, mais de vous donner une base de décision :
+              <strong> faut-il investiguer, prioriser, ou agir maintenant ?</strong>
+            </p>
+          </div>
+
+          <div className="bg-white rounded-xl border border-slate-200 p-5">
+            <h3 className="text-sm font-semibold text-[#1E3A5F] mb-3">Si vous n’avez pas vos factures</h3>
+            <p className="text-sm text-slate-600 leading-relaxed mb-2">
+              L’outil peut générer une estimation par défaut à partir de votre activité, surface et période de construction.
+            </p>
+            <p className="text-sm text-slate-600 leading-relaxed">
+              C’est utile pour un premier tri, mais la précision s’améliore fortement dès que vous renseignez vos consommations réelles.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {/* SOURCES / HYPOTHESES */}
+    <section className="bg-white py-16 px-4">
+      <div className="max-w-6xl mx-auto">
+        <SectionTitle sub="Pour rester crédible, l’outil doit aussi expliciter ses limites">
+          Sources, hypothèses et limites
+        </SectionTitle>
+
+        <div className="grid md:grid-cols-3 gap-5">
+          <div className="rounded-xl border border-slate-200 p-5 bg-slate-50">
+            <div className="flex items-center gap-2 mb-2 text-[#1E3A5F]">
+              <Icon icon="solar:database-linear" className="text-lg" />
+              <h3 className="text-sm font-semibold">Références utilisées</h3>
+            </div>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Références tertiaires issues de bases publiques et de retours terrain, structurées par typologie d’activité
+              (bureaux, commerce, hôtellerie, santé, enseignement, etc.).
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 p-5 bg-slate-50">
+            <div className="flex items-center gap-2 mb-2 text-[#1E3A5F]">
+              <Icon icon="solar:calculator-linear" className="text-lg" />
+              <h3 className="text-sm font-semibold">Hypothèses de calcul</h3>
+            </div>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Les coûts travaux, gains potentiels et aides sont des fourchettes indicatives. Ils varient selon l’état réel du bâtiment,
+              l’exploitation, les devis et les dispositifs disponibles au moment du projet.
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 p-5 bg-slate-50">
+            <div className="flex items-center gap-2 mb-2 text-[#1E3A5F]">
+              <Icon icon="solar:scale-linear" className="text-lg" />
+              <h3 className="text-sm font-semibold">Niveau de précision</h3>
+            </div>
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Le rapport est une <strong>estimation directionnelle</strong> (ordre de grandeur). Il sert à prioriser et cadrer.
+              Pour engager des budgets, un audit ou une visite technique reste indispensable.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-8 bg-amber-50 border border-amber-200 rounded-xl p-5">
+          <div className="flex items-start gap-3">
+            <iconify-icon icon="solar:info-circle-linear" style={{fontSize:'20px', color:'#D97706', marginTop:'2px'}}></iconify-icon>
+            <div>
+              <p className="text-sm font-semibold text-amber-900 mb-1">Point important</p>
+              <p className="text-xs text-amber-800 leading-relaxed">
+                Les prix de l’énergie, aides et coûts d’intervention évoluent. Le rapport a vocation à vous orienter rapidement,
+                pas à se substituer à un chiffrage entreprise par entreprise.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    {/* POUR QUI */}
+    <section className="bg-[#F8F9FA] py-16 px-4">
+      <div className="max-w-6xl mx-auto">
+        <SectionTitle sub="Différents profils, même besoin : décider plus vite avec de meilleurs repères">
+          À qui s’adresse DiagTertiaire
+        </SectionTitle>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
+          {[
+            {
+              icon:'solar:buildings-linear',
+              title:'Propriétaires',
+              desc:'Évaluer rapidement un actif, arbitrer entre attente, audit ou travaux.'
+            },
+            {
+              icon:'solar:briefcase-linear',
+              title:'Locataires exploitants',
+              desc:'Objectiver une demande de travaux et sortir du simple ressenti.'
+            },
+            {
+              icon:'solar:case-round-minimalistic-linear',
+              title:'Gestionnaires',
+              desc:'Prioriser les sites à traiter dans un parc limité en budget.'
+            },
+            {
+              icon:'solar:calculator-linear',
+              title:'Prescripteurs',
+              desc:'Experts-comptables, assureurs, agents : un outil utile pour qualifier un besoin.'
+            }
+          ].map((p, i) => (
+            <div key={i} className="bg-white rounded-xl border border-slate-200 p-5">
+              <div className="w-10 h-10 rounded-lg bg-[#1E3A5F]/10 flex items-center justify-center mb-3">
+                <iconify-icon icon={p.icon} style={{fontSize:'20px', color:'#1E3A5F'}}></iconify-icon>
+              </div>
+              <h3 className="text-sm font-semibold text-slate-900 mb-2">{p.title}</h3>
+              <p className="text-xs text-slate-600 leading-relaxed">{p.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    {/* CTA FINAL */}
+    <section className="bg-white py-16 px-4 border-t border-slate-100">
+      <div className="max-w-4xl mx-auto">
+        <div className="rounded-2xl bg-[#1E3A5F] text-white p-8 text-center shadow-xl">
+          <h2 className="text-2xl tracking-tight font-semibold mb-2">
+            Vous voulez un premier niveau de lecture fiable en 3 minutes ?
+          </h2>
+          <p className="text-sm text-blue-100 mb-6 max-w-2xl mx-auto">
+            Lancez le diagnostic, récupérez votre rapport, puis décidez si vous devez approfondir avec un expert.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <button
+              type="button"
+              onClick={() => navigate('diagnostic')}
+              className="bg-white text-[#1E3A5F] px-6 py-3 rounded-xl text-sm font-semibold hover:bg-slate-100"
+            >
+              Démarrer maintenant
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('exemple')}
+              className="bg-transparent border border-white/30 text-white px-6 py-3 rounded-xl text-sm font-semibold hover:bg-white/10"
+            >
+              Voir un rapport exemple
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+);
 
       const PageExample = ({ navigate }) => {
           const FAKE_DATA = {
