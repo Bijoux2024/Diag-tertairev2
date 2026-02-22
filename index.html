@@ -2200,30 +2200,36 @@ timeline,
   // ===== SOURCE UNIQUE DE DONNEES RAPPORT =====
   const report = buildReportData(data);
 
-  const {
-    activityRef,
-    yearRef,
-    heatingLabel,
-    occupationLabel,
-    surface,
-    refBase,
-    refTotal,
-    consumptionTotalKwh,
-    kwhPerM2,
-    dpe,
-    avgPrice,
-    totalCost,
-    diffPct,
-    wasteKwh,
-    wasteEuro,
-    isDecretEligible,
-    priorities,
-    annualSavingsIfTop3,
-    projection5Y,
-    projection10Y,
-    timeline,
-    disclaimer
-  } = report;
+const {
+  activityRef,
+  yearRef,
+  heatingLabel,
+  occupationLabel,
+  surface,
+  refBase,
+  refTotal,
+  consumptionTotalKwh,
+  kwhPerM2,
+  dpe,
+  avgPrice,
+  totalCost,
+  diffPct,
+  wasteKwh,
+  wasteEuro,
+  isDecretEligible,
+  priorities,
+  annualSavingsIfTop3 = 0,
+  top3GrossCostMin = 0,
+  top3GrossCostMax = 0,
+  top3SubsidyMin = 0,
+  top3SubsidyMax = 0,
+  top3NetCostMin = 0,
+  top3NetCostMax = 0,
+  projection5Y = [],
+  projection10Y = [],
+  timeline = [],
+  disclaimer = {}
+} = report || {};
 
   // ===== CHARGEMENT RECHARTS =====
   useEffect(() => {
