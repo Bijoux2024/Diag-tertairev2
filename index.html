@@ -1646,6 +1646,21 @@ function round1(v) {
   return Math.round(Number(v || 0) * 10) / 10;
 }
 
+function normalizeActivityId(activity) {
+  const raw = String(activity || 'mixed').toLowerCase().trim();
+
+  const aliases = {
+    healthcare: 'health',
+    healthc: 'health',
+    sante: 'health'
+  };
+
+  const normalized = aliases[raw] || raw;
+
+  const validIds = new Set(ACTIVITIES.map(a => a.id));
+  return validIds.has(normalized) ? normalized : 'mixed';
+}
+
 function getActionImpactsByContext(actionKey, data) {
   const base = ACTION_POSTE_IMPACTS[actionKey] || {};
 
@@ -1742,6 +1757,17 @@ function computeRoiMetrics(costMin, costMax, subsidyMin, subsidyMax, annualSavin
     roiGrossYears: round1(roiGrossYears),
     roiNetYears: round1(roiNetYears)
   };
+}
+function computeRoiFromCostsAndSavings({ costMin, costMax, annualSavingsEuro, aids }) {
+  const ceeMin = Number(aids?.cee?.min || 0);
+  const ceeMax = Number(aids?.cee?.max || 0);
+  const mprMin = Number(aids?.mpr?.min || 0);
+  const mprMax = Number(aids?.mpr?.max || 0);
+
+  const subsidyMin = ceeMin + mprMin;
+  const subsidyMax = ceeMax + mprMax;
+
+  return computeRoiMetrics(costMin, costMax, subsidyMin, subsidyMax, annualSavingsEuro);
 }
 
 // Normalise un profil de postes pour garantir une somme = 1.0
@@ -1891,10 +1917,11 @@ const buildActionCatalog = ({ data, surface, postes, avgPrice, isDecretEligible 
 const buildReportData = (data) => {
   const activityId = normalizeActivityId(data.activity);
   const yearRef = YEARS.find(y => y.id === data.year) || YEARS[0];
+  const activityRef = ACTIVITIES.find(a => a.id === activityId) || ACTIVITIES.find(a => a.id === 'mixed') || ACTIVITIES[0];
 
   const refBase = activityId === 'mixed'
-  ? getMixedRef(data.activityMixPct || 50)
-  : activityRef.refKwh;
+    ? getMixedRef(data.activityMixPct || 50)
+    : activityRef.refKwh;
 
   const heatingLabel = getHeatingLabel(data.heating);
   const occupationLabel = getOccupationLabel(data.occupation);
@@ -1968,7 +1995,7 @@ const postes = splitConsumptionByPostes(consumptionTotalKwh, posteProfile);
     isDecretEligible
   });
 
-  const doneWorks = rray(data.works) ? data.works : [];
+const doneWorks = Array.isArray(data.works) ? data.works : [];
 
   let preferredOrder = [];
   if (data.year === 'pre1975' || data.year === '1975-1990') {
@@ -3188,7 +3215,70 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
           il vous aide à comprendre si votre consommation est cohérente, où se trouvent les principaux leviers,
           et si un audit complet vaut la peine d’être lancé maintenant.
         </p>
+        <div className="mt-5 grid md:grid-cols-2 gap-4">
+  <div className="bg-[#F8FAFC] border border-slate-200 rounded-2xl p-5">
+    <h4 className="text-sm font-semibold text-[#1E3A5F] mb-3 flex items-center gap-2">
+      <Icon icon="solar:check-circle-linear" className="text-base text-[#2ECC71]" />
+      Ce que DiagTertiaire fait
+    </h4>
+    <ul className="space-y-2 text-sm text-slate-600">
+      <li className="flex items-start gap-2">
+        <Icon icon="solar:arrow-right-linear" className="text-sm mt-0.5 text-[#1E3A5F]" />
+        Estimation directionnelle des consommations et de l’écart à une référence tertiaire
+      </li>
+      <li className="flex items-start gap-2">
+        <Icon icon="solar:arrow-right-linear" className="text-sm mt-0.5 text-[#1E3A5F]" />
+        Priorisation des postes (chauffage, ECS, éclairage, auxiliaires, usages spécifiques)
+      </li>
+      <li className="flex items-start gap-2">
+        <Icon icon="solar:arrow-right-linear" className="text-sm mt-0.5 text-[#1E3A5F]" />
+        Ordres de grandeur coûts, aides et ROI brut / net
+      </li>
+      <li className="flex items-start gap-2">
+        <Icon icon="solar:arrow-right-linear" className="text-sm mt-0.5 text-[#1E3A5F]" />
+        Base de discussion pour décider d’un audit ou d’un plan d’action
+      </li>
+    </ul>
+  </div>
 
+  <div className="bg-[#FFF7ED] border border-orange-200 rounded-2xl p-5">
+    <h4 className="text-sm font-semibold text-[#9A3412] mb-3 flex items-center gap-2">
+      <Icon icon="solar:shield-warning-linear" className="text-base text-[#F39C12]" />
+      Ce que DiagTertiaire ne fait pas
+    </h4>
+    <ul className="space-y-2 text-sm text-slate-700">
+      <li className="flex items-start gap-2">
+        <Icon icon="solar:close-circle-linear" className="text-sm mt-0.5 text-[#D97706]" />
+        Ce n’est pas un audit réglementaire ni un DPE opposable
+      </li>
+      <li className="flex items-start gap-2">
+        <Icon icon="solar:close-circle-linear" className="text-sm mt-0.5 text-[#D97706]" />
+        Ce n’est pas une promesse contractuelle d’économies
+      </li>
+      <li className="flex items-start gap-2">
+        <Icon icon="solar:close-circle-linear" className="text-sm mt-0.5 text-[#D97706]" />
+        Les aides indiquées sont estimatives et à confirmer selon le dossier réel
+      </li>
+      <li className="flex items-start gap-2">
+        <Icon icon="solar:close-circle-linear" className="text-sm mt-0.5 text-[#D97706]" />
+        Une visite technique reste nécessaire avant engagement travaux
+      </li>
+    </ul>
+  </div>
+</div>
+<div className="mt-6 bg-white border border-slate-200 rounded-2xl p-5">
+  <h3 className="text-base font-semibold text-[#1E3A5F] mb-2">
+    Pourquoi ce pré-diagnostic existe
+  </h3>
+  <p className="text-sm text-slate-600 leading-relaxed mb-3">
+    Un audit énergétique complet est souvent pertinent, mais il représente un coût et demande du temps.
+    L’objectif de DiagTertiaire est de vous aider à décider s’il faut passer à l’action, et sur quels postes en priorité.
+  </p>
+  <p className="text-sm text-slate-600 leading-relaxed">
+    Ce rapport donne un <strong>ordre de grandeur crédible</strong> pour cadrer le besoin, estimer l’écart à la référence
+    et préparer une discussion avec un auditeur, un bureau d’études ou un propriétaire.
+  </p>
+</div>
         <div className="mt-8 flex flex-wrap justify-center gap-3">
           <button
             type="button"
@@ -3440,6 +3530,43 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
         <SectionTitle sub="Différents profils, même besoin : décider plus vite avec de meilleurs repères">
           À qui s’adresse DiagTertiaire
         </SectionTitle>
+        <div className="mb-8 bg-[#1E3A5F] text-white rounded-2xl p-6 md:p-7 shadow-sm">
+          <div className="grid md:grid-cols-[1.2fr_0.8fr] gap-6 items-start">
+            <div>
+              <h3 className="text-base md:text-lg font-semibold mb-2">Pourquoi un pré-diagnostic plutôt qu’un audit complet directement ?</h3>
+              <p className="text-sm text-slate-100 leading-relaxed mb-3">
+                Un audit complet est souvent la bonne étape… mais il a un coût, prend du temps, et n’est pas toujours
+                justifié au départ pour un petit site tertiaire.
+              </p>
+              <p className="text-sm text-slate-100 leading-relaxed">
+                DiagTertiaire sert à <strong>valider rapidement le besoin</strong>, objectiver un écart de performance,
+                estimer un ordre de grandeur des gains, puis décider s’il faut lancer un audit, demander des devis,
+                ou prioriser des actions simples.
+              </p>
+            </div>
+
+            <div className="bg-white/10 border border-white/20 rounded-xl p-4">
+              <div className="flex items-start gap-2 mb-2">
+                <Icon icon="solar:shield-check-linear" className="text-lg mt-0.5" />
+                <p className="text-sm font-semibold">Positionnement clair</p>
+              </div>
+              <ul className="space-y-2 text-xs text-slate-100">
+                <li className="flex items-start gap-2">
+                  <Icon icon="solar:check-circle-linear" className="text-sm mt-0.5 shrink-0" />
+                  Outil de pré-cadrage et d’aide à la décision
+                </li>
+                <li className="flex items-start gap-2">
+                  <Icon icon="solar:check-circle-linear" className="text-sm mt-0.5 shrink-0" />
+                  Rapport orienté budget, priorités et timing
+                </li>
+                <li className="flex items-start gap-2">
+                  <Icon icon="solar:close-circle-linear" className="text-sm mt-0.5 shrink-0" />
+                  Ne remplace pas un audit technique réglementaire
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
           {[
