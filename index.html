@@ -3217,19 +3217,19 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
           </div>
           <ul className="space-y-2 text-sm text-slate-600">
             <li className="flex items-start gap-2">
-              <iconify-icon icon="solar:check-circle-bold" style={{color:'#2ECC71', fontSize:'16px', marginTop:'2px'}}></iconify-icon>
+              <Icon icon="solar:check-circle-bold" className="text-[#2ECC71] text-base mt-0.5 shrink-0" />
               <span>Comparer votre bâtiment à une <strong>référence tertiaire adaptée</strong> à votre activité</span>
             </li>
             <li className="flex items-start gap-2">
-              <iconify-icon icon="solar:check-circle-bold" style={{color:'#2ECC71', fontSize:'16px', marginTop:'2px'}}></iconify-icon>
-              <span>Obtenir un <strong>ordre de grandeur</strong> de votre consommation et de votre classe énergétique estimée</span>
+              <Icon icon="solar:check-circle-bold" className="text-[#2ECC71] text-base mt-0.5 shrink-0" />
+              <span>Obtenir un <strong>ordre de grandeur crédible</strong> de votre consommation, de votre coût annuel et de votre classe énergétique estimée</span>
             </li>
             <li className="flex items-start gap-2">
-              <iconify-icon icon="solar:check-circle-bold" style={{color:'#2ECC71', fontSize:'16px', marginTop:'2px'}}></iconify-icon>
+              <Icon icon="solar:check-circle-bold" className="text-[#2ECC71] text-base mt-0.5 shrink-0" />
               <span>Identifier 3 actions prioritaires avec <strong>gains, coûts, ROI et aides indicatives</strong></span>
             </li>
             <li className="flex items-start gap-2">
-              <iconify-icon icon="solar:check-circle-bold" style={{color:'#2ECC71', fontSize:'16px', marginTop:'2px'}}></iconify-icon>
+              <Icon icon="solar:check-circle-bold" className="text-[#2ECC71] text-base mt-0.5 shrink-0" />
               <span>Préparer une discussion avec un bureau d’études, un propriétaire, ou un décideur interne</span>
             </li>
           </ul>
@@ -3242,19 +3242,19 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
           </div>
           <ul className="space-y-2 text-sm text-slate-700">
             <li className="flex items-start gap-2">
-              <iconify-icon icon="solar:close-circle-bold" style={{color:'#E74C3C', fontSize:'16px', marginTop:'2px'}}></iconify-icon>
+              <Icon icon="solar:close-circle-bold" className="text-[#E74C3C] text-base mt-0.5 shrink-0" />
               <span>Un audit énergétique réglementaire ou une mission de maîtrise d’œuvre</span>
             </li>
             <li className="flex items-start gap-2">
-              <iconify-icon icon="solar:close-circle-bold" style={{color:'#E74C3C', fontSize:'16px', marginTop:'2px'}}></iconify-icon>
+              <Icon icon="solar:close-circle-bold" className="text-[#E74C3C] text-base mt-0.5 shrink-0" />
               <span>Un dimensionnement technique (CVC, ECS, ventilation, GTB, etc.)</span>
             </li>
             <li className="flex items-start gap-2">
-              <iconify-icon icon="solar:close-circle-bold" style={{color:'#E74C3C', fontSize:'16px', marginTop:'2px'}}></iconify-icon>
-              <span>Un engagement contractuel sur les économies réelles ou les aides mobilisables</span>
+              <Icon icon="solar:close-circle-bold" className="text-[#E74C3C] text-base mt-0.5 shrink-0" />
+              <span>Un engagement contractuel sur les économies réelles, les devis entreprise ou les aides effectivement obtenues</span>
             </li>
             <li className="flex items-start gap-2">
-              <iconify-icon icon="solar:close-circle-bold" style={{color:'#E74C3C', fontSize:'16px', marginTop:'2px'}}></iconify-icon>
+              <Icon icon="solar:close-circle-bold" className="text-[#E74C3C] text-base mt-0.5 shrink-0" />
               <span>Une analyse complète de conformité (Décret Tertiaire, obligations réglementaires, etc.)</span>
             </li>
           </ul>
@@ -3298,7 +3298,7 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
           ].map((item, i) => (
             <div key={i} className="bg-white rounded-xl border border-slate-200 p-5">
               <div className="w-12 h-12 rounded-xl flex items-center justify-center mb-3" style={{backgroundColor:item.color + '15'}}>
-                <iconify-icon icon={item.icon} style={{fontSize:'24px', color:item.color}}></iconify-icon>
+                <Icon icon={item.icon} className="text-2xl" style={{ color: item.color }} />
               </div>
               <h3 className="text-sm font-semibold text-slate-900 mb-2">{item.title}</h3>
               <p className="text-xs text-slate-600 leading-relaxed">{item.desc}</p>
@@ -3376,7 +3376,7 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
 
         <div className="mt-8 bg-amber-50 border border-amber-200 rounded-xl p-5">
           <div className="flex items-start gap-3">
-            <iconify-icon icon="solar:info-circle-linear" style={{fontSize:'20px', color:'#D97706', marginTop:'2px'}}></iconify-icon>
+            <Icon icon="solar:info-circle-linear" className="text-[20px] text-amber-600 mt-0.5 shrink-0" />
             <div>
               <p className="text-sm font-semibold text-amber-900 mb-1">Point important</p>
               <p className="text-xs text-amber-800 leading-relaxed">
@@ -3421,7 +3421,7 @@ const annualSavingsIfTop3 = priorities.slice(0, 3).reduce((sum, p) => sum + (p.g
           ].map((p, i) => (
             <div key={i} className="bg-white rounded-xl border border-slate-200 p-5">
               <div className="w-10 h-10 rounded-lg bg-[#1E3A5F]/10 flex items-center justify-center mb-3">
-                <iconify-icon icon={p.icon} style={{fontSize:'20px', color:'#1E3A5F'}}></iconify-icon>
+                <Icon icon={p.icon} className="text-[20px] text-[#1E3A5F]" />
               </div>
               <h3 className="text-sm font-semibold text-slate-900 mb-2">{p.title}</h3>
               <p className="text-xs text-slate-600 leading-relaxed">{p.desc}</p>
