@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:diag-tertaire.vercel.app)",
+      "WebFetch(domain:diag-tertairev2.vercel.app)",
+      "Bash(curl -I \"https://diag-tertaire.vercel.app/api/pdf.js\")"
+    ]
+  }
+}
