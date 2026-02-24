@@ -727,81 +727,7 @@
         );
       };
 
-      const App = () => {
-        const [currentPage, setCurrentPage] = useState('home');
-
-        const navigate = (page) => {
-          setCurrentPage(page);
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-          track('navigate', { to: page });
-        };
-
-        return (
-          <div className="min-h-screen">
-            <nav className="bg-white border-b border-neutral-200 px-4 py-4 sticky top-0 z-50 no-print shadow-sm">
-              <div className="max-w-7xl mx-auto flex items-center justify-between">
-                <button 
-                  onClick={() => navigate('home')}
-                  className="text-2xl font-bold text-blue-600 hover:text-blue-700 transition-colors"
-                >
-                  DiagTertiaire
-                </button>
-                <div className="flex gap-8 text-sm font-medium">
-                  <button 
-                    onClick={() => navigate('home')}
-                    className={`transition-colors ${currentPage === 'home' ? 'text-blue-600' : 'text-neutral-600 hover:text-neutral-900'}`}
-                  >
-                    Accueil
-                  </button>
-                  <button 
-                    onClick={() => navigate('approche')}
-                    className={`transition-colors ${currentPage === 'approche' ? 'text-blue-600' : 'text-neutral-600 hover:text-neutral-900'}`}
-                  >
-                    Approche
-                  </button>
-                  <button 
-                    onClick={() => navigate('rapportPublic')}
-                    className={`transition-colors ${currentPage === 'rapportPublic' ? 'text-blue-600' : 'text-neutral-600 hover:text-neutral-900'}`}
-                  >
-                    Exemple
-                  </button>
-                </div>
-              </div>
-            </nav>
-
-            <main>
-              {currentPage === 'home' && <PageHome navigate={navigate} />}
-              {currentPage === 'approche' && <PageApproche navigate={navigate} />}
-              {currentPage === 'rapportPublic' && <PageRapportPublic navigate={navigate} />}
-              {currentPage === 'diagnostic' && (
-                <div className="py-20 px-4">
-                  <div className="max-w-2xl mx-auto text-center">
-                    <h1 className="text-3xl font-bold text-neutral-900 mb-4">Diagnostic</h1>
-                    <p className="text-neutral-600 mb-8">Formulaire à implémenter (Phase 2)</p>
-                    <Button variant="secondary" onClick={() => navigate('home')}>
-                      Retour à l'accueil
-                    </Button>
-                  </div>
-                </div>
-              )}
-              {currentPage === 'pro' && (
-                <div className="py-20 px-4">
-                  <div className="max-w-2xl mx-auto text-center">
-                    <h1 className="text-3xl font-bold text-neutral-900 mb-4">Espace Pro</h1>
-                    <p className="text-neutral-600 mb-8">Page à implémenter (Phase 5)</p>
-                    <Button variant="secondary" onClick={() => navigate('home')}>
-                      Retour à l'accueil
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </main>
-          </div>
-        );
-      };
-
-// ⛔ Ne pas fermer le script ici.
-// Le rendu React est déplacé à la toute fin du fichier.
+// App finale définie après toutes les phases (voir bas de fichier).
 /* ═══════════════════════════════════════════════════════════════════════════
    PHASE 3 : MOTEUR DE CALCUL - TABLES MÉTIER
    
@@ -3665,15 +3591,159 @@ const sendReportEmail = async (email, reportPayload) => {
 };
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   EXPORTS POUR INTÉGRATION
-   
-   Composants et fonctions prêts à intégrer dans App() :
-   - EmailGate : afficher après buildReportData()
-   - ReportScreen : afficher après email validé
-   - exportPDF : bouton dans ReportScreen
-   - sendReportEmail : appel après email validé
+   APP FINALE
 
+   Flow : home → diagnostic → emailGate → report
+   Toutes les dépendances (Phase 2, 3, 4) sont définies au-dessus.
    ═══════════════════════════════════════════════════════════════════════════ */
+
+const App = () => {
+  const [currentPage, setCurrentPage] = useState('home');
+  const [reportPayload, setReportPayload] = useState(null);
+  const [userEmail, setUserEmail] = useState(null);
+  const [calcError, setCalcError] = useState(null);
+
+  const navigate = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    track('navigate', { to: page });
+  };
+
+  // Étape 1 : formulaire terminé → calcul → emailGate
+  const handleDiagnosticComplete = (data) => {
+    setCalcError(null);
+    try {
+      const payload = buildReportData(data);
+      setReportPayload(payload);
+      track('calculation_completed', {
+        intensity: payload.calculation_results.intensity_kwh_m2_an.value,
+        confidence: payload.confidence.level
+      });
+      navigate('emailGate');
+    } catch (error) {
+      console.error('Erreur calcul:', error);
+      setCalcError(error.message);
+    }
+  };
+
+  // Étape 2 : email soumis → envoi (stub) → rapport
+  const handleEmailSubmitted = async (email) => {
+    setUserEmail(email);
+    try {
+      await sendReportEmail(email, reportPayload);
+      track('email_submitted', { email });
+    } catch (error) {
+      // Non-bloquant : on affiche quand même le rapport
+      console.error('Erreur envoi email:', error);
+    }
+    navigate('report');
+  };
+
+  // Recommencer le diagnostic depuis zéro
+  const handleRestart = () => {
+    setReportPayload(null);
+    setUserEmail(null);
+    setCalcError(null);
+    navigate('home');
+  };
+
+  // Guard : redirection si état requis manquant (ex. refresh ou lien direct)
+  if (
+    (currentPage === 'emailGate' && !reportPayload) ||
+    (currentPage === 'report' && (!reportPayload || !userEmail))
+  ) {
+    setTimeout(() => navigate('home'), 0);
+    return null;
+  }
+
+  return (
+    <div className="min-h-screen">
+      {/* Barre de navigation */}
+      <nav className="bg-white border-b border-neutral-200 px-4 py-4 sticky top-0 z-50 no-print shadow-sm">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <button
+            onClick={handleRestart}
+            className="text-2xl font-bold text-blue-600 hover:text-blue-700 transition-colors"
+          >
+            DiagTertiaire
+          </button>
+          <div className="flex gap-8 text-sm font-medium">
+            <button
+              onClick={() => navigate('home')}
+              className={`transition-colors ${currentPage === 'home' ? 'text-blue-600' : 'text-neutral-600 hover:text-neutral-900'}`}
+            >
+              Accueil
+            </button>
+            <button
+              onClick={() => navigate('approche')}
+              className={`transition-colors ${currentPage === 'approche' ? 'text-blue-600' : 'text-neutral-600 hover:text-neutral-900'}`}
+            >
+              Approche
+            </button>
+            <button
+              onClick={() => navigate('rapportPublic')}
+              className={`transition-colors ${currentPage === 'rapportPublic' ? 'text-blue-600' : 'text-neutral-600 hover:text-neutral-900'}`}
+            >
+              Exemple
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      <main>
+        {/* Pages publiques */}
+        {currentPage === 'home' && <PageHome navigate={navigate} />}
+        {currentPage === 'approche' && <PageApproche navigate={navigate} />}
+        {currentPage === 'rapportPublic' && <PageRapportPublic navigate={navigate} />}
+
+        {/* Formulaire diagnostic (Phase 2) */}
+        {currentPage === 'diagnostic' && (
+          <>
+            {calcError && (
+              <div className="max-w-3xl mx-auto mt-6 px-4">
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                  <strong>Erreur de calcul :</strong> {calcError}
+                </div>
+              </div>
+            )}
+            <DiagnosticForm onComplete={handleDiagnosticComplete} />
+          </>
+        )}
+
+        {/* Email gate (Phase 4) */}
+        {currentPage === 'emailGate' && reportPayload && (
+          <EmailGate
+            reportPayload={reportPayload}
+            onEmailSubmitted={handleEmailSubmitted}
+          />
+        )}
+
+        {/* Rapport complet (Phase 4) */}
+        {currentPage === 'report' && reportPayload && userEmail && (
+          <ReportScreen
+            reportPayload={reportPayload}
+            userEmail={userEmail}
+            onExportPDF={() => exportPDF(reportPayload, userEmail)}
+            onRestart={handleRestart}
+          />
+        )}
+
+        {/* Espace Pro – Phase 5 à venir */}
+        {currentPage === 'pro' && (
+          <div className="py-20 px-4 fade-in">
+            <div className="max-w-2xl mx-auto text-center">
+              <h1 className="text-3xl font-bold text-neutral-900 mb-4">Espace Pro</h1>
+              <p className="text-neutral-600 mb-8">Page à implémenter (Phase 5)</p>
+              <Button variant="secondary" onClick={() => navigate('home')}>
+                Retour à l'accueil
+              </Button>
+            </div>
+          </div>
+        )}
+      </main>
+    </div>
+  );
+};
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(<App />);
