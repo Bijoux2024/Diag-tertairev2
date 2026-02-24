@@ -355,6 +355,98 @@
         </div>
       );
 
+/* ─────────────────────────────────────────────────────────────────────────
+   COMPOSANT : HEADER (navigation sticky partagée)
+   ───────────────────────────────────────────────────────────────────────── */
+      const Header = ({ currentPage, navigate }) => (
+        <header className="sticky top-0 z-50 bg-white border-b border-neutral-200 shadow-sm no-print">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-16">
+              <button
+                onClick={() => navigate('home')}
+                className="text-xl font-bold text-blue-600 hover:opacity-80 transition"
+              >
+                DiagTertiaire
+              </button>
+              <nav className="hidden md:flex gap-6 items-center text-sm font-medium">
+                {[
+                  { key: 'home',          label: 'Accueil' },
+                  { key: 'approche',      label: 'Approche' },
+                  { key: 'rapportPublic', label: 'Exemple de rapport' },
+                  { key: 'pro',           label: 'Espace Pro' },
+                ].map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => navigate(key)}
+                    className={`transition pb-1 ${
+                      currentPage === key
+                        ? 'text-blue-600 border-b-2 border-blue-600'
+                        : 'text-neutral-600 hover:text-blue-600'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </nav>
+              <button
+                onClick={() => navigate('diagnostic')}
+                className="bg-blue-600 text-white px-4 py-2 rounded-md font-medium hover:bg-blue-700 transition text-sm"
+              >
+                Lancer le diagnostic
+              </button>
+            </div>
+          </div>
+        </header>
+      );
+
+/* ─────────────────────────────────────────────────────────────────────────
+   COMPOSANT : FOOTER (pied de page partagé, pages publiques uniquement)
+   ───────────────────────────────────────────────────────────────────────── */
+      const Footer = ({ navigate }) => (
+        <footer className="bg-neutral-50 border-t border-neutral-200 no-print">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+              <div>
+                <h3 className="text-lg font-bold text-blue-600 mb-2">DiagTertiaire</h3>
+                <p className="text-sm text-neutral-600">
+                  Pré-diagnostic énergétique tertiaire orienté décision, basé sur références sectorielles ADEME.
+                </p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-neutral-900 mb-4">Ressources</h4>
+                <ul className="space-y-2 text-sm">
+                  <li><button onClick={() => navigate('approche')} className="text-neutral-600 hover:text-blue-600 transition">Guide méthodologique</button></li>
+                  <li><button onClick={() => navigate('rapportPublic')} className="text-neutral-600 hover:text-blue-600 transition">Exemple de rapport</button></li>
+                  <li><button onClick={() => navigate('diagnostic')} className="text-neutral-600 hover:text-blue-600 transition">Lancer un diagnostic</button></li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-neutral-900 mb-4">Légal</h4>
+                <ul className="space-y-2 text-sm text-neutral-600">
+                  <li>Mentions légales</li>
+                  <li>Politique de confidentialité</li>
+                  <li>Gestion des cookies</li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-semibold text-neutral-900 mb-4">Professionnel</h4>
+                <ul className="space-y-2 text-sm">
+                  <li><button onClick={() => navigate('pro')} className="text-neutral-600 hover:text-blue-600 transition">Espace Pro</button></li>
+                  <li><span className="text-neutral-600">Devenir partenaire</span></li>
+                </ul>
+              </div>
+            </div>
+            <div className="border-t border-neutral-200 pt-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-sm text-neutral-500">
+              <p>© 2026 DiagTertiaire · Estimations basées sur données ADEME · Non substituable à un audit réglementaire</p>
+              <div className="flex gap-4">
+                <span>🔒 SSL</span>
+                <span>✓ RGPD</span>
+              </div>
+            </div>
+          </div>
+        </footer>
+      );
+
       const PageHome = ({ navigate }) => {
         const [selectedRole, setSelectedRole] = useState(null);
 
@@ -497,15 +589,6 @@
               </div>
             </section>
 
-            <footer className="py-8 px-4 bg-neutral-900 text-neutral-400 text-sm text-center">
-              <p className="mb-2">DiagTertiaire - Pré-diagnostic énergétique</p>
-              <button 
-                onClick={() => navigate('pro')}
-                className="text-neutral-500 hover:text-neutral-300 underline transition-colors"
-              >
-                Espace Pro
-              </button>
-            </footer>
           </div>
         );
       };
@@ -599,14 +682,6 @@
               </div>
             </section>
 
-            <footer className="py-8 px-4 bg-neutral-900 text-neutral-400 text-sm text-center">
-              <button 
-                onClick={() => navigate('home')}
-                className="text-neutral-500 hover:text-neutral-300 underline"
-              >
-                Retour à l'accueil
-              </button>
-            </footer>
           </div>
         );
       };
@@ -715,14 +790,67 @@
               </div>
             </section>
 
-            <footer className="py-8 px-4 bg-neutral-900 text-neutral-400 text-sm text-center">
-              <button 
-                onClick={() => navigate('home')}
-                className="text-neutral-500 hover:text-neutral-300 underline"
-              >
-                Retour à l'accueil
-              </button>
-            </footer>
+          </div>
+        );
+      };
+
+/* ─────────────────────────────────────────────────────────────────────────
+   COMPOSANT : ProPage (Espace Pro - Phase 5 à venir)
+   ───────────────────────────────────────────────────────────────────────── */
+      const ProPage = ({ navigate }) => {
+        useEffect(() => { track('view_pro'); }, []);
+        return (
+          <div className="fade-in">
+            <section className="py-20 px-4 bg-gradient-to-b from-blue-600 to-blue-700 text-white">
+              <div className="max-w-4xl mx-auto text-center">
+                <h1 className="text-4xl md:text-5xl font-bold mb-4">Espace Pro</h1>
+                <p className="text-xl text-blue-100">
+                  Utilisez DiagTertiaire pour cadrer rapidement le besoin de vos clients avant audit, expertise ou devis.
+                </p>
+              </div>
+            </section>
+
+            <Section title="Ce que vous gagnez" background="white">
+              <div className="grid md:grid-cols-3 gap-6">
+                {[
+                  { title: 'Multi-dossiers', desc: 'Traitez plusieurs clients rapidement depuis une interface simple.' },
+                  { title: 'PDF prêt à partager', desc: 'Livrable professionnel exportable à remettre au client.' },
+                  { title: 'Usage marque blanche', desc: 'Version pro pour intégrer à votre activité (à venir).' },
+                ].map(({ title, desc }) => (
+                  <div key={title} className="p-8 bg-neutral-50 rounded-xl border border-neutral-200">
+                    <h3 className="text-lg font-semibold text-neutral-900 mb-2">{title}</h3>
+                    <p className="text-neutral-600 text-sm">{desc}</p>
+                  </div>
+                ))}
+              </div>
+            </Section>
+
+            <Section title="Pour qui ?" background="neutral">
+              <ul className="space-y-3 max-w-2xl mx-auto text-lg text-neutral-700">
+                {['Experts-comptables', 'Bureaux d\'études', 'Artisans et installateurs', 'Conseils en énergie / immobilier'].map(item => (
+                  <li key={item} className="flex items-center gap-4">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Icon icon="solar:check-circle-bold" className="text-blue-600 text-xl" />
+                    </div>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </Section>
+
+            <section className="py-16 px-4 bg-blue-600 text-white text-center">
+              <div className="max-w-3xl mx-auto">
+                <h2 className="text-3xl font-bold mb-4">Commencez dès maintenant</h2>
+                <p className="text-blue-100 mb-8">Testez le diagnostic sur un dossier client — gratuit, sans engagement.</p>
+                <Button
+                  variant="primary"
+                  onClick={() => navigate('diagnostic')}
+                  className="bg-white text-blue-600 hover:bg-neutral-100 shadow-2xl"
+                >
+                  Lancer le diagnostic
+                </Button>
+              </div>
+            </section>
           </div>
         );
       };
@@ -3656,47 +3784,22 @@ const App = () => {
     return null;
   }
 
-  return (
-    <div className="min-h-screen">
-      {/* Barre de navigation */}
-      <nav className="bg-white border-b border-neutral-200 px-4 py-4 sticky top-0 z-50 no-print shadow-sm">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <button
-            onClick={handleRestart}
-            className="text-2xl font-bold text-blue-600 hover:text-blue-700 transition-colors"
-          >
-            DiagTertiaire
-          </button>
-          <div className="flex gap-8 text-sm font-medium">
-            <button
-              onClick={() => navigate('home')}
-              className={`transition-colors ${currentPage === 'home' ? 'text-blue-600' : 'text-neutral-600 hover:text-neutral-900'}`}
-            >
-              Accueil
-            </button>
-            <button
-              onClick={() => navigate('approche')}
-              className={`transition-colors ${currentPage === 'approche' ? 'text-blue-600' : 'text-neutral-600 hover:text-neutral-900'}`}
-            >
-              Approche
-            </button>
-            <button
-              onClick={() => navigate('rapportPublic')}
-              className={`transition-colors ${currentPage === 'rapportPublic' ? 'text-blue-600' : 'text-neutral-600 hover:text-neutral-900'}`}
-            >
-              Exemple
-            </button>
-          </div>
-        </div>
-      </nav>
+  // Pages qui affichent le Header + Footer partagés
+  const isPublicPage = ['home', 'approche', 'rapportPublic', 'pro'].includes(currentPage);
 
-      <main>
-        {/* Pages publiques */}
+  return (
+    <div className="min-h-screen flex flex-col">
+      {/* Header partagé sur toutes les pages */}
+      <Header currentPage={currentPage} navigate={navigate} />
+
+      <main className="flex-1">
+        {/* ── Pages publiques ── */}
         {currentPage === 'home' && <PageHome navigate={navigate} />}
         {currentPage === 'approche' && <PageApproche navigate={navigate} />}
         {currentPage === 'rapportPublic' && <PageRapportPublic navigate={navigate} />}
+        {currentPage === 'pro' && <ProPage navigate={navigate} />}
 
-        {/* Formulaire diagnostic (Phase 2) */}
+        {/* ── Formulaire diagnostic (Phase 2) ── */}
         {currentPage === 'diagnostic' && (
           <>
             {calcError && (
@@ -3710,7 +3813,7 @@ const App = () => {
           </>
         )}
 
-        {/* Email gate (Phase 4) */}
+        {/* ── Email gate (Phase 4) ── */}
         {currentPage === 'emailGate' && reportPayload && (
           <EmailGate
             reportPayload={reportPayload}
@@ -3718,7 +3821,7 @@ const App = () => {
           />
         )}
 
-        {/* Rapport complet (Phase 4) */}
+        {/* ── Rapport complet (Phase 4) ── */}
         {currentPage === 'report' && reportPayload && userEmail && (
           <ReportScreen
             reportPayload={reportPayload}
@@ -3727,20 +3830,10 @@ const App = () => {
             onRestart={handleRestart}
           />
         )}
-
-        {/* Espace Pro – Phase 5 à venir */}
-        {currentPage === 'pro' && (
-          <div className="py-20 px-4 fade-in">
-            <div className="max-w-2xl mx-auto text-center">
-              <h1 className="text-3xl font-bold text-neutral-900 mb-4">Espace Pro</h1>
-              <p className="text-neutral-600 mb-8">Page à implémenter (Phase 5)</p>
-              <Button variant="secondary" onClick={() => navigate('home')}>
-                Retour à l'accueil
-              </Button>
-            </div>
-          </div>
-        )}
       </main>
+
+      {/* Footer partagé uniquement sur les pages publiques */}
+      {isPublicPage && <Footer navigate={navigate} />}
     </div>
   );
 };
