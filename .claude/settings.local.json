@@ -3,7 +3,15 @@
     "allow": [
       "WebFetch(domain:diag-tertaire.vercel.app)",
       "WebFetch(domain:diag-tertairev2.vercel.app)",
-      "Bash(curl -I \"https://diag-tertaire.vercel.app/api/pdf.js\")"
+      "Bash(curl -I \"https://diag-tertaire.vercel.app/api/pdf.js\")",
+      "Bash(python3 -:*)",
+      "Bash(python3 -c \":*)",
+      "Bash(/c/Users/yanni/AppData/Local/Microsoft/WindowsApps/python3.exe -c \"print\\(''Python OK''\\)\")",
+      "Bash(node --version)",
+      "Bash(ruby --version)",
+      "Bash(perl --version)",
+      "Bash(perl -e ':*)",
+      "Bash(perl -e:*)"
     ]
   }
 }

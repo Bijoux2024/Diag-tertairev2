@@ -1448,7 +1448,7 @@ const buildPDFHtml = (data, analysis) => {
           <h2 class="section-title">Hypothèses de calcul</h2>
           <ul class="hypotheses-list">
             <li>Prix énergie (TTC) : ${heatingLabel.includes('gaz') ? 'Gaz' : 'Électricité'} = ${analysis.avgPrice.toFixed(2)} €/kWh</li>
-            <li>Référence : ${activityRef.label} = ${refBase} kWh/m²/an (ADEME)</li>
+            <li>Référence : ${activityRef.label} = ${refBase} kWh/m²/an (référence sectorielle)</li>
             <li>Objectif : 80% de la référence sectorielle</li>
             <li>Coûts : base marché 2026 (±30%)</li>
           </ul>
@@ -3027,852 +3027,376 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
       /* --- PAGES --- */
 
       /* ═══════════════════════════════════════════════════════════════════════════
+         COPY: SOURCE UNIQUE DE TEXTES MARKETING (LP)
+         Toutes les modifications de textes de la landing page se font ici.
+         ═══════════════════════════════════════════════════════════════════════════ */
+      const COPY = {
+        cta: {
+          primary: "Lancer le diagnostic",
+          secondaryHome: "Voir un exemple de rapport",
+          secondaryReport: "Voir l’approche",
+        },
+        home: {
+          h1: "Pré-diagnostic énergétique tertiaire en 3 minutes",
+          subtitle: "Un cadrage chiffré pour décider quoi faire ensuite avant audit, devis ou travaux.",
+          badges: [
+            "Temps estimé 3 minutes",
+            "Sans inscription",
+            "Email requis pour recevoir le rapport",
+          ],
+          segmentation: {
+            ownerLabel: "Propriétaire",
+            ownerDesc: "Priorisez les 3 leviers et cadrez un budget.",
+            tenantLabel: "Locataire exploitant",
+            tenantDesc: "Préparez une discussion structurée charges et travaux.",
+          },
+          sections: {
+            getResults: [
+              "Conso et coût estimés",
+              "Comparaison à des références sectorielles",
+              "Top 3 leviers prioritaires",
+              "PDF exploitable pour arbitrer",
+            ],
+            howItWorks: [
+              { icon: "solar:buildings-2-linear", title: "Répondez à quelques questions" },
+              { icon: "solar:letter-linear", title: "Renseignez votre email pour recevoir le rapport (et une copie PDF)" },
+              { icon: "solar:eye-linear", title: "Consultez le rapport à l’écran" },
+              { icon: "solar:download-minimalistic-linear", title: "Téléchargez le PDF en fin de diagnostic" },
+            ],
+            useCasesTitle: "À quoi ça sert",
+            useCases: [
+              "Prioriser les 3 premiers leviers",
+              "Arbitrer un budget ou un investissement",
+              "Préparer un audit ciblé",
+              "Structurer un échange propriétaire/locataire",
+            ],
+            limitsTitle: "Limites",
+            limits: [
+              "Pré-diagnostic d’orientation non contractuel",
+              "Pas un audit sur site",
+              "Pas un devis travaux",
+              "À confirmer par visite et devis",
+            ],
+            proTitle: "Vous êtes un professionnel ?",
+            proLink: "Accès Espace Pro",
+          },
+          faq: [
+            {
+              q: "Est-ce un audit réglementaire ?",
+              a: "Non. DiagTertiaire est un pré-diagnostic orienté décision. Il aide à cadrer rapidement le sujet avant un audit réglementaire, un devis ou une visite terrain.",
+            },
+            {
+              q: "Est-ce gratuit ?",
+              a: "Oui, le pré-diagnostic est gratuit et sans engagement. Vous obtenez une estimation synthétique et un rapport exportable.",
+            },
+            {
+              q: "Dois-je fournir mon email ?",
+              a: "Oui. L’email est requis pour recevoir le rapport et la copie PDF. Il n’est pas optionnel.",
+            },
+            {
+              q: "Sur quelles données est-ce basé ?",
+              a: "L’outil s’appuie sur des références sectorielles publiques. Méthode transparente : hypothèses et benchmarks sont affichés dans le rapport.",
+            },
+          ],
+        },
+      };
+
+      /* ═══════════════════════════════════════════════════════════════════════════
          SECTION 7: PAGES
-         
+
          → PageHome      : Landing page avec sections marketing + CTA
          → PageMethod    : Explication de la méthodologie
          → PageExample   : Exemple de rapport (avec fake data)
          → PagePro       : Offre pour les professionnels
          → RestoreBanner : Bannière de reprise de session
-         
+
          Toutes les pages reçoivent navigate() pour le routing.
          ═══════════════════════════════════════════════════════════════════════════ */
 
       const PageHome = ({ navigate }) => (
           <div className="fade-in">
-              {/* SECTION 1 - HERO */}
+
+              {/* HERO */}
               <section className="relative overflow-hidden bg-gradient-to-b from-[#F8FBFF] via-white to-[#FFF9F1] py-16 lg:py-24">
-  {/* Halo visuel doux */}
-  <div className="absolute inset-0 pointer-events-none">
-    <div className="absolute top-10 left-[8%] w-72 h-72 rounded-full bg-[#F5E7CF] opacity-35 blur-3xl" />
-    <div className="absolute bottom-8 right-[10%] w-72 h-72 rounded-full bg-[#DCEBFF] opacity-45 blur-3xl" />
-  </div>
-
-  <div className="relative max-w-6xl mx-auto px-4 grid md:grid-cols-2 gap-10 lg:gap-14 items-center">
-    <div className="relative">
-      <div className="inline-flex items-center gap-2 bg-white/85 backdrop-blur border border-[#E9D8B5] rounded-full px-4 py-1.5 text-xs font-semibold text-[#1E3A5F] mb-6 shadow-sm">
-        <Icon icon="solar:bolt-circle-linear" className="text-sm text-[#2ECC71]" />
-        Pré-diagnostic tertiaire gratuit
-      </div>
-
-      <h1 className="text-3xl md:text-4xl lg:text-5xl tracking-tight font-semibold text-slate-900 leading-[1.05] mb-5">
-        Estimez rapidement la performance énergétique de votre bâtiment tertiaire
-      </h1>
-
-      <p className="text-base lg:text-lg text-slate-600 leading-relaxed mb-7 max-w-xl">
-        Obtenez une estimation claire, des économies potentielles et des actions prioritaires en quelques minutes.
-      </p>
-
-      <ul className="space-y-3 mb-8">
-        {[
-          "Classe énergétique estimée adaptée au tertiaire",
-          "Économies potentielles et priorités de travaux",
-          "Rapport PDF exportable pour décider plus vite"
-        ].map((item, i) => (
-          <li key={i} className="flex items-start gap-2.5 text-sm text-slate-700">
-            <Icon icon="solar:check-circle-bold" className="text-base text-[#2ECC71] mt-0.5 shrink-0" />
-            <span>{item}</span>
-          </li>
-        ))}
-      </ul>
-
-      <div className="flex flex-col sm:flex-row gap-3 mb-4">
-        <button
-          type="button"
-          onClick={() => navigate('diagnostic')}
-          className="bg-[#1E3A5F] text-white px-6 py-3.5 rounded-xl text-sm font-semibold hover:bg-[#162B47] shadow-sm hover:shadow-md transition-all inline-flex items-center justify-center gap-2"
-        >
-          Lancer le diagnostic
-          <Icon icon="solar:arrow-right-linear" className="text-base" />
-        </button>
-
-        <button
-          type="button"
-          onClick={() => navigate('exemple')}
-          className="bg-white/90 backdrop-blur border border-slate-300 text-slate-700 px-6 py-3.5 rounded-xl text-sm font-semibold hover:bg-white transition-all"
-        >
-          Voir un exemple de rapport
-        </button>
-      </div>
-
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-slate-500">
-        <span className="flex items-center gap-1">
-          <Icon icon="solar:check-read-linear" className="text-sm text-[#2ECC71]" />
-          Gratuit
-        </span>
-        <span className="flex items-center gap-1">
-          <Icon icon="solar:check-read-linear" className="text-sm text-[#2ECC71]" />
-          Sans engagement
-        </span>
-        <span className="flex items-center gap-1">
-          <Icon icon="solar:check-read-linear" className="text-sm text-[#2ECC71]" />
-          Rapport PDF
-        </span>
-      </div>
-
-      {/* Micro-copy humaine */}
-      <p className="text-xs sm:text-sm text-slate-600 mt-3 leading-relaxed">
-        Un premier niveau de lecture fiable pour décider vite, sans avancer à l’aveugle.
-      </p>
-    </div>
-
-    <div className="md:block">
-      <div className="relative rounded-2xl border border-slate-200/80 bg-white/95 backdrop-blur p-5 shadow-xl shadow-slate-200/60">
-        {/* Accent visuel chaud discret */}
-        <div className="absolute -top-3 -left-3 w-16 h-16 rounded-2xl bg-[#F5E7CF] opacity-70 blur-xl pointer-events-none" />
-
-        <div className="flex items-start justify-between gap-3 mb-4">
-          <div>
-            <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Synthèse estimée</p>
-            <p className="text-sm font-semibold text-slate-900">Bureau • 450 m²</p>
-          </div>
-          <div className="rounded-full bg-[#FFF4DF] text-[#1E3A5F] text-xs font-semibold px-3 py-1 border border-[#F0DFC0]">
-            Rapport
-          </div>
-        </div>
-
-        <div className="grid grid-cols-[auto_1fr] gap-3 items-center mb-4">
-          <div className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-semibold border border-[#F0E4C8] shadow-sm" style={{ backgroundColor: '#FFF4DF' }}>
-            <span style={{ color: '#1E3A5F' }}>D</span>
-          </div>
-          <div>
-            <p className="text-sm font-semibold text-slate-900">Classe estimée : D</p>
-            <p className="text-xs text-slate-500">245 kWh/m²/an • ordre de grandeur</p>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-slate-200 p-3 mb-3 bg-gradient-to-r from-[#F7FBF8] to-white">
-          <p className="text-xs text-slate-500 mb-1">Économies potentielles</p>
-          <p className="text-sm font-semibold text-[#2ECC71]">≈ 3 600 € / an</p>
-        </div>
-
-        <div className="space-y-2">
-          {[
-            { label: "Régulation / pilotage", value: "ROI estimé 2 à 4 ans", dot: "#0891B2" },
-            { label: "Isolation toiture", value: "Priorité forte", dot: "#F39C12" },
-            { label: "Relamping LED", value: "Gain rapide", dot: "#2ECC71" }
-          ].map((row, i) => (
-            <div
-              key={i}
-              className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 hover:border-slate-300 hover:shadow-sm transition-all"
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: row.dot }} />
-                <span className="text-xs font-medium text-slate-700 truncate">{row.label}</span>
-              </div>
-              <span className="text-[11px] text-slate-500 whitespace-nowrap">{row.value}</span>
-            </div>
-          ))}
-        </div>
-
-        <div className="absolute -top-2 -right-2 bg-[#1E3A5F] text-white text-[11px] font-semibold px-2.5 py-1 rounded-full shadow">
-          En quelques minutes
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-              {/* SECTION 2 - SEGMENTATION PROFILS + PREUVES */}
-{/* SECTION 2 - POUR QUI + CE QUE VOUS OBTENEZ */}
-<section className="bg-[#FFFCF6] py-12 border-y border-[#F1E8D8]">
-    <div className="max-w-6xl mx-auto px-4">
-
-    {/* POUR QUI ? */}
-    <div className="mb-10">
-      <div className="flex items-center justify-between gap-3 mb-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Pour qui ?</p>
-          <h2 className="text-xl md:text-2xl tracking-tight font-semibold text-slate-900">
-            Un pré-diagnostic utile pour décider vite
-          </h2>
-        </div>
-      </div>
-
-      <div className="grid sm:grid-cols-3 gap-3">
-        {[
-          {
-            title: "Propriétaire",
-            icon: "solar:buildings-2-linear",
-            desc: "Évaluez rapidement votre actif et priorisez les travaux.",
-            color: "#1E3A5F"
-          },
-          {
-            title: "Locataire exploitant",
-            icon: "solar:briefcase-linear",
-            desc: "Objectivez vos surcoûts pour préparer la discussion.",
-            color: "#F39C12"
-          },
-          {
-            title: "Professionnel",
-            icon: "solar:case-round-minimalistic-linear",
-            desc: "Cadrez un besoin client avant audit ou devis.",
-            color: "#2ECC71"
-          }
-        ].map((item, i) => (
-          <div
-            key={i}
-            className="rounded-xl border border-slate-200/80 bg-white px-4 py-4 flex items-start gap-3 hover:border-slate-300 hover:shadow-sm transition-all"
-          >
-            <div
-              className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0"
-              style={{ backgroundColor: `${item.color}15` }}
-            >
-              <Icon icon={item.icon} className="text-[20px]" style={{ color: item.color }} />
-            </div>
-
-            <div>
-              <p className="text-sm font-semibold text-slate-900">{item.title}</p>
-              <p className="text-xs text-slate-600 leading-relaxed mt-1">{item.desc}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-
-    {/* CE QUE VOUS OBTENEZ */}
-    <div>
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Ce que vous obtenez</p>
-          <h2 className="text-xl md:text-2xl tracking-tight font-semibold text-slate-900">
-            Un résultat clair, orienté décision
-          </h2>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => navigate('exemple')}
-          className="text-sm text-[#1E3A5F] font-semibold hover:underline inline-flex items-center gap-1"
-        >
-          Voir un exemple de rapport
-          <Icon icon="solar:arrow-right-linear" className="text-sm" />
-        </button>
-      </div>
-
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          {
-            icon: "solar:chart-square-linear",
-            color: "#1E3A5F",
-            title: "Classe énergétique estimée",
-            desc: "Positionnement adapté au tertiaire."
-          },
-          {
-            icon: "solar:wallet-money-linear",
-            color: "#2ECC71",
-            title: "Économies potentielles",
-            desc: "Ordres de grandeur en € / an."
-          },
-          {
-            icon: "solar:clipboard-list-linear",
-            color: "#F39C12",
-            title: "Actions prioritaires",
-            desc: "Travaux à traiter en premier."
-          },
-          {
-            icon: "solar:document-text-linear",
-            color: "#0891B2",
-            title: "Rapport PDF exportable",
-            desc: "Partageable avec propriétaire ou conseil."
-          }
-        ].map((card, i) => (
-          <div
-            key={i}
-            className="rounded-2xl border border-slate-200 bg-white p-4 hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
-          >
-            <div
-              className="w-10 h-10 rounded-lg flex items-center justify-center mb-3"
-              style={{ backgroundColor: `${card.color}15` }}
-            >
-              <Icon icon={card.icon} className="text-[20px]" style={{ color: card.color }} />
-            </div>
-
-            <h3 className="text-sm font-semibold text-slate-900 mb-1.5 leading-snug">{card.title}</h3>
-            <p className="text-xs text-slate-600 leading-relaxed">{card.desc}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-
-  </div>
-</section>
-
-              {/* SECTION 3 - POURQUOI C'EST CRÉDIBLE */}
-<section className="bg-[#F6FAFF] py-16">
-  <div className="max-w-6xl mx-auto px-4">
-    <div className="text-center mb-8">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
-        Pourquoi c’est crédible
-      </p>
-      <h2 className="text-2xl md:text-3xl tracking-tight font-semibold text-slate-900">
-        Un cadre clair pour une estimation utile
-      </h2>
-      <p className="text-sm text-slate-600 mt-2 max-w-3xl mx-auto">
-        DiagTertiaire fournit un pré-diagnostic orienté décision. Il aide à cadrer rapidement un sujet énergie avant audit, devis ou travaux.
-      </p>
-    </div>
-
-    <div className="grid lg:grid-cols-3 gap-4">
-      {[
-        {
-          icon: "solar:database-linear",
-          color: "#0891B2",
-          title: "Références",
-          bullets: [
-            "Basé sur des références sectorielles publiques",
-            "Benchmarks tertiaires et repères ADEME",
-            "Estimation construite pour orienter une décision"
-          ]
-        },
-        {
-          icon: "solar:shield-check-linear",
-          color: "#1E3A5F",
-          title: "Cadre de l’outil",
-          bullets: [
-            "Ce que c’est : un pré-diagnostic directionnel",
-            "Ce que ce n’est pas : audit réglementaire, devis ou DPE opposable",
-            "Étape suivante : validation technique terrain si vous passez à l’action"
-          ]
-        },
-        {
-          icon: "solar:case-round-minimalistic-linear",
-          color: "#2ECC71",
-          title: "Usage concret",
-          bullets: [
-            "Prioriser les actions à impact",
-            "Objectiver une discussion locataire / propriétaire",
-            "Préparer un audit, un devis ou un plan de travaux"
-          ]
-        }
-      ].map((card, i) => (
-        <div key={i} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all duration-200">
-          <div
-            className="w-11 h-11 rounded-xl flex items-center justify-center mb-3"
-            style={{ backgroundColor: `${card.color}15` }}
-          >
-            <Icon icon={card.icon} className="text-[20px]" style={{ color: card.color }} />
-          </div>
-
-          <h3 className="text-sm font-semibold text-slate-900 mb-3">{card.title}</h3>
-
-          <ul className="space-y-2">
-            {card.bullets.map((item, j) => (
-              <li key={j} className="flex items-start gap-2 text-xs text-slate-600 leading-relaxed">
-                <Icon icon="solar:check-circle-bold" className="text-sm mt-0.5 shrink-0" style={{ color: card.color }} />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
-    </div>
-
-    <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-7">
-      <button
-        type="button"
-        onClick={() => navigate('diagnostic')}
-        className="bg-[#1E3A5F] text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#162B47] transition-colors"
-      >
-        Lancer le diagnostic
-      </button>
-
-      <button
-        type="button"
-        onClick={() => navigate('methode')}
-        className="text-sm text-[#1E3A5F] font-semibold hover:underline inline-flex items-center gap-1"
-      >
-        Découvrir notre approche
-        <Icon icon="solar:arrow-right-linear" className="text-sm" />
-      </button>
-    </div>
-  </div>
-</section>
-
-              {/* SECTION 4 - SOLUTION */}
-             {/* SECTION 4 - EXEMPLE DE RAPPORT */}
-<section className="bg-white py-18 md:py-20">
-  <div className="max-w-6xl mx-auto px-4">
-    <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-4 mb-6">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
-          Exemple de rapport
-        </p>
-        <h2 className="text-2xl md:text-3xl tracking-tight font-semibold text-slate-900">
-          Voyez le livrable avant de lancer le diagnostic
-        </h2>
-        <p className="text-sm text-slate-600 mt-2 max-w-2xl">
-          Le rapport vous aide à comprendre rapidement où agir, combien vous pouvez économiser et comment prioriser.
-        </p>
-      </div>
-
-      <div className="flex flex-col sm:flex-row gap-2">
-        <button
-          type="button"
-          onClick={() => navigate('exemple')}
-          className="bg-white border border-slate-300 text-slate-700 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors"
-        >
-          Voir un exemple de rapport
-        </button>
-
-        <button
-          type="button"
-          onClick={() => navigate('diagnostic')}
-          className="bg-[#1E3A5F] text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#162B47] transition-colors inline-flex items-center justify-center gap-2"
-        >
-          Lancer le diagnostic
-          <Icon icon="solar:arrow-right-linear" className="text-sm" />
-        </button>
-      </div>
-    </div>
-
-    <div className="grid lg:grid-cols-[1.15fr_0.85fr] gap-6 items-start">
-      {/* Aperçu visuel */}
-      <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-white to-slate-50 p-5 shadow-sm">
-        <div className="flex items-center justify-between gap-3 mb-4">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Aperçu du rapport PDF</p>
-            <p className="text-sm font-semibold text-slate-900">Synthèse énergétique • Version exemple</p>
-          </div>
-          <span className="text-[11px] font-semibold text-[#1E3A5F] bg-[#EEF2FF] border border-[#1E3A5F]/15 px-2.5 py-1 rounded-full">
-            Exportable
-          </span>
-        </div>
-
-        <div className="rounded-xl border border-slate-200 bg-white p-4 mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-14 h-14 rounded-xl flex items-center justify-center border border-slate-200 bg-[#FFCC00]/30">
-              <span className="text-2xl font-semibold text-[#1E3A5F]">D</span>
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-slate-900">Classe énergétique estimée</p>
-              <p className="text-xs text-slate-500">245 kWh/m²/an • référence tertiaire</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid sm:grid-cols-2 gap-3 mb-4">
-          <div className="rounded-xl border border-slate-200 bg-white p-3">
-            <p className="text-xs text-slate-500 mb-1">Économies potentielles</p>
-            <p className="text-sm font-semibold text-[#2ECC71]">≈ 3 600 € / an</p>
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-3">
-            <p className="text-xs text-slate-500 mb-1">Temps de retour cible</p>
-            <p className="text-sm font-semibold text-slate-900">2 à 5 ans</p>
-          </div>
-        </div>
-
-        <div className="rounded-xl border border-slate-200 bg-white p-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Actions prioritaires</p>
-          <div className="space-y-2">
-            {[
-              { label: "Régulation / pilotage", meta: "ROI rapide", color: "#0891B2" },
-              { label: "Relamping LED", meta: "Gain immédiat", color: "#2ECC71" },
-              { label: "Isolation toiture", meta: "Impact structurel", color: "#F39C12" }
-            ].map((row, i) => (
-              <div key={i} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 px-3 py-2">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: row.color }} />
-                  <span className="text-xs font-medium text-slate-700 truncate">{row.label}</span>
+                <div className="absolute inset-0 pointer-events-none">
+                  <div className="absolute top-10 left-[8%] w-72 h-72 rounded-full bg-[#F5E7CF] opacity-35 blur-3xl" />
+                  <div className="absolute bottom-8 right-[10%] w-72 h-72 rounded-full bg-[#DCEBFF] opacity-45 blur-3xl" />
                 </div>
-                <span className="text-[11px] text-slate-500 whitespace-nowrap">{row.meta}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
 
-      {/* Bullet points de preuve */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-5">
-        <p className="text-sm font-semibold text-slate-900 mb-3">
-          Ce que contient le rapport
-        </p>
+                <div className="relative max-w-6xl mx-auto px-4 grid md:grid-cols-2 gap-10 lg:gap-14 items-center">
+                  <div>
+                    <h1 className="text-3xl md:text-4xl lg:text-5xl tracking-tight font-semibold text-slate-900 leading-[1.05] mb-4">
+                      {COPY.home.h1}
+                    </h1>
 
-        <ul className="space-y-2.5 mb-5">
-          {[
-            "Une estimation de performance adaptée au tertiaire",
-            "Des économies potentielles et ordres de grandeur de gains",
-            "Des priorités d'action pour cadrer un audit, un devis ou des travaux"
-          ].map((item, i) => (
-            <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
-              <Icon icon="solar:check-circle-bold" className="text-base text-[#2ECC71] mt-0.5 shrink-0" />
-              <span>{item}</span>
-            </li>
-          ))}
-        </ul>
+                    <p className="text-base lg:text-lg text-slate-600 leading-relaxed mb-5">
+                      {COPY.home.subtitle}
+                    </p>
 
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 mb-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Usage concret</p>
-          <p className="text-sm text-slate-700 leading-relaxed">
-            Idéal pour objectiver une discussion entre locataire, propriétaire, expert-comptable, bureau d’études ou artisan.
-          </p>
-        </div>
+                    {/* Badges */}
+                    <div className="flex flex-wrap gap-2 mb-6">
+                      {COPY.home.badges.map((b, i) => (
+                        <span key={i} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border ${i === 2 ? 'bg-[#FFF4DF] border-[#F0DFC0] text-amber-800' : 'bg-[#EEF2FF] border-[#1E3A5F]/15 text-[#1E3A5F]'}`}>
+                          <Icon icon={i === 2 ? 'solar:letter-linear' : 'solar:check-read-linear'} className="text-sm" />
+                          {b}
+                        </span>
+                      ))}
+                    </div>
 
-        <div className="flex flex-col gap-2">
-          <button
-            type="button"
-            onClick={() => navigate('exemple')}
-            className="w-full bg-white border border-slate-300 text-slate-700 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors"
-          >
-            Voir un exemple de rapport
-          </button>
-
-          <button
-            type="button"
-            onClick={() => navigate('diagnostic')}
-            className="w-full bg-[#1E3A5F] text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#162B47] transition-colors"
-          >
-            Lancer le diagnostic
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-              {/* SECTION 5 - COMMENT ÇA MARCHE */}
-              {/* SECTION 5 - COMMENT ÇA MARCHE */}
-<section className="bg-[#F8F9FA] py-14">
-  <div className="max-w-6xl mx-auto px-4">
-    <div className="text-center mb-8">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
-        Comment ça marche
-      </p>
-      <h2 className="text-2xl md:text-3xl tracking-tight font-semibold text-slate-900">
-        Un parcours simple en 3 étapes
-      </h2>
-      <p className="text-sm text-slate-600 mt-2">
-        En quelques minutes • Sans engagement
-      </p>
-    </div>
-
-    <div className="grid md:grid-cols-3 gap-4">
-      {[
-        {
-          step: "01",
-          icon: "solar:buildings-2-linear",
-          title: "Je renseigne mon bâtiment",
-          desc: "Type de local, surface, usage, énergie, équipements."
-        },
-        {
-          step: "02",
-          icon: "solar:chart-square-linear",
-          title: "J’obtiens une estimation",
-          desc: "Classe estimée, économies potentielles et priorités."
-        },
-        {
-          step: "03",
-          icon: "solar:document-text-linear",
-          title: "Je reçois un rapport PDF",
-          desc: "Un livrable exportable et partageable pour décider."
-        }
-      ].map((item, i) => (
-        <div
-          key={i}
-          className="relative rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div
-              className="w-11 h-11 rounded-xl flex items-center justify-center"
-              style={{ backgroundColor: '#1E3A5F15' }}
-            >
-              <Icon icon={item.icon} className="text-[20px] text-[#1E3A5F]" />
-            </div>
-
-            <span className="text-xs font-semibold text-slate-400">
-              {item.step}
-            </span>
-          </div>
-
-          <h3 className="text-sm font-semibold text-slate-900 mb-1.5">
-            {item.title}
-          </h3>
-          <p className="text-xs text-slate-600 leading-relaxed">
-            {item.desc}
-          </p>
-        </div>
-      ))}
-    </div>
-
-    <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-7">
-      <button
-        type="button"
-        onClick={() => navigate('diagnostic')}
-        className="bg-[#1E3A5F] text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#162B47] transition-colors"
-      >
-        Lancer le diagnostic
-      </button>
-
-      <button
-        type="button"
-        onClick={() => navigate('exemple')}
-        className="text-sm text-[#1E3A5F] font-semibold hover:underline inline-flex items-center gap-1"
-      >
-        Voir un exemple de rapport
-        <Icon icon="solar:arrow-right-linear" className="text-sm" />
-      </button>
-    </div>
-  </div>
-</section>
-              {/* SECTION 6 - CE QUE VOUS RECEVEZ */}
-              <section className="bg-[#F6FAFF] py-16">
-                  <div className="max-w-6xl mx-auto px-4">
-                      <SectionTitle sub="Un livrable concret pour décider sans avancer à l’aveugle">Ce que contient votre rapport</SectionTitle>
-                      <div className="grid md:grid-cols-2 gap-6">
-                          {[
-                              {title:'Votre classe énergétique estimée', desc:'Jauge A à G avec votre position et comparaison vs référence sectorielle'},
-                              {title:'Vos 3 actions prioritaires', desc:'Pour chaque action : gain annuel en €, coût des travaux, ROI en années, aides mobilisables'},
-                              {title:"Votre plan d'action sur 3 mois", desc:'Étapes concrètes pour passer du diagnostic à la réalisation'},
-                              {title:'Économies estimées sur 5 et 10 ans', desc:'Projection financière avec et sans travaux pour arbitrer vos investissements'},
-                          ].map((r, i) => (
-                              <div key={i} className="flex items-start gap-4 p-5 rounded-2xl border border-slate-200 bg-white hover:border-[#1E3A5F]/25 hover:shadow-md transition-all duration-200">
-                                  <div className="w-12 h-12 rounded-lg bg-[#1E3A5F]/10 flex items-center justify-center flex-shrink-0">
-                                      <iconify-icon icon="solar:document-text-linear" style={{fontSize:'24px', color:'#1E3A5F'}}></iconify-icon>
-                                  </div>
-                                  <div>
-                                      <h3 className="text-sm font-semibold text-slate-900 mb-1">{r.title}</h3>
-                                      <p className="text-xs text-slate-600 leading-relaxed">{r.desc}</p>
-                                  </div>
-                              </div>
-                          ))}
+                    {/* Segmentation */}
+                    <div className="grid sm:grid-cols-2 gap-3 mb-6">
+                      <div className="rounded-xl border border-[#1E3A5F]/20 bg-[#EEF2FF] px-4 py-3">
+                        <p className="text-xs font-semibold text-[#1E3A5F] mb-1">{COPY.home.segmentation.ownerLabel}</p>
+                        <p className="text-xs text-slate-700 leading-snug">{COPY.home.segmentation.ownerDesc}</p>
                       </div>
-
-                      <div className="mt-8 rounded-2xl border border-[#EADFC8] bg-gradient-to-r from-[#FFF6E8] to-white p-5 flex items-start gap-3 shadow-sm">
-                          <iconify-icon icon="solar:lightbulb-linear" style={{fontSize:'24px', color:'#F39C12', flexShrink:0}} />
-                          <div>
-                              <p className="text-sm font-bold text-amber-900 mb-1">Sachez si ça vaut le coup</p>
-                              <p className="text-xs text-amber-700">Avant d'investir 800 à 1 500 € dans un audit complet, notre diagnostic vous donne les clés pour décider en connaissance de cause.</p>
-                          </div>
+                      <div className="rounded-xl border border-amber-200 bg-[#FFF8EE] px-4 py-3">
+                        <p className="text-xs font-semibold text-amber-800 mb-1">{COPY.home.segmentation.tenantLabel}</p>
+                        <p className="text-xs text-slate-700 leading-snug">{COPY.home.segmentation.tenantDesc}</p>
                       </div>
+                    </div>
 
-                      <div className="text-center mt-8">
-                          <button type="button" onClick={() => navigate('diagnostic')} className="bg-[#1E3A5F] text-white px-8 py-4 rounded-xl text-base font-semibold hover:bg-[#162B47] shadow-lg transition-all inline-flex items-center gap-2">
-                              Lancer le diagnostic <Icon icon="solar:arrow-right-linear" className="text-base" />
-                          </button>
-                      </div>
+                    {/* CTAs */}
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <button
+                        type="button"
+                        onClick={() => navigate('diagnostic')}
+                        className="bg-[#1E3A5F] text-white px-6 py-3.5 rounded-xl text-sm font-semibold hover:bg-[#162B47] shadow-sm hover:shadow-md transition-all inline-flex items-center justify-center gap-2"
+                      >
+                        {COPY.cta.primary}
+                        <Icon icon="solar:arrow-right-linear" className="text-base" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => navigate('exemple')}
+                        className="bg-white/90 backdrop-blur border border-slate-300 text-slate-700 px-6 py-3.5 rounded-xl text-sm font-semibold hover:bg-white transition-all"
+                      >
+                        {COPY.cta.secondaryHome}
+                      </button>
+                    </div>
                   </div>
+
+                  {/* Preview card */}
+                  <div className="md:block">
+                    <div className="relative rounded-2xl border border-slate-200/80 bg-white/95 backdrop-blur p-5 shadow-xl shadow-slate-200/60">
+                      <div className="absolute -top-3 -left-3 w-16 h-16 rounded-2xl bg-[#F5E7CF] opacity-70 blur-xl pointer-events-none" />
+                      <div className="flex items-start justify-between gap-3 mb-4">
+                        <div>
+                          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Synthèse estimée</p>
+                          <p className="text-sm font-semibold text-slate-900">Bureau • 450 m²</p>
+                        </div>
+                        <div className="rounded-full bg-[#FFF4DF] text-[#1E3A5F] text-xs font-semibold px-3 py-1 border border-[#F0DFC0]">Rapport</div>
+                      </div>
+                      <div className="grid grid-cols-[auto_1fr] gap-3 items-center mb-4">
+                        <div className="w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-semibold border border-[#F0E4C8] shadow-sm" style={{ backgroundColor: '#FFF4DF' }}>
+                          <span style={{ color: '#1E3A5F' }}>D</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900">Classe estimée : D</p>
+                          <p className="text-xs text-slate-500">245 kWh/m²/an • ordre de grandeur</p>
+                        </div>
+                      </div>
+                      <div className="rounded-xl border border-slate-200 p-3 mb-3 bg-gradient-to-r from-[#F7FBF8] to-white">
+                        <p className="text-xs text-slate-500 mb-1">Économies potentielles</p>
+                        <p className="text-sm font-semibold text-[#2ECC71]">≈ 3 600 € / an</p>
+                      </div>
+                      <div className="space-y-2">
+                        {[
+                          { label: "Régulation / pilotage", value: "ROI estimé 2 à 4 ans", dot: "#0891B2" },
+                          { label: "Isolation toiture", value: "Priorité forte", dot: "#F39C12" },
+                          { label: "Relamping LED", value: "Gain rapide", dot: "#2ECC71" }
+                        ].map((row, i) => (
+                          <div key={i} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: row.dot }} />
+                              <span className="text-xs font-medium text-slate-700 truncate">{row.label}</span>
+                            </div>
+                            <span className="text-[11px] text-slate-500 whitespace-nowrap">{row.value}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="absolute -top-2 -right-2 bg-[#1E3A5F] text-white text-[11px] font-semibold px-2.5 py-1 rounded-full shadow">
+                        En quelques minutes
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </section>
 
-              {/* SECTION 7 - PROFESSIONNELS */}
-<section className="bg-[#FFFCF6] py-16">
-  <div className="max-w-6xl mx-auto px-4">
-    <div className="rounded-2xl border border-[#E6DCC7] bg-gradient-to-br from-white to-[#FFF7EA] p-6 md:p-7 shadow-sm">
-      <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-6 items-start">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-700 mb-1">
-            Espace Pro
-          </p>
-          <h2 className="text-2xl md:text-3xl tracking-tight font-semibold text-slate-900 mb-2">
-            Vous êtes un professionnel ?
-          </h2>
-          <p className="text-sm text-slate-600 leading-relaxed max-w-xl">
-            Utilisez DiagTertiaire comme outil d’entrée de discussion pour cadrer un besoin client avant audit, devis ou accompagnement.
-          </p>
-
-          <div className="grid sm:grid-cols-3 gap-3 mt-5">
-            {[
-              {
-                icon: "solar:documents-linear",
-                title: "Multi-dossiers",
-                desc: "Traitez plusieurs clients rapidement."
-              },
-              {
-                icon: "solar:document-text-linear",
-                title: "PDF personnalisable",
-                desc: "Livrable prêt à partager."
-              },
-              {
-                icon: "solar:tag-price-linear",
-                title: "Usage marque blanche",
-                desc: "Version pro pour votre activité."
-              }
-            ].map((item, i) => (
-              <div key={i} className="rounded-xl border border-slate-200 bg-white p-4 hover:border-slate-300 hover:shadow-sm transition-all duration-200">
-                <div className="w-9 h-9 rounded-lg bg-[#1E3A5F]/10 flex items-center justify-center mb-2">
-                  <Icon icon={item.icon} className="text-[18px] text-[#1E3A5F]" />
+              {/* CE QUE VOUS OBTENEZ */}
+              <section className="bg-[#FFFCF6] py-12 border-y border-[#F1E8D8]">
+                <div className="max-w-6xl mx-auto px-4">
+                  <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Ce que vous obtenez</p>
+                      <h2 className="text-xl md:text-2xl tracking-tight font-semibold text-slate-900">Un résultat orienté décision</h2>
+                    </div>
+                    <button type="button" onClick={() => navigate('exemple')}
+                      className="text-sm text-[#1E3A5F] font-semibold hover:underline inline-flex items-center gap-1">
+                      {COPY.cta.secondaryHome}
+                      <Icon icon="solar:arrow-right-linear" className="text-sm" />
+                    </button>
+                  </div>
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[
+                      { icon: "solar:chart-square-linear", color: "#1E3A5F" },
+                      { icon: "solar:database-linear", color: "#0891B2" },
+                      { icon: "solar:clipboard-list-linear", color: "#F39C12" },
+                      { icon: "solar:document-text-linear", color: "#2ECC71" },
+                    ].map((card, i) => (
+                      <div key={i} className="rounded-2xl border border-slate-200 bg-white p-4 hover:border-slate-300 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200">
+                        <div className="w-10 h-10 rounded-lg flex items-center justify-center mb-3" style={{ backgroundColor: `${card.color}15` }}>
+                          <Icon icon={card.icon} className="text-[20px]" style={{ color: card.color }} />
+                        </div>
+                        <p className="text-sm font-semibold text-slate-900 leading-snug">{COPY.home.sections.getResults[i]}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <p className="text-sm font-semibold text-slate-900">{item.title}</p>
-                <p className="text-xs text-slate-600 mt-1 leading-relaxed">{item.desc}</p>
-              </div>
-            ))}
+              </section>
+
+              {/* COMMENT ÇA MARCHE */}
+              <section className="bg-[#F8F9FA] py-14">
+                <div className="max-w-6xl mx-auto px-4">
+                  <div className="text-center mb-8">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Comment ça marche</p>
+                    <h2 className="text-2xl md:text-3xl tracking-tight font-semibold text-slate-900">4 étapes, 3 minutes</h2>
+                  </div>
+                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {COPY.home.sections.howItWorks.map((item, i) => (
+                      <div key={i} className="relative rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#1E3A5F15' }}>
+                            <Icon icon={item.icon} className="text-[20px] text-[#1E3A5F]" />
+                          </div>
+                          <span className="text-xs font-semibold text-slate-400">{String(i + 1).padStart(2, '0')}</span>
+                        </div>
+                        <p className="text-sm font-semibold text-slate-900 leading-snug">{item.title}</p>
+                        {i === 1 && (
+                          <p className="text-[11px] text-amber-700 bg-[#FFF8EE] border border-amber-100 rounded px-2 py-1 mt-2">
+                            Requis pour recevoir le rapport
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-7">
+                    <button type="button" onClick={() => navigate('diagnostic')}
+                      className="bg-[#1E3A5F] text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#162B47] transition-colors">
+                      {COPY.cta.primary}
+                    </button>
+                    <button type="button" onClick={() => navigate('exemple')}
+                      className="text-sm text-[#1E3A5F] font-semibold hover:underline inline-flex items-center gap-1">
+                      {COPY.cta.secondaryHome}
+                      <Icon icon="solar:arrow-right-linear" className="text-sm" />
+                    </button>
+                  </div>
+                </div>
+              </section>
+
+              {/* À QUOI ÇA SERT + LIMITES */}
+              <section className="bg-white py-14">
+                <div className="max-w-6xl mx-auto px-4">
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div className="rounded-2xl border border-slate-200 bg-[#F6FAFF] p-6">
+                      <h2 className="text-base font-semibold text-[#1E3A5F] mb-4">{COPY.home.sections.useCasesTitle}</h2>
+                      <ul className="space-y-2.5">
+                        {COPY.home.sections.useCases.map((item, i) => (
+                          <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
+                            <Icon icon="solar:check-circle-bold" className="text-base text-[#1E3A5F] mt-0.5 shrink-0" />
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <div className="rounded-2xl border border-amber-200 bg-[#FFF8EE] p-6">
+                      <h2 className="text-base font-semibold text-amber-800 mb-4">{COPY.home.sections.limitsTitle}</h2>
+                      <ul className="space-y-2.5">
+                        {COPY.home.sections.limits.map((item, i) => (
+                          <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
+                            <Icon icon="solar:close-circle-linear" className="text-base text-amber-500 mt-0.5 shrink-0" />
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* FAQ */}
+              <section className="bg-[#F8F9FA] py-14">
+                <div className="max-w-4xl mx-auto px-4">
+                  <div className="text-center mb-6">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">FAQ</p>
+                    <h2 className="text-2xl md:text-3xl tracking-tight font-semibold text-slate-900">Questions fréquentes</h2>
+                  </div>
+                  <div className="space-y-3">
+                    {COPY.home.faq.map((item, i) => (
+                      <details key={i} className="group rounded-xl border border-slate-200 bg-white p-4 open:shadow-sm hover:border-slate-300 transition-all">
+                        <summary className="list-none cursor-pointer flex items-center justify-between gap-3">
+                          <span className="text-sm font-semibold text-slate-900">{item.q}</span>
+                          <span className="shrink-0 text-slate-400 group-open:rotate-45 transition-transform text-lg leading-none">+</span>
+                        </summary>
+                        <p className="text-sm text-slate-600 leading-relaxed mt-2 pr-6">{item.a}</p>
+                      </details>
+                    ))}
+                  </div>
+                </div>
+              </section>
+
+              {/* CTA FINAL */}
+              <section className="bg-white py-16">
+                <div className="max-w-5xl mx-auto px-4">
+                  <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-[#1E3A5F] to-[#162B47] p-6 md:p-8 text-white shadow-lg">
+                    <div className="absolute -top-8 -right-6 w-28 h-28 rounded-full bg-[#F5E7CF] opacity-15 blur-2xl pointer-events-none" />
+                    <div className="absolute -bottom-8 -left-8 w-28 h-28 rounded-full bg-[#DCEBFF] opacity-15 blur-2xl pointer-events-none" />
+                    <div className="text-center">
+                      <h2 className="text-2xl md:text-3xl tracking-tight font-semibold leading-tight mb-3">
+                        {COPY.home.h1}
+                      </h2>
+                      <p className="text-sm text-white/85 max-w-xl mx-auto leading-relaxed mb-6">
+                        {COPY.home.subtitle}
+                      </p>
+                      <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-4">
+                        <button type="button" onClick={() => navigate('diagnostic')}
+                          className="w-full sm:w-auto bg-white text-[#1E3A5F] px-6 py-3 rounded-lg text-sm font-semibold hover:bg-slate-100 transition-colors">
+                          {COPY.cta.primary}
+                        </button>
+                        <button type="button" onClick={() => navigate('exemple')}
+                          className="w-full sm:w-auto border border-white/30 text-white px-6 py-3 rounded-lg text-sm font-semibold hover:bg-white/10 transition-colors">
+                          {COPY.cta.secondaryHome}
+                        </button>
+                      </div>
+                      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-white/75">
+                        {COPY.home.badges.map((b, i) => (
+                          <span key={i} className="inline-flex items-center gap-1">
+                            <Icon icon="solar:check-read-linear" className="text-sm" />
+                            {b}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              {/* PRO — DISCRET */}
+              <section className="bg-[#F8F9FA] py-8 border-t border-slate-200">
+                <div className="max-w-4xl mx-auto px-4 text-center">
+                  <p className="text-sm text-slate-600">
+                    {COPY.home.sections.proTitle}{' '}
+                    <button type="button" onClick={() => navigate('pro')}
+                      className="text-[#1E3A5F] font-semibold hover:underline inline-flex items-center gap-1">
+                      {COPY.home.sections.proLink}
+                      <Icon icon="solar:arrow-right-linear" className="text-sm" />
+                    </button>
+                  </p>
+                </div>
+              </section>
+
           </div>
-        </div>
-
-        <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-slate-900 mb-2">
-            Pour qui ?
-          </p>
-          <ul className="space-y-2 mb-4">
-            {[
-              "Experts-comptables",
-              "Bureaux d’études",
-              "Artisans et installateurs",
-              "Conseils en énergie / immobilier"
-            ].map((item, i) => (
-              <li key={i} className="flex items-center gap-2 text-sm text-slate-700">
-                <Icon icon="solar:check-circle-bold" className="text-sm text-[#2ECC71] shrink-0" />
-                <span>{item}</span>
-              </li>
-            ))}
-          </ul>
-
-          <div className="space-y-2">
-            <button
-              type="button"
-              onClick={() => navigate('pro')}
-              className="w-full bg-[#1E3A5F] text-white px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#162B47] transition-colors"
-            >
-              Découvrir l’espace pro
-            </button>
-
-            <button
-              type="button"
-              onClick={() => navigate('diagnostic')}
-              className="w-full bg-white border border-slate-300 text-slate-700 px-4 py-2.5 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors"
-            >
-              Lancer le diagnostic
-            </button>
-          </div>
-
-          <p className="text-[11px] text-slate-500 mt-3 leading-relaxed">
-            Le flux principal reste le pré-diagnostic gratuit. L’espace pro permet d’aller plus loin côté usage métier.
-          </p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-             {/* SECTION 8 - FAQ */}
-<section className="bg-white py-16">
-  <div className="max-w-4xl mx-auto px-4">
-    <div className="text-center mb-6">
-      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
-        FAQ
-      </p>
-      <h2 className="text-2xl md:text-3xl tracking-tight font-semibold text-slate-900">
-        Questions fréquentes
-      </h2>
-      <p className="text-sm text-slate-600 mt-2">
-        Les réponses essentielles avant de lancer votre pré-diagnostic.
-      </p>
-    </div>
-
-    <div className="space-y-3">
-      {[
-        {
-          q: "Est-ce un audit réglementaire ?",
-          a: "Non. DiagTertiaire est un pré-diagnostic orienté décision. Il aide à cadrer rapidement le sujet avant un audit réglementaire, un devis ou une visite terrain."
-        },
-        {
-          q: "Est-ce gratuit ?",
-          a: "Oui, le pré-diagnostic est gratuit et sans engagement. Vous obtenez une estimation synthétique et un rapport exportable."
-        },
-        {
-          q: "Sur quelles données est-ce basé ?",
-          a: "L’outil s’appuie sur des références sectorielles publiques et des benchmarks tertiaires. Le résultat donne un ordre de grandeur utile pour prioriser."
-        },
-        {
-          q: "Le rapport peut-il être partagé ?",
-          a: "Oui. Le rapport PDF est conçu pour être partagé avec un propriétaire, un locataire exploitant, un expert-comptable, un bureau d’études ou un artisan."
-        }
-      ].map((item, i) => (
-        <details
-          key={i}
-          className="group rounded-xl border border-slate-200 bg-slate-50/60 p-4 open:shadow-sm hover:border-slate-300 transition-all"
-        >
-          <summary className="list-none cursor-pointer flex items-center justify-between gap-3">
-            <span className="text-sm font-semibold text-slate-900">{item.q}</span>
-            <span className="shrink-0 text-slate-400 group-open:rotate-45 transition-transform text-lg leading-none">+</span>
-          </summary>
-          <p className="text-sm text-slate-600 leading-relaxed mt-2 pr-6">
-            {item.a}
-          </p>
-        </details>
-      ))}
-    </div>
-
-    <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-8">
-      <button
-        type="button"
-        onClick={() => navigate('diagnostic')}
-        className="bg-[#1E3A5F] text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#162B47] transition-colors"
-      >
-        Lancer le diagnostic
-      </button>
-
-      <button
-        type="button"
-        onClick={() => navigate('exemple')}
-        className="text-sm text-[#1E3A5F] font-semibold hover:underline inline-flex items-center gap-1"
-      >
-        Voir un exemple de rapport
-        <Icon icon="solar:arrow-right-linear" className="text-sm" />
-      </button>
-    </div>
-  </div>
-</section>
-
-             
-              {/* SECTION 10 - GARANTIES (fusionnée dans "Pourquoi c’est crédible") */}
-
-             {/* SECTION 11 - CTA FINAL */}
-<section className="bg-white py-16">
-  <div className="max-w-5xl mx-auto px-4">
-    <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-gradient-to-br from-[#1E3A5F] to-[#162B47] p-6 md:p-8 text-white shadow-lg">
-  <div className="absolute -top-8 -right-6 w-28 h-28 rounded-full bg-[#F5E7CF] opacity-15 blur-2xl pointer-events-none" />
-  <div className="absolute -bottom-8 -left-8 w-28 h-28 rounded-full bg-[#DCEBFF] opacity-15 blur-2xl pointer-events-none" />
-      <div className="text-center">
-        <p className="text-xs font-semibold uppercase tracking-wide text-white/70 mb-2">
-          Pré-diagnostic tertiaire
-        </p>
-
-        <h2 className="text-2xl md:text-3xl tracking-tight font-semibold leading-tight mb-3">
-          Lancez votre diagnostic en quelques minutes
-        </h2>
-
-        <p className="text-sm md:text-base text-white/85 max-w-2xl mx-auto leading-relaxed">
-          Obtenez une estimation claire, des économies potentielles et un rapport PDF exportable pour décider plus vite.
-        </p>
-
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-6">
-          <button
-            type="button"
-            onClick={() => navigate('diagnostic')}
-            className="w-full sm:w-auto bg-white text-[#1E3A5F] px-6 py-3 rounded-lg text-sm font-semibold hover:bg-slate-100 transition-colors"
-          >
-            Lancer le diagnostic
-          </button>
-
-          <button
-            type="button"
-            onClick={() => navigate('exemple')}
-            className="w-full sm:w-auto border border-white/30 text-white px-6 py-3 rounded-lg text-sm font-semibold hover:bg-white/10 transition-colors"
-          >
-            Voir un exemple de rapport
-          </button>
-        </div>
-
-        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-white/75 mt-4">
-          <span className="inline-flex items-center gap-1">
-            <Icon icon="solar:check-read-linear" className="text-sm" />
-            Gratuit
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <Icon icon="solar:check-read-linear" className="text-sm" />
-            Sans engagement
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <Icon icon="solar:check-read-linear" className="text-sm" />
-            Rapport PDF exportable
-          </span>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-       
-            </div>
       );
+
       const PageMethod = ({ navigate }) => (
         <div className="fade-in bg-[#F8FAFC]">
           <section className="py-14 md:py-18 px-4 bg-gradient-to-b from-white to-[#F3F7FB] border-b border-slate-100">
@@ -4792,7 +4316,7 @@ const PageProDemo = ({ navigate }) => {
                 <h4 className="text-sm font-bold text-white mb-3">Ressources</h4>
                 <ul className="space-y-2">
                   <li><button type="button" className="text-sm text-slate-300 hover:text-white transition-colors">Guide du décret tertiaire</button></li>
-                  <li><button type="button" className="text-sm text-slate-300 hover:text-white transition-colors">Références ADEME</button></li>
+                  <li><button type="button" className="text-sm text-slate-300 hover:text-white transition-colors">Références sectorielles</button></li>
                   <li><button type="button" className="text-sm text-slate-300 hover:text-white transition-colors">Blog</button></li>
                   <li><button type="button" onClick={() => navigate('exemple')} className="text-sm text-slate-300 hover:text-white transition-colors">Exemple de rapport</button></li>
                 </ul>
@@ -4819,7 +4343,7 @@ const PageProDemo = ({ navigate }) => {
             </div>
 
             <div className="pt-5 border-t border-white/10 flex flex-wrap justify-between items-center gap-3">
-              <p className="text-xs text-slate-400">© 2026 DiagTertiaire • Estimations basées sur données ADEME</p>
+              <p className="text-xs text-slate-400">© 2026 DiagTertiaire • Estimations basées sur références sectorielles</p>
               <div className="flex items-center gap-3">
                 {['SSL','RGPD','🇫🇷 FR'].map((b, i) => (
                   <span key={i} className="text-xs text-slate-400 bg-white/5 px-2 py-1 rounded">{b}</span>
