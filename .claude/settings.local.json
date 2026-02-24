@@ -11,7 +11,11 @@
       "Bash(ruby --version)",
       "Bash(perl --version)",
       "Bash(perl -e ':*)",
-      "Bash(perl -e:*)"
+      "Bash(perl -e:*)",
+      "Bash(node -e \":*)",
+      "Bash(powershell -Command \":*)",
+      "Bash(powershell -Command \"[System.IO.File]::ReadAllText\\(''c:/Users/yanni/Documents/GitHub/Diag-tertairev2/index.html'', [System.Text.Encoding]::UTF8\\) | Select-String -Pattern ''faq:'' | Select-Object -First 1\")",
+      "Bash(perl -i -0777 -e ':*)"
     ]
   }
 }

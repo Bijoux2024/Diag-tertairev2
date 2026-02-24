@@ -20,7 +20,8 @@
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
       /* Global & Reset */
-      body { font-family: 'Inter', sans-serif; background-color: #F8F9FA; color: #374151; -webkit-font-smoothing: antialiased; }
+      body { font-family: 'Inter', sans-serif; background-color: #F8F9FA; color: #374151; -webkit-font-smoothing: antialiased; font-size: 17px; line-height: 1.55; }
+      @media (max-width: 768px) { body { font-size: 16px; } }
 
       /* Custom Range Slider */
       input[type=range] { -webkit-appearance: none; appearance: none; background: transparent; }
@@ -3042,7 +3043,7 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
           badges: [
             "Temps estimé 3 minutes",
             "Sans inscription",
-            "Email requis pour recevoir le rapport",
+            "Rapport PDF",
           ],
           segmentation: {
             ownerLabel: "Propriétaire",
@@ -3059,23 +3060,15 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
             ],
             howItWorks: [
               { icon: "solar:buildings-2-linear", title: "Répondez à quelques questions" },
-              { icon: "solar:letter-linear", title: "Renseignez votre email pour recevoir le rapport (et une copie PDF)" },
-              { icon: "solar:eye-linear", title: "Consultez le rapport à l’écran" },
-              { icon: "solar:download-minimalistic-linear", title: "Téléchargez le PDF en fin de diagnostic" },
+              { icon: "solar:chart-square-linear", title: "Nous calculons une estimation structurée" },
+              { icon: "solar:document-text-linear", title: "Recevez le rapport complet et le PDF par email" },
             ],
-            useCasesTitle: "À quoi ça sert",
+            useCasesTitle: "Pourquoi faire ce diagnostic ?",
             useCases: [
-              "Prioriser les 3 premiers leviers",
-              "Arbitrer un budget ou un investissement",
-              "Préparer un audit ciblé",
-              "Structurer un échange propriétaire/locataire",
-            ],
-            limitsTitle: "Limites",
-            limits: [
-              "Pré-diagnostic d’orientation non contractuel",
-              "Pas un audit sur site",
-              "Pas un devis travaux",
-              "À confirmer par visite et devis",
+              "Décider s’il faut aller plus loin (audit, devis, plan d’action)",
+              "Comparer votre niveau à une référence sectorielle",
+              "Identifier les 3 leviers prioritaires (ordre de grandeur)",
+              "Structurer une discussion propriétaire/locataire (charges, travaux)",
             ],
             proTitle: "Vous êtes un professionnel ?",
             proLink: "Accès Espace Pro",
