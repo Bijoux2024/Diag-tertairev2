@@ -3075,20 +3075,16 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
           },
           faq: [
             {
-              q: "Est-ce un audit réglementaire ?",
-              a: "Non. DiagTertiaire est un pré-diagnostic orienté décision. Il aide à cadrer rapidement le sujet avant un audit réglementaire, un devis ou une visite terrain.",
+              q: "Ce diagnostic remplace-t-il un audit ?",
+              a: "Non. Il sert à décider s’il est utile d’aller plus loin. Un audit sur site coûte souvent à partir de 800 € selon le bâtiment et le périmètre.",
             },
             {
-              q: "Est-ce gratuit ?",
-              a: "Oui, le pré-diagnostic est gratuit et sans engagement. Vous obtenez une estimation synthétique et un rapport exportable.",
+              q: "Sur quoi se basent les résultats ?",
+              a: "Sur vos réponses, des références sectorielles, et des hypothèses affichées. C’est un cadrage d’orientation, pas une mesure.",
             },
             {
-              q: "Dois-je fournir mon email ?",
-              a: "Oui. L’email est requis pour recevoir le rapport et la copie PDF. Il n’est pas optionnel.",
-            },
-            {
-              q: "Sur quelles données est-ce basé ?",
-              a: "L’outil s’appuie sur des références sectorielles publiques. Méthode transparente : hypothèses et benchmarks sont affichés dans le rapport.",
+              q: "Que vais-je recevoir par email ?",
+              a: "Un rapport PDF clair, partageable, avec priorités et prochaines étapes.",
             },
           ],
         },
@@ -3129,8 +3125,8 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
                     {/* Badges */}
                     <div className="flex flex-wrap gap-2 mb-6">
                       {COPY.home.badges.map((b, i) => (
-                        <span key={i} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border ${i === 2 ? 'bg-[#FFF4DF] border-[#F0DFC0] text-amber-800' : 'bg-[#EEF2FF] border-[#1E3A5F]/15 text-[#1E3A5F]'}`}>
-                          <Icon icon={i === 2 ? 'solar:letter-linear' : 'solar:check-read-linear'} className="text-sm" />
+                        <span key={i} className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border bg-[#EEF2FF] border-[#1E3A5F]/15 text-[#1E3A5F]">
+                          <Icon icon={i === 2 ? 'solar:document-text-linear' : 'solar:check-read-linear'} className="text-sm" />
                           {b}
                         </span>
                       ))}
@@ -3218,16 +3214,9 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
               {/* CE QUE VOUS OBTENEZ */}
               <section className="bg-[#FFFCF6] py-12 border-y border-[#F1E8D8]">
                 <div className="max-w-6xl mx-auto px-4">
-                  <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Ce que vous obtenez</p>
-                      <h2 className="text-xl md:text-2xl tracking-tight font-semibold text-slate-900">Un résultat orienté décision</h2>
-                    </div>
-                    <button type="button" onClick={() => navigate('exemple')}
-                      className="text-sm text-[#1E3A5F] font-semibold hover:underline inline-flex items-center gap-1">
-                      {COPY.cta.secondaryHome}
-                      <Icon icon="solar:arrow-right-linear" className="text-sm" />
-                    </button>
+                  <div className="mb-6">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Ce que vous obtenez</p>
+                    <h2 className="text-xl md:text-2xl tracking-tight font-semibold text-slate-900">Un résultat orienté décision</h2>
                   </div>
                   <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
                     {[
@@ -3252,11 +3241,11 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
                 <div className="max-w-6xl mx-auto px-4">
                   <div className="text-center mb-8">
                     <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Comment ça marche</p>
-                    <h2 className="text-2xl md:text-3xl tracking-tight font-semibold text-slate-900">4 étapes, 3 minutes</h2>
+                    <h2 className="text-2xl md:text-3xl tracking-tight font-semibold text-slate-900">3 étapes, 3 minutes</h2>
                   </div>
-                  <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="grid sm:grid-cols-3 gap-4 max-w-3xl mx-auto">
                     {COPY.home.sections.howItWorks.map((item, i) => (
-                      <div key={i} className="relative rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                      <div key={i} className="relative rounded-2xl border border-slate-200 bg-white p-5 shadow-sm hover:border-slate-300 hover:shadow-md transition-all duration-200">
                         <div className="flex items-center justify-between mb-4">
                           <div className="w-11 h-11 rounded-xl flex items-center justify-center" style={{ backgroundColor: '#1E3A5F15' }}>
                             <Icon icon={item.icon} className="text-[20px] text-[#1E3A5F]" />
@@ -3264,54 +3253,34 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
                           <span className="text-xs font-semibold text-slate-400">{String(i + 1).padStart(2, '0')}</span>
                         </div>
                         <p className="text-sm font-semibold text-slate-900 leading-snug">{item.title}</p>
-                        {i === 1 && (
-                          <p className="text-[11px] text-amber-700 bg-[#FFF8EE] border border-amber-100 rounded px-2 py-1 mt-2">
-                            Requis pour recevoir le rapport
-                          </p>
-                        )}
                       </div>
                     ))}
                   </div>
-                  <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mt-7">
+                  <div className="flex justify-center mt-7">
                     <button type="button" onClick={() => navigate('diagnostic')}
                       className="bg-[#1E3A5F] text-white px-5 py-2.5 rounded-lg text-sm font-semibold hover:bg-[#162B47] transition-colors">
                       {COPY.cta.primary}
-                    </button>
-                    <button type="button" onClick={() => navigate('exemple')}
-                      className="text-sm text-[#1E3A5F] font-semibold hover:underline inline-flex items-center gap-1">
-                      {COPY.cta.secondaryHome}
-                      <Icon icon="solar:arrow-right-linear" className="text-sm" />
                     </button>
                   </div>
                 </div>
               </section>
 
-              {/* À QUOI ÇA SERT + LIMITES */}
-              <section className="bg-white py-14">
-                <div className="max-w-6xl mx-auto px-4">
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="rounded-2xl border border-slate-200 bg-[#F6FAFF] p-6">
-                      <h2 className="text-base font-semibold text-[#1E3A5F] mb-4">{COPY.home.sections.useCasesTitle}</h2>
-                      <ul className="space-y-2.5">
-                        {COPY.home.sections.useCases.map((item, i) => (
-                          <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
-                            <Icon icon="solar:check-circle-bold" className="text-base text-[#1E3A5F] mt-0.5 shrink-0" />
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div className="rounded-2xl border border-amber-200 bg-[#FFF8EE] p-6">
-                      <h2 className="text-base font-semibold text-amber-800 mb-4">{COPY.home.sections.limitsTitle}</h2>
-                      <ul className="space-y-2.5">
-                        {COPY.home.sections.limits.map((item, i) => (
-                          <li key={i} className="flex items-start gap-2 text-sm text-slate-700">
-                            <Icon icon="solar:close-circle-linear" className="text-base text-amber-500 mt-0.5 shrink-0" />
-                            <span>{item}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
+              {/* POURQUOI FAIRE CE DIAGNOSTIC */}
+              <section className="bg-white py-12">
+                <div className="max-w-3xl mx-auto px-4">
+                  <div className="mb-6 text-center">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">Cas d'usage</p>
+                    <h2 className="text-xl md:text-2xl tracking-tight font-semibold text-slate-900">{COPY.home.sections.useCasesTitle}</h2>
+                  </div>
+                  <div className="rounded-2xl border border-slate-200 bg-[#F6FAFF] p-6">
+                    <ul className="space-y-3">
+                      {COPY.home.sections.useCases.map((item, i) => (
+                        <li key={i} className="flex items-start gap-3 text-sm text-slate-700">
+                          <Icon icon="solar:check-circle-bold" className="text-base text-[#1E3A5F] mt-0.5 shrink-0" />
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 </div>
               </section>
@@ -3350,14 +3319,11 @@ const netGainAfterInvestment10Y = projection10Y - top3NetCostMid;
                       <p className="text-sm text-white/85 max-w-xl mx-auto leading-relaxed mb-6">
                         {COPY.home.subtitle}
                       </p>
-                      <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-4">
+                      <div className="flex justify-center mb-4">
                         <button type="button" onClick={() => navigate('diagnostic')}
-                          className="w-full sm:w-auto bg-white text-[#1E3A5F] px-6 py-3 rounded-lg text-sm font-semibold hover:bg-slate-100 transition-colors">
+                          className="bg-white text-[#1E3A5F] px-8 py-3.5 rounded-xl text-sm font-semibold hover:bg-slate-100 transition-colors inline-flex items-center gap-2 shadow-sm">
                           {COPY.cta.primary}
-                        </button>
-                        <button type="button" onClick={() => navigate('exemple')}
-                          className="w-full sm:w-auto border border-white/30 text-white px-6 py-3 rounded-lg text-sm font-semibold hover:bg-white/10 transition-colors">
-                          {COPY.cta.secondaryHome}
+                          <Icon icon="solar:arrow-right-linear" className="text-base" />
                         </button>
                       </div>
                       <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-white/75">
